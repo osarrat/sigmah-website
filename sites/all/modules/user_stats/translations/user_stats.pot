@@ -1,0 +1,233 @@
+# $Id: user_stats.pot,v 1.1.2.2 2009/02/03 18:59:34 seals Exp $
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  user_stats.module,v 1.2.2.16.2.11 2009/02/01 00:45:17 liammcdermott
+#  user_stats.info,v 1.2.2.3.2.3 2008/11/16 05:17:11 liammcdermott
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-02-03 19:22+0100\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: user_stats.module:62
+msgid "Post count options"
+msgstr ""
+
+#: user_stats.module:69
+msgid "Count posts"
+msgstr ""
+
+#: user_stats.module:70
+msgid "If checked user post counts will be calculated."
+msgstr ""
+
+#: user_stats.module:76
+msgid "Count comments"
+msgstr ""
+
+#: user_stats.module:77
+msgid "If checked user comments counts will be included in the total user post count."
+msgstr ""
+
+#: user_stats.module:87
+msgid "Content types to include in post count"
+msgstr ""
+
+#: user_stats.module:88
+msgid "Select the content types to include in the user post count (hold ctrl or shift to select multiple types). Both nodes and comments will be included in the post count. If you do not select any content types, then all types will be counted."
+msgstr ""
+
+#: user_stats.module:103
+msgid "User stats post count profile field"
+msgstr ""
+
+#: user_stats.module:104
+msgid "This is the profile field that holds the post count for a user. Changing this can be useful if you have multiple sites using the same database (or you just do not like the default field used for post counts). <strong>The default setting should work for most people.</strong>"
+msgstr ""
+
+#: user_stats.module:112
+msgid "Number of users to update per cron run"
+msgstr ""
+
+#: user_stats.module:119
+msgid "Post count reset"
+msgstr ""
+
+#: user_stats.module:126;167
+msgid "Reset all post counts"
+msgstr ""
+
+#: user_stats.module:131
+msgid "Login count options"
+msgstr ""
+
+#: user_stats.module:138
+msgid "Count logins"
+msgstr ""
+
+#: user_stats.module:139
+msgid "If checked user login counts will be calculated."
+msgstr ""
+
+#: user_stats.module:145
+msgid "Login count reset"
+msgstr ""
+
+#: user_stats.module:152;170
+msgid "Reset all login counts"
+msgstr ""
+
+#: user_stats.module:185
+msgid "Post counts have been reset."
+msgstr ""
+
+#: user_stats.module:194
+msgid "User login counts have been reset."
+msgstr ""
+
+#: user_stats.module:520
+msgid "Sorry, there is nothing for you to see here."
+msgstr ""
+
+#: user_stats.module:576
+msgid "User post count incremented"
+msgstr ""
+
+#: user_stats.module:578
+msgid "User whos post count has incremented"
+msgstr ""
+
+#: user_stats.module:580;587;594;601;616;624;632
+msgid "User"
+msgstr ""
+
+#: user_stats.module:583
+msgid "User post count decremented"
+msgstr ""
+
+#: user_stats.module:585
+msgid "User whos post count has decremented"
+msgstr ""
+
+#: user_stats.module:590
+msgid "User post count reset"
+msgstr ""
+
+#: user_stats.module:592
+msgid "User whos post count has reset"
+msgstr ""
+
+#: user_stats.module:597
+msgid "User is a day older"
+msgstr ""
+
+#: user_stats.module:599
+msgid "User who is a day older"
+msgstr ""
+
+#: user_stats.module:612
+msgid "Increment user post count"
+msgstr ""
+
+#: user_stats.module:614
+msgid "User whos post count should be incremented"
+msgstr ""
+
+#: user_stats.module:617
+msgid "Increments the post count of a user"
+msgstr ""
+
+#: user_stats.module:620
+msgid "Decrement user post count"
+msgstr ""
+
+#: user_stats.module:622
+msgid "User whos post count should be decremented"
+msgstr ""
+
+#: user_stats.module:625
+msgid "Decrements the post count of a user"
+msgstr ""
+
+#: user_stats.module:628
+msgid "Reset the user post count"
+msgstr ""
+
+#: user_stats.module:630
+msgid "User whos post count should be reset"
+msgstr ""
+
+#: user_stats.module:633
+msgid "Resets the post count of the current user."
+msgstr ""
+
+#: user_stats.module:743
+msgid "Number of days since the user registered"
+msgstr ""
+
+#: user_stats.module:744
+msgid "Number of days since the user logged in"
+msgstr ""
+
+#: user_stats.module:745
+msgid "Number of days since the user posted"
+msgstr ""
+
+#: user_stats.module:746
+msgid "User's post count"
+msgstr ""
+
+#: user_stats.module:747
+msgid "User's IP address"
+msgstr ""
+
+#: user_stats.module:22
+msgid "administer user stats"
+msgstr ""
+
+#: user_stats.module:22
+msgid "View statistics"
+msgstr ""
+
+#: user_stats.module:22
+msgid "View IP addresses"
+msgstr ""
+
+#: user_stats.module:33
+msgid "User Stats settings"
+msgstr ""
+
+#: user_stats.module:34
+msgid "Configuration of user stats module options."
+msgstr ""
+
+#: user_stats.module:41
+msgid "reset user post stats"
+msgstr ""
+
+#: user_stats.module:47
+msgid "reset user login stats"
+msgstr ""
+
+#: user_stats.module:0
+msgid "user_stats"
+msgstr ""
+
+#: user_stats.info:0
+msgid "User Stats"
+msgstr ""
+
+#: user_stats.info:0
+msgid "Provides post count and other user statistics. Integrates well with Token and Advanced Forum (if installed)."
+msgstr ""
+

@@ -1,0 +1,1181 @@
+<?php
+/**
+ * @file
+ * Deployment API which enables modules to deploy items between servers.
+ *
+ * This module defines the frameork for deployment, and a common API for managing
+ * plans and servers. Module-specific code (dependency checking, actual moving of
+ * things from one server to another) is in the module-specific modules.
+ *
+ * Things deployment will not currently handle
+ *   - Taxonomy terms assigned to multiple parents may or may not deploy
+ *     properly. It is possible that only one parent will be properly attached.
+ *   - Node revisions are not supported. Every time you deploy a change to a
+ *     a node, and the target has revisions enabled, a new revision will be
+ *     created. Any previous revisions on the source machine will not be deployed.
+ *   - While deploy can handle updates and inserts, there is currently no provision
+ *     for deploying deleted content.
+ *   - Dependency management does not work properly for nodes of type 'page' at the
+ *     moment. It is entirely possible for child nodes to be pushed before their
+ *     parents.
+ *
+ * @todo Address the fact that overall, the code weight behind deployment is enormous,
+ *   by pulling everything except the user-facing add-to-plan stuff into admin.inc
+ *   files.
+ */
+
+/**
+ * These constants are used to help control the weighting of deployment
+ * plan items. The lower the number, the earlier it gets pushed (implying
+ * that items with higher weights may be dependent on items with lower ones.)
+ *
+ * @todo Move this into a table and implement a hook_deploy_weight so that modules
+ *   can define their own weights. Maybe? Need to do something, Eaton would not approve. 
+ */
+define('DEPLOY_SYSTEM_SETTINGS_GROUP_WEIGHT', 0);
+define('DEPLOY_CONTENT_TYPE_GROUP_WEIGHT', 1);
+define('DEPLOY_VIEW_GROUP_WEIGHT', 2);
+define('DEPLOY_TAXONOMY_VOCABULARY_GROUP_WEIGHT', 3);
+define('DEPLOY_TAXONOMY_TERM_GROUP_WEIGHT', 4);
+define('DEPLOY_USER_GROUP_WEIGHT', 5);
+define('DEPLOY_FILE_GROUP_WEIGHT', 6);
+define('DEPLOY_NODE_GROUP_WEIGHT', 7);
+define('DEPLOY_COMMENT_GROUP_WEIGHT', 8);
+define('DEPLOY_NODEQUEUE_GROUP_WEIGHT', 9);
+
+/**
+ * Implementation of hook_menu().
+ */
+function deploy_menu() {
+  $items = array();
+
+  // Deployment batch processes
+  $items['admin/build/deploy/deploy_check_batch'] = array(
+    'title' => 'Deployment checking batch process',
+    'page callback' => 'deploy_check_batch',
+    'access arguments' => array('deploy items'),
+    'type' => MENU_CALLBACK,
+    'description' => 'Deploy content and settings between Drupal servers.',
+  );
+  $items['admin/build/deploy/deploy_push_batch'] = array(
+    'title' => 'Deployment pushing batch process',
+    'page callback' => 'deploy_push_batch',
+    'access arguments' => array('deploy items'),
+    'type' => MENU_CALLBACK,
+    'description' => 'Deploy content and settings between Drupal servers.',
+  );
+
+  // Deployment plan management.
+  $items['admin/build/deploy'] = array(
+    'title' => 'Deployment',
+    'page callback' => 'deploy_overview',
+    'access arguments' => array('administer deployment'),
+    'description' => 'Deploy content and settings between Drupal servers.',
+    'file' => 'deploy.plans.admin.inc',
+  );
+  $items['admin/build/deploy/plans'] = array(
+    'title' => 'Plans',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'access arguments' => array('administer deployment'),
+  );
+  $items['admin/build/deploy/add'] = array(
+    'title' => 'Add a deployment plan',
+    'description' => 'Add a deployment plan.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_plan_form'),
+    'access arguments' => array('administer deployment'),
+    'file' => 'deploy.plans.admin.inc',
+    'type' => MENU_CALLBACK,
+    'weight' => 2
+  );
+  $items['admin/build/deploy/plan'] = array(
+    'title' => 'Edit plan',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_plan_form'),
+    'access arguments' => array('administer deployment'),
+    'file' => 'deploy.plans.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/build/deploy/list'] = array(
+    'title' => 'View deployment plan items',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_list_form'),
+    'type' => MENU_CALLBACK,
+    'file' => 'deploy.plans.admin.inc',
+    'access arguments' => array('administer deployment'),
+    'weight' => 1,
+  );
+  $items['admin/build/deploy/delete/item'] = array(
+    'title' => 'Delete a deployment plan item',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_delete_item_form'),
+    'type' => MENU_CALLBACK,
+    'file' => 'deploy.plans.admin.inc',
+    'access arguments' => array('administer deployment'),
+    'weight' => 1,
+  );
+  $items['admin/build/deploy/delete/plan'] = array(
+    'title' => 'Delete a deployment plan',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_delete_plan_form'),
+    'type' => MENU_CALLBACK,
+    'file' => 'deploy.plans.admin.inc',
+    'access arguments' => array('administer deployment'),
+    'weight' => 1,
+  );
+
+  // Deployment server management.
+  $items['admin/build/deploy/servers'] = array(
+    'title' => 'Servers',
+    'description' => 'Manage deployment servers',
+    'page callback' => 'deploy_server_overview',
+    'access arguments' => array('administer deployment'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'deploy.servers.admin.inc',
+    'weight' => 3
+  );
+  $items['admin/build/deploy/server/add'] = array(
+    'title' => 'Add server',
+    'description' => 'Add a deployment server.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_server_form'),
+    'access arguments' => array('administer deployment'),
+    'file' => 'deploy.servers.admin.inc',
+    'type' => MENU_CALLBACK,
+    'weight' => 2
+  );
+  $items['admin/build/deploy/server'] = array(
+    'title' => 'Edit server',
+    'description' => 'Edit a deployment server.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_server_form'),
+    'file' => 'deploy.servers.admin.inc',
+    'access arguments' => array('administer deployment'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/build/deploy/delete/server'] = array(
+    'title' => 'Delete a server',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_delete_server_form', 5),
+    'type' => MENU_CALLBACK,
+    'file' => 'deploy.servers.admin.inc',
+    'access arguments' => array('administer deployment'),
+    'weight' => 1,
+  );
+
+  // Server form AHAH callback.
+  $items['admin/build/deploy/ahah/auth-form'] = array(
+    'page callback' => 'deploy_ahah_auth_form',
+    'access arguments' => array('administer deployment'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // Deployment logs
+  $items['admin/build/deploy/logs'] = array(
+    'title' => 'Deployment Log',
+    'description' => 'View logs of past deployments',
+    'page callback' => 'deploy_logs_overview',
+    'access arguments' => array('administer deployment'),
+    'file' => 'deploy.logs.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 4
+  );
+  $items['admin/build/deploy/logs/details'] = array(
+    'title' => 'Deployment Log Details',
+    'description' => 'View detailed logs of a past deployment',
+    'page callback' => 'deploy_logs_details',
+    'file' => 'deploy.logs.admin.inc',
+    'access arguments' => array('administer deployment'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // Deployment settings
+  $items['admin/build/deploy/settings'] = array(
+    'title' => 'Settings',
+    'description' => 'Manage deployment settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_settings'),
+    'access arguments' => array('administer deployment'),
+    'file' => 'deploy.settings.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 4
+  );
+
+  $items['admin/build/deploy/push'] = array(
+    'title' => 'Push a plan live',
+    'description' => 'Push a plan live',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('deploy_plan_push_form'),
+    'access arguments' => array('deploy items'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/build/deploy/push/results'] = array(
+    'title' => 'Push results',
+    'page callback' => 'deploy_push_results',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('deploy items'),
+    'weight' => 1,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_help().
+ */
+function deploy_help($path, $args) {
+  $output='';
+
+  switch ($path) {
+    case 'admin/help#deploy':
+      return t('Allows users to deploy objects between servers.');
+    case 'admin/build/deploy/push':
+      return t('The Deploy module requires a user account on the remote server to authenticate against. This user will require the appropriate permissions for items being deployed (administer nodes, create users, etc.) It is recommended that a unique user and role be created specifically for deployment purposes.');
+  }
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function deploy_theme() {
+  return array(
+    'deploy_list_form' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function deploy_perm() {
+  return array(
+    'administer deployment',
+    'add items to deployment plan',
+    'deploy items'
+  );
+}
+
+/**
+ * Get a list of all deployment plans.
+ *
+ * @param $show_internal
+ *   Indicates whether or not internal-only plans should be listed.
+ * @return $plans
+ *   Associative array of all deployment plans.
+ */
+function deploy_get_plans($show_internal = FALSE) {
+  $plans = array();
+  $where = '';
+  if (!$show_internal) {
+    $where = 'where internal = 0';
+  }
+  $result = db_query("SELECT * FROM {deploy_plan} $where ORDER BY name");
+  while ($plan = db_fetch_array($result)) {
+    $plans[$plan['pid']] = $plan;
+  }
+
+  return $plans;
+}
+
+/**
+ * Get a list of all deployment plans, formatted appropriately for FAPI options.
+ *
+ * @param $show_internal
+ *   Indicates whether or not internal-only plans should be listed.
+ * @return $plans
+ *   Associative array of all deployment plans ('pid' => 'name').
+ */
+function deploy_get_plan_options($show_internal = FALSE) {
+  $options = array();
+  $plans = deploy_get_plans($show_internal);
+  foreach ($plans as $plan) {
+    $options[$plan['pid']] = $plan['name'];
+  }
+  return $options;
+}
+
+/**
+ * Add an item to a deployment plan.
+ *
+ * @param $pid
+ *   Unique identifier for the plan this item is being added to.
+ * @param $module
+ *   The module that handles this "thing" being deployed.
+ * @param $description
+ *   A text description of this item, to be displayed in the plan overview listing.
+ * @param $data
+ *   The identifying data for this item (typically an ID, but it doesn't have to be.)
+ * @param $weight
+ *   This item's weight within its group.
+ * @param $weight_group
+ *   Group-centric weighting to control when the invidual modules are deployed.
+ *   For more details see the comments for the constants defined at the top of this module.
+ * @todo This needs to be refactored such that a) it detects errors properly and b) it returns
+ *   a bool rather than just going on.
+ */
+function deploy_add_to_plan($pid, $module, $description, $data, $weight = 0, $weight_group = 0) {
+  global $user;
+
+  if (!empty($data) && !empty($module) && !empty($pid)) {
+    db_query("INSERT INTO {deploy_plan_items} (pid, uid, ts, module, description, data, weight, weight_group) VALUES (%d, %d, %d, '%s', '%s', '%s', %d, %d)", $pid, $user->uid, time(), $module, $description, $data, $weight, $weight_group);
+  }
+}
+
+/**
+ * Push a deployment plan live form.
+ *
+ * Prompts the user to choose what server they wish to deploy to before
+ * proceeding with the good stuff.
+ *
+ * @param $form_state
+ *   FAPI form state
+ * @param $pid
+ *   Unique identifier of the plan we're pushing.
+ * @param $sid
+ *   Which server to use for the deployment.
+ * @return
+ *   FAPI form definition
+ * @ingroup forms
+ * @see deploy_plan_push_form_submit()
+ */
+function deploy_plan_push_form($form_state, $pid, $sid = NULL) {
+  $form = deploy_get_server_form();
+
+  $form['pid'] = array(
+    '#type' => 'hidden',
+    '#value' => $pid,
+  );
+
+  return $form;
+}
+
+/**
+ * Submit callback for deploy_plan_push_form()
+ *
+ * This is where the actual action takes place.
+ *
+ * @todo Check system config on remote host - installed modules, proper versions, etc.
+ * @todo Better error message handling that is not dependent on xmlrpc_error.
+ */
+function deploy_plan_push_form_submit($form, &$form_state) {
+  // Setup some data
+  global $user;
+  $pid = $form_state['values']['pid'];
+  $sid = $form_state['values']['sid'];
+
+  // If a session is successfully created, then go on to the deploy_check
+  // batch process. Otherwise quit out and show the error log.
+  if (deploy_plan_init($pid, $sid, $form_state['values'])) {
+    $form_state['redirect'] = "admin/build/deploy/deploy_check_batch";
+  }
+  else {
+    $dlid = variable_get('deploy_log_id', '');
+    deploy_plan_cleanup();
+    $form_state['redirect'] = "admin/build/deploy/logs/details/$dlid";
+  }
+}
+
+/**
+ * Batch API callback for the hook_deploy_check() process.
+ */
+function deploy_check_batch() {
+  $operations = array();
+  $pid = variable_get('deploy_pid', '');
+  $items = deploy_get_plan_items($pid);
+  
+  watchdog('plan items', print_r($items, TRUE));
+
+  // The batch operations are calls to deploy_plan_check_item_batch(), which is
+  // just a wrapper for deploy_plan_check_item() plus the batch api messaging.
+  foreach ($items as $item) {
+    $operations[] = array('deploy_plan_check_item_batch', array($item['module'], $item['data'], $item['description']));
+  }
+
+  // Also call the deploy_check_cleanup() hook at the end.
+  $operations[] = array('module_invoke_all', array('deploy_check_cleanup', $pid));
+
+  // And fire our batch. This batch may add items to the deployment plan,
+  // thus increasing our operations for the actual push. So once the
+  // checking is done, redirect to a second batch process for the actual
+  // pushing.
+  $batch = array(
+    'operations' => $operations,
+    'title' => t('Processing deployment plan dependencies.'),
+    'init_message' => t('Deployment dependency checking is starting.'),
+    'progress_message' => t('Checking item @current out of @total.'),
+    'error_message' => t('Deployment dependency checking has encountered an error.'),
+  );
+  batch_set($batch);
+  
+  batch_process("admin/build/deploy/deploy_push_batch");
+}
+
+/**
+ * Wrapper function to deploy_plan_check_item() with batch API goodness.
+ *
+ * @param $module
+ *   The module which handles this item.
+ * @param $data
+ *   The identifying data for this item
+ * @param $description
+ *   The item's description for feedback messages
+ * @param $context
+ *   Batch API context var for messages and results
+ */
+function deploy_plan_check_item_batch($module, $data, $description, &$context) {
+  deploy_plan_check_item($module, $data);
+
+  // Update our progress information.
+  $context['message'] = t('Now processing %item', array('%item' => $description));
+}
+
+
+/**
+ * Batch API callback for the deployment push process.
+ */
+function deploy_push_batch() {
+  $operations = array();
+  $pid = variable_get('deploy_pid', '');
+  $items = deploy_get_plan_items($pid);
+
+  // The batch oeprations are calls to deploy_item_batch(), which is just a wrapper
+  // to deploy_item() plus batch pi messaging.
+  foreach ($items as $item) {
+    $operations[] = array('deploy_item_batch', array($item));
+  }
+
+  // And call deploy_plan_cleanup() when done.
+  $operations[] = array('deploy_plan_cleanup', array());
+
+  $batch = array(
+    'operations' => $operations,
+    'title' => t('Pushing deployment plan.'),
+    'init_message' => t('Deployment is starting.'),
+    'progress_message' => t('Pushing item @current out of @total.'),
+    'error_message' => t('Deployment has encountered an error.'),
+  );
+
+  // When complete, redirect to the log for this deployment.
+  $dlid = variable_get('deploy_log_id', '');
+  batch_set($batch);
+  batch_process("admin/build/deploy/logs/details/$dlid");
+}
+
+/**
+ * Wrapper function to deploy_item() with batch API goodness.
+ *
+ * @param $item
+ *   The item being deployed.
+ * @param $context
+ *   Batch API context var for messages and results
+ */
+function deploy_item_batch($item, &$context) {
+  deploy_item($item);
+
+  // Update our progress information. Error handling is all managed in deploy_item()
+  // and logging is all done in the depoyment log, so we don't even worry about that.
+  $context['message'] = t('Now processing %item', array('%item' => $item['description']));
+}
+
+/**
+ * Get a list of all deployment plan servers.
+ *
+ * @return $servers
+ *   Associative array of all deployment plan servers ('sid' => 'description').
+ */
+function deploy_get_servers() {
+  $result = db_query("SELECT * FROM {deploy_servers} ORDER BY description");
+  $servers = array();
+  while ($server = db_fetch_array($result)) {
+    $servers[$server['sid']] = $server['description'];
+  }
+
+  return $servers;
+}
+
+/**
+ * Update a single item in a deployment plan with new data.
+ *
+ * Currently I believe this is only used by system_settings_deploy
+ * since there is no easy way to uniquely identify and retrieve
+ * them. See that module for more details.
+ *
+ * @param $iid
+ *   Unique identifier for this deployment plan item
+ * @param $data
+ *   The new data to be saved for this item.
+ */
+function deploy_update_item($iid, $data) {
+  db_query("UPDATE {deploy_plan_items} SET data = '%s' WHERE iid = %d", $data, $iid);
+}
+
+/**
+ * Get the details for a single deployment plan.
+ *
+ * @param $pid
+ *   Unique identifier for the plan whose details are being retrieved.
+ */
+function deploy_get_plan($pid) {
+  $result = db_query("SELECT * FROM {deploy_plan} WHERE pid = %d", $pid);
+  return db_fetch_array($result);
+}
+
+/**
+ * Get the details for a single deployment plan server.
+ *
+ * @param $sid
+ *   Unique identifier for the server whose details are being retrieved.
+ */
+function deploy_get_server($sid) {
+  $result = db_query("SELECT * FROM {deploy_servers} WHERE sid = %d", $sid);
+  return db_fetch_array($result);
+}
+
+/**
+ * Get the details for a single deployment plan item.
+ *
+ * @param $iid
+ *   Unique identifier for the plan item whose details are being retrieved.
+ */
+function deploy_get_plan_item($iid) {
+  $result = db_query("SELECT * FROM {deploy_plan_items} WHERE iid = %d", $iid);
+  return db_fetch_array($result);
+}
+
+/**
+ * Retrieve all the details for all items in a plan.
+ *
+ * Takes an optional module name, to return just the items for
+ * that module.
+ *
+ * @param $pid
+ *   Unique identifier for the plan whose items you are retrieving.
+ * @param $module
+ *   Restrict the items to just those associated with this module.
+ */
+function deploy_get_plan_items($pid, $module = NULL) {
+  $items = array();
+  $sql = "SELECT * FROM {deploy_plan_items} WHERE pid = %d";
+  if (!is_null($module)) {
+    $sql .= " and module = '%s'";
+  }
+  $sql .= " order by weight_group, weight";
+
+  $result = db_query($sql, $pid, $module);
+
+  while ($item = db_fetch_array($result)) {
+    $items[] = $item;
+  }
+
+  return $items;
+}
+
+/**
+ * Determine whether a specified item is in a specified plan
+ *
+ * @param $pid
+ *   Unique identifier for the plan we're checking.
+ * @param $module
+ *   The module that is associated with this item.
+ * @param $data
+ *   Identifying data for this item (usually the item's original ID.)
+ */
+function deploy_item_is_in_plan($pid, $module, $data) {
+  return db_result(db_query("SELECT iid FROM {deploy_plan_items} WHERE pid = %d AND module = '%s' AND data = '%s'", $pid, $module, $data));
+}
+
+/**
+ * Get the current lowest weight in a specified plan.
+ *
+ * Used so that items can force themselves to be weighted "lighter" than
+ * anything else currently in the plan.
+ *
+ * @param $pid
+ *   Unique identifier for the plan we want to check.
+ */
+function deploy_get_min_weight($pid) {
+  return db_result(db_query("SELECT MIN(weight) FROM {deploy_plan_items} WHERE pid = %d", $pid));
+}
+
+/**
+ * Push an item from a deployment plan to the remote server.
+ *
+ * @param protocol_args
+ *   An array of arguments related to the protocol you're using. For the moment this
+ *   is just the name of the function being called, but in the future it could include
+ *   more or vary depending on the transport mechanism.
+ * @param function_args
+ *   An array of the necessary arguments for the function.
+ * @return
+ *   Results of the remote call.
+ */
+function deploy_send($protocol_args, $function_args) {
+  // Get the active server.
+  $server = variable_get('deploy_server', array());
+
+  array_unshift($protocol_args, $server['url']);
+  deploy_auth_invoke($server['auth_type'], 'arguments callback', $protocol_args, $function_args);
+
+  return call_user_func_array('xmlrpc', array_merge($protocol_args, $function_args));
+}
+
+/**
+ * Create a new deployment plan.
+ *
+ * @param $name
+ *   A unique name for the plan
+ * @param $description
+ *   An optional description
+ * @return int
+ *   The new plan's unique ID, or 0 on failure.
+ */
+function deploy_create_plan($name, $description = '', $internal = 0) {
+  $pid = 0;
+  if (!deploy_plan_exists($name)) {
+    db_query("INSERT INTO {deploy_plan} (name, description, internal) VALUES ('%s', '%s', %d)", $name, $description, $internal);
+    $pid = db_last_insert_id('deploy_plan', 'pid');
+  }
+  return $pid;
+}
+
+/**
+ * Check to see if a plan already exists with a given name
+ *
+ * @param $name
+ *   Plan name to check.
+ * @return $pid
+ *   Plan's pid, or 0 if not found.
+ */
+function deploy_plan_exists($name) {
+  return db_result(db_query("SELECT pid FROM {deploy_plan} WHERE name = '%s'", $name));
+}
+
+/**
+ * Remove all items from a deployment plan.
+ *
+ * @param $pid
+ *   Unique ID of the plan whose items should be removed.
+ */
+function deploy_empty_plan($pid) {
+  db_query("DELETE FROM {deploy_plan_items} WHERE pid = %d", $pid);
+}
+
+/**
+ * Delete a deployment plan
+ *
+ * @param $pid
+ *   Unique ID of the plan to delete.
+ */
+function deploy_delete_plan($pid) {
+  deploy_empty_plan($pid);
+  db_query("DELETE FROM {deploy_plan} WHERE pid = %d", $pid);
+}
+
+/**
+ * Initiate depolyment.
+ *
+ * @param $pid
+ *   ID of the plan to deploy.
+ * @param $sid
+ *   ID of the server to deploy to.
+ * @param $settings
+ *   Server settings that was posted from the server form.
+ */
+function deploy_plan_init($pid, $sid, $settings = array()) {
+  include_once('./includes/xmlrpc.inc');
+
+  global $user;
+
+  $plan = deploy_get_plan($pid);
+  $server = deploy_get_server($sid);
+
+  // Abort if we didn't find a plan or server.
+  if (empty($plan) || empty($server)) {
+    return FALSE;
+  }
+
+  // Also add settings that came from the submitted server form.
+  $server['settings'] = $settings;
+
+  // Save this data out so the other modules can get it. Not sure of a better
+  // way to handle this.
+  variable_set('deploy_server', $server);
+  variable_set('deploy_pid', $pid);
+
+  // This used to be a static within deploy_item(), but batch API breaks
+  // statics so I was forced down this route instead.
+  variable_set('deploy_fatal', FALSE);
+
+  // Rather than save foreign keys out to the server/plan/user in the log,
+  // I'm saving actual identifying data. This keeps the log pure in case
+  // associated data gets deleted.
+  db_query("INSERT INTO {deploy_log} (plan, server, username, ts) VALUES ('%s', '%s', '%s', %d)", $plan['name'], $server['description'], $user->name, time());
+  variable_set('deploy_log_id', db_last_insert_id('deploy_log', 'dlid'));
+  
+  // Allow other modules to do stuff before the content gets pushed.
+  module_invoke_all('deploy_pre_plan', $pid);
+
+  return deploy_auth_invoke($server['auth_type'], 'init callback', $server);
+}
+
+
+/**
+ * Run the dependency checking hooks for the specified deployment plan.
+ *
+ * @param $pid
+ *   Unique ID of the plan to check.
+ */
+function deploy_plan_check($pid) {
+  // Call the dependency-checking hook for each item in the plan.
+  // Someday I may want to aggregate each item of a type (node, user, etc)
+  // into one array and call a hook once for each module to reduce hook
+  // calling overhead. Worthwhile?
+  $items = deploy_get_plan_items($pid);
+  foreach ($items as $item) {
+    deploy_plan_check_item($item['module'], $item['data']);
+  }
+
+  // If anyone needs to do any final cleanup now that dependencies are
+  // sorted out, feel free.
+  module_invoke_all('deploy_check_cleanup', $pid);
+}
+
+/**
+ * Run the dependency checking hook for one deployment item.
+ *
+ * @param $module
+ *   The module handling this item.
+ * @param $data
+ *   The identifying data or this item.
+ */
+function deploy_plan_check_item($module, $data) {
+  module_invoke($module, 'deploy_check', $data);
+}
+
+/**
+ * Deploy the specified plan to a remote server
+ *
+ * @param $pid
+ *   Unique ID of the plan to deploy.
+ */
+function deploy_plan($pid) {
+  $items = deploy_get_plan_items($pid);
+  foreach ($items as $item) {
+    deploy_item($item);
+  }
+}
+
+/**
+ * Deploy a specified item to a remote server.
+ *
+ * @param $item
+ *   The item being deployed.
+ */
+function deploy_item($item) {
+  // By default, xmlrpc.inc is only included when xmlrpc() is called. 
+  // Since I am using xmlrpcerror() as an error handler (unfortunately)
+  // there is an edge case where I'll need this loaded before I've called
+  // xmlrpc(). So I include it manually here.
+  include_once('./includes/xmlrpc.inc');
+
+  // Static error flag so that we can use it between calls and not have to
+  // handle errors in the batch process.
+  $deploy_fatal = variable_get('deploy_fatal', FALSE);
+
+  // If nothing has previously errored out, then try and deploy the current item.
+  // Otherwise, note in the log that this item was not deployed due to previous error.
+  if (!$deploy_fatal) {
+    // Call the module's deployment function.
+    $xmlrpc_result = module_invoke($item['module'], 'deploy', $item['data']);
+
+    // If it results in failure, log the error message and set the $deploy_fatal
+    // flag. Otherise log success and move onto the next one.
+    if ($xmlrpc_result === FALSE) {
+      variable_set('deploy_fatal', TRUE);
+      $result = t('Error');
+      $message = xmlrpc_error_msg();
+    }
+    else {
+      $result = t('Success');
+      $message = '';
+    }
+  }
+  else {
+    $result = t('Not Sent');
+    $message = t('Item not sent due to prior fatal error.');
+  }
+
+  // And log the results.
+  db_query("INSERT INTO {deploy_log_details} (dlid, module, description, result, message) VALUES (%d, '%s', '%s', '%s', '%s')", variable_get('deploy_log_id', ''), $item['module'], $item['description'], $result, $message);
+
+}
+
+/**
+ * Clean up after ourselves once a deployment is done.
+ */
+function deploy_plan_cleanup() {
+  // clear remote cache
+  deploy_send(array('system.cacheClearAll'), array());
+  
+  // Grab the pid so we can pass it to the post deploy hook.
+  $pid = variable_get('deploy_pid', '');
+  
+  $server = variable_get('deploy_server', '');
+  deploy_auth_invoke($server['auth_type'], 'cleanup callback');
+
+  variable_del('deploy_server');
+  variable_del('deploy_pid');
+  variable_del('deploy_log_id');
+  variable_del('deploy_fatal');
+
+  // Allow other modules to do post-deployment tasks.
+  module_invoke_all('deploy_post_plan', $pid);
+}
+
+function deploy_get_remote_key($uuid, $module) {
+  // As remote keys are retrieved, they are cached in this static var. On
+  // the next request, if that key exists, just return it rather than going
+  // for another round trip. The format is
+  //
+  // $key_cache[$uuid] = $remote_key
+  static $key_cache = array();
+  
+  if (isset($key_cache[$uuid])) {
+    return $key_cache[$uuid];
+  }
+  
+  // the remote data always comes back as array('uuid' => $uuid, '<key>' = $key)
+  $remote_data = deploy_send(array('deploy_uuid.get_key'), array($uuid, $module));
+  if ($remote_data) {
+    $key_cache[$uuid] = $remote_data;
+  }
+  
+  return $remote_data;
+}
+
+/**
+ * Standard form with server list. Used in many places.
+ */
+function deploy_get_server_form() {
+  $servers = deploy_get_servers();
+  if (empty($servers)) {
+    drupal_set_message(t("There are no servers defined. Please define a server using the Servers tab before pushing your deployment plan."));
+    drupal_goto("admin/build/deploy");
+  }
+  // Rebuild the server list so we also have an empty option.
+  $options = array('' => t('-- Select a server'));
+  foreach ($servers as $sid => $server) {
+    $options[$sid] = $server;
+  }
+
+  $form['sid'] = array(
+    '#title' => t('Server'),
+    '#type' => 'select',
+    '#options' => $options,
+    '#description' => t('Select the server you want to deploy to'),
+    '#required' => TRUE,
+    '#ahah' => array(
+      'path' => 'admin/build/deploy/ahah/auth-form',
+      'wrapper' => 'deploy-auth-wrapper',
+      'method' => 'replace',
+    ),
+  );
+
+  $form['auth_wrapper'] = array(
+    '#prefix' => '<div id="deploy-auth-wrapper">',
+    '#suffix' => '</div>',
+  );
+
+  // This form element will be replaced with the response from an AHAH request.
+  $form['auth_wrapper']['settings'] = array(
+    '#type' => 'hidden',
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Push Deployment Plan'),
+  );
+
+  return $form;
+}
+
+/**
+ * A generic AHAH form callback that returns the authentication form for a
+ * server or a authentication type.
+ */
+function deploy_ahah_auth_form() {
+  $cached_form_state = array();
+  $cached_form = form_get_cache($_POST['form_build_id'], $cached_form_state);
+  $server = isset($_POST['sid']) ? deploy_get_server($_POST['sid']) : array();
+
+  if (isset($_POST['auth_type'])) {
+    $auth_type = $_POST['auth_type'];
+  }
+  elseif (isset($server['auth_type'])) {
+    $auth_type = $server['auth_type'];
+  }
+
+  $settings = deploy_auth_invoke($auth_type, 'form callback', $server);
+  $cached_form['auth_wrapper']['settings'] = $settings;
+  form_set_cache($_POST['form_build_id'], $cached_form, $cached_form_state);
+  $form_state = array('submitted' => FALSE);
+  $options = form_builder('deploy_ahah_auth_form', $cached_form['auth_wrapper'], $form_state);
+  $output = drupal_render($options);
+
+  print drupal_to_js(
+    array(
+      'status' => TRUE,
+      'data' => $output,
+    )
+  );
+  exit;
+}
+
+/**
+ * Implementation of hook_views_api().
+ */
+function deploy_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'deploy') . '/includes',
+  );
+}
+
+/**
+ * Invokes an authentication callback.
+ */
+function deploy_auth_invoke($type_name, $callback_type, &$a1 = NULL, &$a2 = NULL, &$a3 = NULL) {
+  $type = deploy_get_auth_type($type_name);
+
+  if (!isset($type[$callback_type]) || $type[$callback_type] === TRUE) {
+    return TRUE;
+  }
+  else {
+    $function = $type[$callback_type];
+    return $function($a1, $a2, $a3);
+  }
+}
+
+/**
+ * Get all the available authentication types.
+ *
+ * @return
+ *   An associative array of the authentication type definitions.
+ */
+function deploy_get_auth_types() {
+  static $types = array();
+
+  if (!empty($types)) {
+    return $types;
+  }
+
+  $auth_modules = module_implements('deploy_auth_info');
+  foreach ($auth_modules as $module) {
+    $items = module_invoke($module, 'deploy_auth_info');
+    // Add the machine readable name to the item it self.
+    foreach ($items as $name => $item) {
+      $item['name'] = $name;
+      $types[$name] = $item;
+    }
+  }
+  // Let other modules alter all authentication types.
+  drupal_alter('deploy_auth_type', $types);
+  return $types;
+}
+
+/**
+ * Get a specific authentication type.
+ *
+ * @param $name
+ *   The name of the type to get.
+ * @return
+ *   The authentication type definition.
+ */
+function deploy_get_auth_type($name) {
+  $types = deploy_get_auth_types();
+  return $types[$name];
+}
+
+/**
+ * Returns a hash to be used with the key authentication.
+ *
+ * @param $key
+ *   The API key to be used in the hash.
+ * @param $timestamp
+ *    The timestamp to be used in the hash.
+ * @param $domain
+ *   The domain to be used in the hash.
+ * @param $nonce
+ *   The nonce to be used in the hash.
+ * @param $method
+ *   The method to be used in the hash.
+ * @todo
+ *   Add signed arguments.
+ */
+function deploy_get_auth_key_hash($key, $timestamp, $domain, $nonce, $method) {
+  $hash_parameters = array($timestamp, $domain, $nonce, $method);
+  return hash_hmac('sha256', implode(';', $hash_parameters), $key);
+}
+
+/**
+ * Implementation of hook_deploy_auth_info().
+ *
+ * This hook implements support for the two basic authentication types
+ * that comes with the Services module by default. Those are authentication
+ * with just a valid session id, or authentication with just an API key.
+ *
+ * Session authentication (with username and password) does only make
+ * sense when deploying against another Drupal sites (which isn't always the
+ * case).
+ *
+ * @return
+ *   An array of this modules' authentication types.
+ * @todo
+ *   Make it so callbacks can be stored in a separate file.
+ */
+function deploy_deploy_auth_info() {
+  $items['deploy_key'] = array(
+    'title' => t('Key authentication'),
+    'description' => t('All method calls must include a valid token to authenticate themselves with the server.'),
+    'form callback' => 'deploy_auth_key_form',
+    'arguments callback' => 'deploy_auth_key_arguments',
+  );
+  $items['deploy_sessid'] = array(
+    'title' => t('Session id'),
+    'description' => t('All method calls must include a valid session id.'),
+    'form callback' => 'deploy_auth_sessid_form',
+    'init callback' => 'deploy_auth_sessid_init',
+    'arguments callback' => 'deploy_auth_sessid_arguments',
+    'cleanup callback' => 'deploy_auth_sessid_cleanup',
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of the init callback.
+ */
+function deploy_auth_sessid_init($server = array()) {
+  // In order to prevent bots from cluttering up the sessions table, you must
+  // have an active anonymous session before logging in to Drupal. So that is
+  // the first thing we do with system.connect. This session ID is saved
+  // to the 'deploy_sessid' variable, which all other xmlrpc calls to the
+  // remote server passes.
+  $result = deploy_send(array('system.connect'), array());
+  variable_set('deploy_auth_sessid', $result['sessid']);
+
+  // Then we can log in.
+  $result = deploy_send(array('user.login'), array($server['settings']['username'], $server['settings']['password']));
+
+  // If it fails, then add a message to the log. Otherwise set the session ID into
+  // a drupal variable for the other functions to grab.
+  if ($result === FALSE) {
+    db_query("INSERT INTO {deploy_log_details} (dlid, module, description, result, message) VALUES (%d, '%s', '%s', '%s', '%s')", variable_get('deploy_log_id', ''), 'login', 'Remote user login', 'Error', xmlrpc_error_msg());
+  }
+  else {
+    variable_set('deploy_auth_sessid', $result['sessid']);
+    return TRUE;
+  }
+}
+
+/**
+ * Implementation of the arguments callback.
+ */
+function deploy_auth_key_arguments(&$protocol_args, &$function_args) {
+  // Get the active server.
+  $server = variable_get('deploy_server', array());
+
+  $timestamp = time();
+  $method = $protocol_args[1];
+  // Use Drupal's built in password generator to generate a random string.
+  $nonce = user_password();
+
+  $hash = deploy_get_auth_key_hash($server['settings']['key'], $timestamp, $server['settings']['domain'], $nonce, $method);
+  array_push($protocol_args, $hash, $server['settings']['domain'], $timestamp, $nonce);
+}
+
+/**
+ * Implementation of the arguments callback.
+ */
+function deploy_auth_sessid_arguments(&$protocol_args, &$function_args) {
+  // Check the method name. The server URL is the first argument.
+  if ($protocol_args[1] != 'system.connect') {
+    $sessid = variable_get('deploy_auth_sessid', '');
+    array_push($protocol_args, $sessid);
+  }
+}
+
+/**
+ * Implementation of the cleanup callback.
+ */
+function deploy_auth_sessid_cleanup() {
+  variable_del('deploy_auth_sessid');
+}
+
+/**
+* Implementation of the form callback for the authentication.
+*/
+function deploy_auth_key_form($server = array()) {
+  $form['key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API key'),
+    '#description' => t('The API key to use when authenticating with the remote server.'),
+    '#required' => TRUE,
+  );
+  $form['domain'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Domain'),
+    '#description' => t('Domain using this key (note this is not necessarily the same as your domain name).'),
+    '#required' => TRUE,
+ );
+
+ return $form;
+}
+
+/**
+ * Implementation of the form callback for the authentication.
+ */
+function deploy_auth_sessid_form($server = array()) {
+  $form['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#size' => 30,
+    '#maxlength' => 60,
+    '#description' => t('Username on the remote site.'),
+    '#required' => TRUE,
+  );
+  $form['password'] = array(
+    '#type' => 'password',
+    '#title' => t('Password'),
+    '#size' => 20,
+    '#maxlength' => 32,
+    '#description' => t('Password of the remote user Deploy should log in as.'),
+    '#required' => TRUE,
+  );
+
+  return $form;
+}
+
+/**
+ * Delete item from plan.
+ *
+ * @param $conditions
+ *   An array of fields and values used to build a sql WHERE clause indicating
+ *   what items should be deleted.
+ */
+function deploy_plan_item_delete($conditions = array()) {
+  $schema = drupal_get_schema('deploy_plan_items');
+  $where = array();
+
+  // Build an array of fields with the appropriate placeholders for use in
+  // db_query().
+  foreach ($conditions as $field => $value) {
+    $where[] = $field . ' = ' . db_type_placeholder($schema['fields'][$field]['type']);
+  }
+
+  // Now implode that array into an actual WHERE clause.
+  $where = implode(' AND ', $where);
+
+  db_query('DELETE FROM {deploy_plan_items} WHERE ' . $where, $conditions);
+}

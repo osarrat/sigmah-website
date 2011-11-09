@@ -1,0 +1,283 @@
+<?php
+/**
+ * @file
+ * Contains install and update functions for Deploy.
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function deploy_schema() {
+  $schema['deploy_plan'] = array(
+    'description' => t('Basic information about deployment plans.'),
+    'fields' => array(
+      'pid' => array(
+        'description' => t('The unique identifier for this deployment plan.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => t('A short descriptive name for this deployment plan.'),
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => t('A longer, more detailed description of a deployment plan.'),
+        'type' => 'text',
+      ),
+      'internal' => array(
+        'description' => t('Boolean indicating whether or not this item is enabled.'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0
+      ),
+    ),
+    'primary key' => array('pid'),
+  );
+
+  $schema['deploy_plan_items'] = array(
+    'description' => t('Detailed information about individual deployment plan items.'),
+    'fields' => array(
+      'iid' => array(
+        'description' => t('The unique identifier for this deployment plan item.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pid' => array(
+        'description' => t('The deployment plan this item applies to (foreign key to {deploy_plan}).'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'module' => array(
+        'description' => t('The module responsible for importing/exporting this item.'),
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => t('A description of this individual item for use in logging and plan listings.'),
+        'type' => 'varchar',
+        'length' => 75,
+        'not null' => TRUE,
+      ),
+      'weight' => array(
+        'description' => t('The weight of this item, used to control which items get deployed first.'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'default' => 0,
+      ),
+      'data' => array(
+        'description' => t('The data which is actually deployed to the remote server'),
+        'type' => 'text',
+      ),
+      'uid' => array(
+        'description' => t('The id of the user who added this item to the deployment plan (foreign key to {user}).'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'ts' => array(
+        'description' => t('The unix timestamp indicating when this item was added to the deployment plan.'),
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'weight_group' => array(
+        'description' => t('Weight of this group of items (nodes, comments, etc.)'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('iid'),
+  );
+
+  $schema['deploy_servers'] = array(
+    'description' => t('Information about destination servers.'),
+    'fields' => array(
+      'sid' => array(
+        'description' => t('The unique identifier for this deployment server.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => t('A short descriptive name for this deployment server.'),
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ),
+      'url' => array(
+        'description' => t('The XMLRPC endpoint where deployment items should be submitted (usually http://<yourdomain>/services/xmlrpc).'),
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ),
+      'auth_type' => array(
+        'description' => t('The authentication type this server is using.'),
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('sid'),
+  );
+
+  $schema['deploy_log'] = array(
+    'description' => t('Logs for past deployments.'),
+    'fields' => array(
+      'dlid' => array(
+        'description' => t('The unique identifier for this deployment log.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'plan' => array(
+        'description' => t('The name of the deployment plan which was pushed.'),
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+      ),
+      'server' => array(
+        'description' => t('The deployment server the plan was pushed to.'),
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ),
+      'username' => array(
+        'description' => t('The id of the user who pushed this plan (foreign key to {user}).'),
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+      ),
+      'ts' => array(
+        'description' => t('The unix timestamp indicating when this plan was pushed.'),
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('dlid'),
+  );
+
+  $schema['deploy_log_details'] = array(
+    'description' => t('Detailed logs for individual items on past deployments.'),
+    'fields' => array(
+      'dldid' => array(
+        'description' => t('The unique identifier for this deployment item log entry.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'dlid' => array(
+        'description' => t('The id of the deployent log this item belongs to (foreign key to {deploy_log}).'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'module' => array(
+        'description' => t('The module which was responsible for deploying this item.'),
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => t('A description of the item being deployed.'),
+        'type' => 'varchar',
+        'length' => 75,
+        'not null' => TRUE,
+      ),
+      'result' => array(
+        'description' => t('The results for this item (succeeded, error, not pushed).'),
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+      ),
+      'message' => array(
+        'description' => t('The error message associated with the result.'),
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('dldid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function deploy_install() {
+  drupal_install_schema('deploy');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function deploy_uninstall() {
+  drupal_uninstall_schema('deploy');
+
+  // Delete all the deploy variables and then clear the variable cache
+  db_query("DELETE FROM {variable} WHERE name LIKE 'deploy_%'");
+  cache_clear_all('variables', 'cache');
+}
+
+/**
+ * Implementation of hook_update().
+ *
+ * Add the item grouping field
+ */
+function deploy_update_6001() {
+  $update = array();
+
+  db_add_field($update, 'deploy_plan_items', 'weight_group', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
+
+  return $update;
+}
+
+/**
+ * Implementation of hook_update().
+ *
+ * Add the internal plan field
+ */
+function deploy_update_6002() {
+  $update = array();
+
+  db_add_field($update, 'deploy_plan', 'internal', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
+
+  return $update;
+}
+
+/**
+ * Implementation of hook_update().
+ *
+ * Drop unused api_key field.
+ */
+function deploy_update_6003() {
+  $update = array();
+  
+  db_drop_field($update, 'deploy_servers', 'api_key');
+
+  return $update;
+}
+
+/**
+ * Implementation of hook_update().
+ *
+ * Add new field and settings for pluggable authentication.
+ */
+function deploy_update_6004() {
+  $update = array();
+  
+  db_add_field($update, 'deploy_servers', 'auth_type', array('type' => 'varchar', 'length' => 100, 'not null' > TRUE));
+
+  // Also update all existing servers to use session ids (the only choice
+  // possible previously).  
+  db_query("update {deploy_servers} set auth_type = 'deploy_sessid'");
+
+  return $update;  
+}

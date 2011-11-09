@@ -1,0 +1,65 @@
+<?php
+/**
+ * Get an array listing the names of all date fields.
+ *
+ * @return
+ *   Array of all created date fields
+ **/
+function date_deploy_get_date_fields() {
+  // This isn't changing much, so cache it to save some queries
+  static $date_fields = array();
+  
+  if (empty($date_fields)) {
+    $fields = content_fields();
+    $date_types = array('datetime', 'date', 'datestamp');
+    foreach ($fields as $name => $field) {
+      if (in_array($field['type'], $date_types)) {
+        $date_fields[$name] = $name;
+      }
+    }
+  }
+  
+  return $date_fields;
+}
+
+/**
+ * Implementation of hook_node_deploy(),
+ *
+ * @param $node
+ *   The node we're deploying.
+ * @return
+ *   The results of our xmlrpc call.
+ *
+ * @todo big report with date to avoid the node_lod() below
+ */
+function date_node_deploy(&$node) {
+  // There is a bug somewhere in the FAPI munging in node_deploy() that 
+  // causes date values to get trashed. In order to get around this, we
+  // actually need to node_load() each node as it comes through in order
+  // to retrieve the original date value. !shoot($messenger)
+  $original_node = node_load($node->nid);
+
+  // If we couldn't load it then bail.
+  if (!$original_node = node_load($node->nid)) {
+    return;
+  }  
+  $date_fields = date_deploy_get_date_fields();
+  
+  // The dates need to be saved as $node->field[delta]['value'][part]
+  foreach ($date_fields as $field_name) {
+    if (property_exists($original_node, $field_name)) {
+      unset($node->{$field_name});
+      foreach ($original_node->{$field_name} as $key => $date_value) {
+        if (!is_null($date_value['value'])) {
+          $date_parts = date_parse($date_value['value']);
+          $node->{$field_name}[$key]['value']['year'] = $date_parts['year'];
+          $node->{$field_name}[$key]['value']['month'] = $date_parts['month'];
+          $node->{$field_name}[$key]['value']['day'] = $date_parts['day'];
+          $node->{$field_name}[$key]['value']['hour'] = $date_parts['hour'];
+          $node->{$field_name}[$key]['value']['minute'] = $date_parts['minute'];
+          $node->{$field_name}[$key]['value']['second'] = $date_parts['second'];
+        }
+      }
+    }
+  } 
+}

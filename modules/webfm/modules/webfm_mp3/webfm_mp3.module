@@ -1,0 +1,306 @@
+<?php
+// $Id: webfm_mp3.module,v 1.2 2009/02/10 14:59:17 robmilne Exp $
+/**
+ * @file
+ * WebFM mp3 player module file.
+ */
+
+/**
+ * Implementation of hook_help().
+ */
+function webfm_mp3_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/help#webfm_mp3":
+      $output = '<p>'. t('The WordPress Standalone Audio Player must be downloaded from <a href="http://wpaudioplayer.com/download">http://wpaudioplayer.com/download</a>
+                          and the audio-player.js and player.swf files copied to the ...\webfm\modules\webfm_mp3\mp3player directory.').'</p>';
+
+      break;
+  }
+  return $output;
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function webfm_mp3_init() {
+  if(!webfm_mp3_check_flash_files()) {
+    drupal_set_message(t('%file1 or %file2 were not found in %directory, download the <a href="http://wpaudioplayer.com/download">standalone WordPress Audio Player</a>.', array('%file1' => 'audio-player.js', '%file2' => 'player.swf', '%directory' => '/'.drupal_get_path('module', 'webfm_mp3').'/mp3player/')), 'error');
+  }
+  drupal_add_js(drupal_get_path('module', 'webfm_mp3').'/mp3player/audio-player.js');
+
+  // set cache
+  if(cache_get('webfm_mp3player', 'cache') == '') {
+    cache_set('webfm_mp3player', webfm_mp3_get_settings(), 'cache', CACHE_TEMPORARY);
+  }
+
+  $js_audio_settings = cache_get('webfm_mp3player', 'cache');
+  drupal_add_js($js_audio_settings->data, 'inline');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function webfm_mp3_menu(){
+  $items = array();
+  $items['webfm_mp3_js'] = array(
+    'title' => 'WebFM mp3',
+    'page callback' => 'webfm_mp3_js',
+    'access callback' => 'user_access',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/settings/webfm_mp3'] = array(
+    'title' => t('WebFM Mp3 Player'),
+    'description' => 'Configure the WordPress standalone Audio Player.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webfm_mp3_settings'),
+    'access arguments' => array('administer webfm'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * Form to configure the WordPress standalone Audio Player.
+ */
+function webfm_mp3_settings() {
+  $options = webfm_mp3_get_options();
+  $form['webfm_mp3_options'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('WebFM Mp3 Player Options'),
+    '#tree' => TRUE,
+    '#description' => '<p>'.t('Config the WordPress standalone Audio Player.').'</p>',
+  );
+
+  $form['webfm_mp3_options']['autostart'] = array(
+    '#type' => 'select',
+    '#title' => t('Auto-start'),
+    '#default_value' => $options['autostart'],
+    '#options' => array('no' => t('No'), 'yes' => t('Yes')),
+    '#description' => t('If yes, player starts automatically.'),
+  );
+  $form['webfm_mp3_options']['loopaudio'] = array(
+    '#type' => 'select',
+    '#title' => t('Loop Audio'),
+    '#default_value' => $options['loopaudio'],
+    '#options' => array('no' => t('No'), 'yes' => t('Yes')),
+    '#description' => t('If yes, player loops audio.'),
+  );
+  $form['webfm_mp3_options']['initialvolume'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Initial Volume'),
+    '#default_value' => $options['initialvolume'],
+    '#required' => TRUE,
+    '#size' => '10',
+    '#description' => t('Initial volume level (from 0 to 100).'),
+  );
+  $form['webfm_mp3_options']['buffer'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Buffer Time'),
+    '#default_value' => $options['buffer'],
+    '#required' => TRUE,
+    '#size' => '10',
+    '#description' => t('Buffering time in seconds.'),
+  );
+  $form['webfm_mp3_options']['width'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Player Width'),
+    '#default_value' => $options['width'],
+    '#required' => TRUE,
+    '#size' => '10',
+    '#description' => t('Width of the player in pixels.'),
+  );
+
+  $form['#validate'][]  = 'webfm_mp3_settings_validate';
+  $form['#submit'][] = 'webfm_mp3_settings_submit';
+
+  return system_settings_form($form);
+}
+
+/**
+ * Custom validation function for the settings form.
+ */
+function webfm_mp3_settings_validate($form, &$form_state) {
+  if($form['webfm_mp3_options']['initialvolume']['#value'] < 0 || $form['webfm_mp3_options']['initialvolume']['#value'] > 100) {
+    form_set_error("webfm_mp3_options][initialvolume", t('Volume must be between 0 and 100.'));
+  }
+  if(!is_numeric($form['webfm_mp3_options']['buffer']['#value'])) {
+    form_set_error("webfm_mp3_options][buffer", t('Buffer must be an integer.'));
+  }
+  if(!is_numeric($form['webfm_mp3_options']['width']['#value'])) {
+    form_set_error("webfm_mp3_options][width", t('Width must be an integer.'));
+  }
+}
+
+/**
+ * Clear cache on submit
+ */
+function webfm_mp3_settings_submit($form, &$form_state) {
+  cache_clear_all('webfm_mp3player', 'cache');
+}
+
+/**
+ * Menu callback used for AJAX calls
+ */
+function webfm_mp3_js(){
+  global $user;
+
+  //3 possible outcomes - the user is either an admin, user or prohibited
+  if(($user->uid == 1) || user_access('administer webfm')) {
+    // Admins have total access
+    $webfm_perm = WEBFM_ADMIN;
+  } else if(user_access('access webfm')) {
+    $webfm_perm = WEBFM_USER;
+  } else {
+    //no feedback
+    exit();
+  }
+
+  $webfm_root_path = webfm_get_root_path();
+  if($webfm_root_path == NULL) {
+    //WebFM root dir must exist
+    webfm_json(array('status' => FALSE, 'err' => t('WebFM root not set')));
+    exit();
+  }
+  $root_dir = ($webfm_perm == WEBFM_ADMIN)? file_directory_path() : file_directory_path().$webfm_root_path;
+
+  $action = trim(strtolower(rawurldecode($_POST["action"])));
+  if($action == 'checkmp3') {
+    if(webfm_mp3_check_flash_files()) {
+      $options = webfm_mp3_get_options();
+      // Send popup pane id and size of content area of mp3player popup
+      $result = new stdClass();
+      $result->id = 'webfm-mp3';
+      $result->title = t('Mp3 Player');
+      $result->width = $options['width'];
+      $result->height = 60;
+      webfm_json(array('status' => TRUE, 'data' => $result));
+    } else {
+      cache_clear_all('webfm_mp3player', 'cache');
+      webfm_json(array('status' => FALSE, 'data' => t('WordPress standalone Audio Player not found')));
+    }
+  } else if($action == 'playmp3' && isset($_POST["filepath"])) {
+    if(!webfm_mp3_check_flash_files()) {
+      cache_clear_all('webfm_mp3player', 'cache');
+      webfm_json(array('status' => FALSE, 'data' => t('WordPress standalone Audio Player not found')));
+      exit();
+    }
+    $filepath = trim(rawurldecode($_POST["filepath"]));
+    // prevent any .. shenanigans
+    if($filepath && !ereg('\.\.', $filepath)) {
+      $source = $root_dir.$filepath;
+      if(is_file($source)) {
+        $file = webfm_get_file_record('', $source);
+        if($file->perm & WEBFM_FILE_ACCESS_PUBLIC_VIEW ||
+           $file->perm & WEBFM_FILE_ACCESS_ROLE_VIEW ||
+           $file->uid == $user->uid ||
+           $webfm_perm == WEBFM_ADMIN) {
+          $result = new stdClass();
+          $result->path = 'webfm_send/'.$file->fid.'/0/1';
+          $result->filename = basename($source);
+          webfm_json(array('status' => TRUE, 'data' => $result));
+        } else {
+          webfm_json(array('status' => FALSE, 'data' => t('access denied')));
+        }
+      } else {
+        webfm_json(array('status' => FALSE, 'data' => t('unknown file')));
+      }
+    } else {
+      webfm_json(array('status' => FALSE, 'data' => t('permission denied')));
+    }
+  } else {
+    webfm_json(array('status' => FALSE, 'data' => t('unknown operation')));
+  }
+  exit();
+}
+
+/**
+ * Implementation of hook_webfm_send().
+ */
+/*
+function webfm_mp3_webfm_send($file) {
+  static $mime_array = array();
+  if(!count($mime_array)) {
+    $mime_array = array('audio/mpeg', 'audio/x-mpeg', 'audio/mp3', 'audio/x-mp3', 'audio/mpeg3', 'audio/x-mpeg3', 'audio/mpg', 'audio/x-mpg', 'audio/mpegaudi');
+  }
+
+  if(in_array($file->fmime, $mime_array))
+  {
+    $content = '<p id="webfm_mp3_frame">'.t("It look's like you don't have Adobe Flash Player installed. <a href='http://get.adobe.com/flashplayer/'>Get it now.</a>").'</p><script type="text/javascript">AudioPlayer.embed("webfm_mp3_frame", {soundFile: "http://localhost'.base_path().'?q=webfm_send/'.$file->fid.'/0/1" });</script>';
+    print theme('page', $content);
+
+    $stream = array('sent' => TRUE);
+  }
+  else
+    $stream = array();
+
+  return $stream;
+}
+*/
+/**
+ * Implementation of hook_webfm_extend_js().
+ */
+function webfm_mp3_webfm_extend_js(){
+  $modulepath = drupal_get_path('module', 'webfm_mp3');
+  drupal_add_js($modulepath. '/webfm_mp3.js');
+}
+
+/**
+ * Check for required flash components in 'mp3player' directory.
+ */
+function webfm_mp3_check_flash_files() {
+  if(!file_exists(drupal_get_path('module', 'webfm_mp3').'/mp3player/audio-player.js') || !file_exists(drupal_get_path('module', 'webfm_mp3').'/mp3player/player.swf')) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * Get stored or default configuration options for player
+ */
+function webfm_mp3_get_options() {
+  return variable_get('webfm_mp3_options', array('autostart' => 'no', 'loopaudio' => 'no', 'initialvolume' => '60', 'buffer' => '5', 'width' => '300'));
+}
+
+/**
+ * Returns the javascript string of audio player path & settings.
+ */
+function webfm_mp3_get_settings() {
+  $options = webfm_mp3_get_options();
+  $js_audio_settings  = 'AudioPlayer.setup("'.base_path().drupal_get_path('module', 'webfm_mp3').'/mp3player/player.swf", {';
+  $js_audio_settings .= 'autostart:"'.$options['autostart'].'",';
+  $js_audio_settings .= 'loop:"'.$options['loopaudio'].'",';
+  $js_audio_settings .= 'initialvolume:'.$options['initialvolume'].',';
+  $js_audio_settings .= 'buffer:'.$options['buffer'].',';
+  $js_audio_settings .= 'width:'.$options['width'].',';
+
+//  $js_audio_settings .= 'animation: "no",';
+//  $js_audio_settings .= 'remaining: "yes",';
+//  $js_audio_settings .= 'noinfo: "yes",';
+//  $js_audio_settings .= 'encode: "yes",';
+//  $js_audio_settings .= 'checkpolicy: "yes",';
+//  $js_audio_settings .= 'rtl: "yes",';
+//  $js_audio_settings .= 'transparentpagebg: "yes",';
+//  $js_audio_settings .= 'pagebg: "",';
+//  $js_audio_settings .= 'bg: "E5E5E5",';
+//  $js_audio_settings .= 'leftbg: "CCCCCC",';
+//  $js_audio_settings .= 'lefticon: "333333",';
+//  $js_audio_settings .= 'voltrack: "F2F2F2",';
+//  $js_audio_settings .= 'volslider: "666666",';
+//  $js_audio_settings .= 'rightbg: "B4B4B4",';
+//  $js_audio_settings .= 'rightbghover: "999999",';
+//  $js_audio_settings .= 'righticon: "333333",';
+//  $js_audio_settings .= 'righticonhover: "FFFFFF",';
+//  $js_audio_settings .= 'loader: "009900",';
+//  $js_audio_settings .= 'track: "FFFFFF",';
+//  $js_audio_settings .= 'tracker: "DDDDDD",';
+//  $js_audio_settings .= 'border: "CCCCCC",';
+//  $js_audio_settings .= 'skip: "666666",';
+//  $js_audio_settings .= 'text: "333333"';
+
+  $js_audio_settings = substr($js_audio_settings, 0, -1);
+  $js_audio_settings .= '});';
+
+  return $js_audio_settings;
+}

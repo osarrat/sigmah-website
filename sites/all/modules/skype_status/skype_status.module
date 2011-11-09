@@ -1,0 +1,89 @@
+<?php
+// $Id: skype_status.module,v 1.12 2010/04/21 15:43:31 nicholasalipaz Exp $
+
+/**
+ * Implementation of hook_menu().
+ */
+function skype_status_menu() {
+  return array(
+    // Administer >> Site configuration >> Skype status
+    'admin/settings/skype_status' => array(
+      'title' => 'Skype status',
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('skype_status_admin_settings'),
+      'file' => 'inc/skype_status.admin.inc',
+    ),
+  );
+}
+
+function _skype_status_idsafe($matches) {
+  $one = strtolower(str_replace('-', '_', $matches[1]));
+  $two = $matches[2];
+  return "<$one>$two</$one>";
+}
+
+function skype_status_getstatus($id, $lang = 'en') {
+  $url = sprintf("http://mystatus.skype.com/%s.xml", $id);
+  $response = drupal_http_request($url);
+
+  $xml = $response->data;
+  $xml = preg_replace('/\<rdf([^\>]+)\>/', '', $xml, 1);
+  $xml = preg_replace('/\<\/rdf([^\>]+)\>/', '', $xml, 1);
+  $xml = preg_replace('/\<Status([^\>]+)\>/', '<Status>', $xml, 1);
+  $xml = preg_replace('/\<statusCode([^\>]+)\>/', '<statusCode>', $xml, 1);
+  $xml = preg_replace_callback('/\<presence\sxml\:lang\=\"([^\"]+)\"\>([^\<]+)<\/presence\>/', '_skype_status_idsafe', $xml);
+
+  $xml = simplexml_load_string($xml);
+  
+  $status = array();
+  $status['num'] = ($xml->num === 6) ? 1 : $xml->num;
+  $status['text'] = $xml->$lang;
+  
+  return $status;
+}
+
+/**
+ * Implementation of hook_profile_alter().
+ */
+function skype_status_profile_alter(&$account) {
+  $skype_field = variable_get('skype_status_profile_field', '');
+  foreach ($account->content as $cat => $field) {
+    foreach ($field as $key => $val) {
+      if ($key == $skype_field) $category = $cat;
+    }
+  }
+  if (!empty($account->$skype_field) && $account->uid !== 0) {
+    $buttonstyle = variable_get('skype_status_buttonstyle', 'bigclassic');
+    $status = skype_status_getstatus(rawurlencode($account->$skype_field));
+    $output = theme('skype_status', $account->$skype_field, $buttonstyle, $status);
+    $account->content[$category][$skype_field]['#value'] = $output;
+    if (variable_get('skype_status_show_title', 1) === 0) unset($account->content[$category][$skype_field]['#title']);
+  }
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function skype_status_theme() {
+  return array(
+    'skype_status' => array(
+      'arguments' => array('name' => NULL, 'buttonstyle' => NULL, 'status' => NULL),
+    ),
+  );
+}
+
+function theme_skype_status($name, $buttonstyle, $status) {
+  $ename = rawurlencode($name);
+  $alt = t('Skype Status for @name', array('@name' => $name));
+  $path = base_path() . drupal_get_path('module', 'skype_status') . '/images/' . $buttonstyle . '/'. $status['num'] . '.png';
+  $text = (in_array($buttonstyle, array('mediumicon', 'smallicon'))) ? '&nbsp;' . $status['text'] : '';
+  return '<a href="skype:' . $name . '?call"><img src="' . $path . '" style="border: none;" alt="' . $alt . '" />' . $text . '</a>';
+}
+
+function skype_status_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'skype_status') . '/views',
+  );
+}

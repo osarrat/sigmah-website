@@ -1,0 +1,15 @@
+<?php
+// $Id: bugbits.install,v 1.1.2.1 2009/02/04 01:59:00 daften Exp $
+
+/**
+* Implementation of hook_uninstall().
+*/
+function bugbits_uninstall() {
+  // Delete our module's variables from the variables table.
+  variable_del('bugbits_mantis_url');
+  variable_del('bugbits_table_prefix');
+  variable_del('bugbits_db_type');
+  variable_del('bugbits_db_username');
+  variable_del('bugbits_db_password');
+  variable_del('bugbits_db_name');
+}

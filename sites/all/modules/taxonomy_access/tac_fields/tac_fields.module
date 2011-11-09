@@ -1,0 +1,241 @@
+<?php
+// $Id: tac_fields.module,v 1.1.2.1 2010/08/07 02:12:04 xjm Exp $
+
+/**
+ * @file
+ * Allows administrators to control access to individual CCK fields based on
+ * the node's taxonomy categories.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function tac_fields_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#tac_fields':
+      drupal_set_message("Warning: This module is experimental.  Do not use on a production site.", 'warning', FALSE);
+
+      // @todo Add more help.
+      $message .= ''
+        . '<p>' 
+        . t('This module provides taxonomy-based view and edit grants similar to those used in Taxonomy Access Control, but on a per-field basis. (Refer to the <a href="@tac_help">Taxonomy Access Control help page</a> for more information.)',
+          array('@tac_help' => url('admin/help', 
+                             array('fragment' => 'taxonomy_access')))
+           ) 
+        . '</p>'
+        . '<p>'
+        . t("Unlike node access, CCK's field access is subtractive.  That is, if even one module indicates that a user should be denied access to the field, then the user is denied access.  For example, if you have the Content Permissions module that comes with CCK enabled, you must check <em>edit field_name</em> or <em>view field_name</em> in addition to granting permission through this module.") // @todo add url
+        . '</p>'
+        . '<p>'
+        . t('In order to control access to a field with TAC fields, you must first add that field on the administration page.  Fields that are not listed will fall back on whatever permissions for the field have been configured with other modules.') // @todo add url
+        . '</p>'
+        . '<p>'
+        . t('Once you have enabled a field in TAC fields, you can then configure access to that field in much the same way that you would configure Taxonomy Access for nodes in general.  The same rules for determining whether or not a permission is granted apply.  See the <a href="@tac_help">Taxonomy Access Control help page</a> for more information.  (Unlike Taxonomy Access, only <em>view</em> and <em>edit</em> permissions are available; the rest are not applicable to fields.)',
+          array('@tac_help' => url('admin/help', 
+                             array('fragment' => 'taxonomy_access')))
+           )
+        . '</p>'
+        ;
+
+      return $message;
+      break;
+  }
+}
+
+/**
+ * Implements hook_init().
+ *
+ * @todo Do we need taxonomy_access_admin.inc?
+ */
+function tac_fields_init() {
+  if (arg(0) == 'admin') {
+    // Only include administrative callbacks and css if we are viewing an admin page.
+    $path = drupal_get_path('module', 'tac_fields');
+    $tac_path = drupal_get_path('module', 'taxonomy_access');
+    include_once($path .'/tac_fields.admin.inc');
+    include_once($tac_path .'/taxonomy_access_admin.inc');
+    drupal_add_css($tac_path .'/admin.css');
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function tac_fields_theme() {
+  return array(
+    'tac_fields_admin_form' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function tac_fields_menu() {
+  $items = array();
+
+  $items['admin/user/tac_fields'] = array(
+      'title' => 'TAC Fields permissions',
+      'description' => 'Taxonomy-based access control for CCK fields',
+      'page callback' => 'tac_fields_admin',
+      'access arguments' => array('administer permissions'),
+    );
+
+  return $items;
+}
+
+/**
+ * Implements hook_taxonomy().
+ */
+function tac_fields_taxonomy($op, $type, $array = NULL) {
+  switch ($op) {
+    case 'delete':
+       // Clean our data for the term or vocab.
+      if ($type == 'term') {
+        db_query('DELETE FROM {term_field_access} WHERE tid = %d',
+          $array['tid']);
+      }
+      elseif ($type == 'vocabulary') {
+        db_query('DELETE FROM {term_field_access_defaults} WHERE vid = %d', 
+          $array['vid']);
+      }
+       break;
+  }
+  return;
+}
+
+
+/**
+ * Implements hook_field_access().
+ *
+ * @see content_access().
+ */
+function tac_fields_field_access($op, $field, $account, $node = NULL) {
+  switch ($op) {
+    case 'view':
+      $column = 'grant_view';
+      break;
+    case 'edit':
+      $column = 'grant_update';
+      break;
+    default:
+      return TRUE;
+      break;
+  }
+
+  $fieldname = $field['field_name'];
+
+  // If TAC Fields does not control the field, allow access.
+  if (!in_array($fieldname, _tac_fields_controlled_fields())) {
+    return TRUE;
+  }
+
+  // We can't do anything without a node, because we need the node's terms.
+  if (!isset($node)) {
+    return TRUE;
+  }
+  $nid = $node->nid;
+  if (!is_numeric($nid)) {
+    return TRUE;
+  }
+
+  if (is_array($account->roles)) {
+    $rids = array_keys($account->roles);
+  } 
+  else {
+    $rids[] = 1;
+  }
+
+  // Get a list of all terms this node is in, regardless of user's access.
+  // Don't use API calls here.
+
+  // Cache.
+  static $tids = array();
+
+  // @todo: What's with the mixing of nid and revision id here (and in TAC)?
+  if (!isset($tids[$nid])) {
+    $tids[$nid] = array();
+    $r = db_query('SELECT tid FROM {term_node} WHERE vid = %d', $node->vid);
+    while ($row = db_fetch_object($r)) {
+      $tids[$nid][] = $row->tid;
+    }
+  }
+
+  $args = array_merge(array($node->vid, $fieldname), $rids);
+
+  if (!empty($tids[$nid])) {
+    $result = db_query(
+      "SELECT 
+         tadg.rid, 
+         BIT_OR(COALESCE(
+           ta." . db_escape_table($column) . ", 
+           tad." . db_escape_table($column) . ", 
+           tadg." . db_escape_table($column) . "
+           )) AS " . db_escape_table($column) . "
+       FROM {term_node} tn
+       INNER JOIN {term_data} t ON t.tid = tn.tid
+       INNER JOIN {term_field_access_defaults} tadg 
+         ON tadg.vid = 0
+       LEFT JOIN {term_field_access_defaults} tad 
+         ON tad.vid = t.vid AND tad.rid = tadg.rid AND tad.field = tadg.field
+       LEFT JOIN {term_field_access} ta 
+         ON ta.tid = t.tid AND ta.rid = tadg.rid AND ta.field = tadg.field
+       WHERE tn.vid = %d 
+         AND tadg.field = '%s'
+         AND tadg.rid IN (" . db_placeholders($rids, 'int') . ")
+       GROUP BY tadg.rid
+       ", $args);
+  }
+  else {
+    // Use the default for nodes with no taxonomy term.
+    $result = db_query(
+      "SELECT 
+         n.nid, 
+         tadg.rid AS rid, 
+         tadg." . db_escape_table($column) . " 
+           AS " . db_escape_table($column) . " 
+       FROM {node} n 
+       INNER JOIN {term_field_access_defaults} tadg ON tadg.vid = 0 
+       WHERE n.nid = %d 
+         AND tadg.field = '%s'
+         AND tadg.rid  IN (" . db_placeholders($rids, 'int') . ")
+       ", $args);
+  }  
+
+  // Deny access by default for fields we do control.
+  $access = 0;
+
+  // Ignore => 0, Allow => 1, Deny => 2 ('10' in binary).
+  // With an Allow and no Deny, the value from the BIT_OR will be 1.
+  // If a Deny is present, the value will then be 3 ('11' in binary).
+  
+  while ($row = db_fetch_array($result)) {
+    // If this role allows access to the field, then grant it to the user.
+    $access += ($row[$column] == 1) ? 1 : 0;
+  }
+  
+  return (bool) $access;
+}
+
+
+/**
+ * Get a list of all fields controlled by TAC Fields.
+ *
+ * @return
+ *    An array of field machine names.
+ */
+function _tac_fields_controlled_fields() {
+  static $fields;
+  if (!isset($fields)) {
+    $fields = array();
+    // If we are controlling the field, a global default will be set for anon.
+    $r = db_query(
+      'SELECT field FROM {term_field_access_defaults} WHERE vid=0 AND rid=1'
+    );
+    while ($row = db_fetch_object($r)) {
+      $fields[] = $row->field;
+    }
+  }
+  return $fields;
+}

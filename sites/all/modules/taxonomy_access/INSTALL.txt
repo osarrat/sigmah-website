@@ -1,0 +1,51 @@
+TO INSTALL, simply install and enable the module, in these steps.
+
+PLEASE CHECK that you use the right version of Taxonomy Access for your 
+  version of DRUPAL.
+
+IMPORTANT: This is a complicated module. When you first learn to use this 
+  module, ALWAYS TRY IT FIRST ON A TEST SITE.
+
+NOTE: If you want to USE TWO OR MORE "ACCESS" MODULES AT THE SAME TIME, TEST 
+  THEM CAREFULLY. (e.g: OG, node_privacy_by_role, taxonomy access, etc.)
+
+TO UPDATE from previous versions of taxonomy_access: PLEASE READ UPDATE.TXT!
+  WHEN UPDATING, ALWAYS disable the module first before uploading the new 
+  module, on the page:
+  "Administer >> Site building >> Modules"
+  (Drupal path: admin/build/modules).
+
+
+-----------------------
+INSTALLATION:
+-----------------------
+
+1) COPY all files in the taxonomy_access directory to your Drupal 
+   installation's module directory.
+   (By default: sites/all/modules/taxonomy_access/ in your Drupal directory.)
+
+2) ENABLE THE MODULE on page: 
+   "Administer >> Site building >> Modules"
+   (Drupal path: admin/build/modules).
+
+3) REBUILD YOUR NODE ACCESS PERMISSIONS on page:
+   "Administer >> Content Management >> Post Settings".
+   (Drupal path: admin/content/post-settings/rebuild).
+
+4) GRANT ADMINISTRATORS CONTROL of Taxonomy Access on page:
+   "Administer >> User Management >> Permissions"
+   (Drupal path: admin/user/permissions).
+
+   To administer Taxonomy Access, administrators must have "access 
+   administration pages" checked (under "system module") and "administer 
+   permissions" checked (under "user module"). 
+
+5) CONFIGURE ACCESS PERMISSIONS to the various categories at: 
+   "Administer >> User Management >> Taxonomy Access Permissions"
+   (Drupal path: admin/user/taxonomy_access).
+
+   Be sure to configure your authenticated user permissions, as all custom 
+   roles also have the authenticated user role.
+
+NOTE: DATABASE TABLES are automatically added to database. Module creates two 
+   database tables: 'term_access' and 'term_access_defaults'.

@@ -1,0 +1,252 @@
+# Russian translation of user_stats (6.x-1.x-dev)
+# Copyright (c) 2009 by the Russian translation team
+# Generated from files:
+#  user_stats.module,v 1.2.2.16.2.19 2009/02/14 21:50:09 liammcdermott
+#  user_stats.info,v 1.2.2.3.2.4 2009/02/07 04:10:38 liammcdermott
+#  user_stats.rules.inc,v 1.1.2.1 2009/02/07 04:10:38 liammcdermott
+#  user_stats.admin.inc,v 1.1.2.2 2009/02/14 02:49:50 liammcdermott
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: user_stats (6.x-1.x-dev)\n"
+"POT-Creation-Date: 2009-02-26 01:15+0300\n"
+"PO-Revision-Date: 2009-02-26 14:37+0300\n"
+"Language-Team: Russian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=((((n%10)==1)&&((n%100)!=11))?(0):(((((n%10)>=2)&&((n%10)<=4))&&(((n%100)<10)||((n%100)>=20)))?(1):2));\n"
+"Last-Translator: Иван Потапов <elsewhere@yandex.ru>\n"
+
+#: user_stats.module:156,164,177,185
+msgid "Cancel"
+msgstr "Отменить"
+
+#: user_stats.module:571,578,585,592,607,615,623,570,577,584,591,606,614,622,593,600,629,637,645,580,587,594,601,616,624,632
+msgid "User"
+msgstr "Пользователь"
+
+#: user_stats.module:569,568,591,578
+msgid "User whos post count has incremented"
+msgstr "Пользователь, счётчик которого был увеличен"
+
+#: user_stats.module:574,573,596,583
+msgid "User post count decremented"
+msgstr "Счётчик сообщений пользователя уменьшен"
+
+#: user_stats.module:576,575,598,585
+msgid "User whos post count has decremented"
+msgstr "Пользователь, счётчик сообщений которого был уменьшен"
+
+#: user_stats.module:583,582,605,592
+msgid "User whos post count has reset"
+msgstr "Пользователь, счётчик сообщений которого был сброшен"
+
+#: user_stats.module:590,589,612,599
+msgid "User who is a day older"
+msgstr "Пользователь, который является новичком"
+
+#: user_stats.module:603,602,625,612
+msgid "Increment user post count"
+msgstr "Увеличить счётчик сообщений пользователя"
+
+#: user_stats.module:605,604,627,614
+msgid "User whos post count should be incremented"
+msgstr "Пользователь. счётчик сообщений которого должен быть увеличен"
+
+#: user_stats.module:608,607,630,617
+msgid "Increments the post count of a user"
+msgstr "Увеличивает счётчик сообщений пользователя"
+
+#: user_stats.module:611,610,633,620
+msgid "Decrement user post count"
+msgstr "Уменьшить счётчик сообщений пользователя"
+
+#: user_stats.module:613,612,635,622
+msgid "User whos post count should be decremented"
+msgstr "Пользователь, счётчик сообщений которого должен быть уменьшен"
+
+#: user_stats.module:616,615,638,625
+msgid "Decrements the post count of a user"
+msgstr "Уменьшает счётчик сообщений пользователя"
+
+#: user_stats.module:619,618,641,628
+msgid "Reset the user post count"
+msgstr "Сбросить счётчик сообщений пользователя"
+
+#: user_stats.module:621,620,643,630
+msgid "User whos post count should be reset"
+msgstr "Пользователь, счётчик сообщений которого должен быть сброшен"
+
+#: user_stats.module:624,623,646,633
+msgid "Resets the post count of the current user."
+msgstr "Сбрасывает счётчик сообщений пользователя"
+
+#: user_stats.module:716,714,715,756,743,558,606
+msgid "Number of days since the user registered"
+msgstr "Число дней с момента регистрации пользователя"
+
+#: user_stats.module:717,715,716,757,744,559,607
+msgid "Number of days since the user logged in"
+msgstr "Число дней с момента входа пользователя на сайт"
+
+#: user_stats.module:718,716,717,758,745,560,608
+msgid "Number of days since the user posted"
+msgstr "Число дней с момента последнего сообщения пользователя"
+
+#: user_stats.module:719,717,718,759,746,561,609
+msgid "User's post count"
+msgstr "Счётчик сообщений пользователя"
+
+#: user_stats.module:720,718,719,760,747,562,610
+msgid "User's IP address"
+msgstr "IP-адрес пользователя"
+
+#: user_stats.module:8,22,25
+msgid "View statistics"
+msgstr "Смотреть статистику"
+
+#: user_stats.module:8,22,25
+msgid "View IP addresses"
+msgstr "Смотреть IP-адреса"
+
+#: user_stats.module:0
+msgid "user_stats"
+msgstr ""
+
+#: user_stats.info:0
+msgid "Provides post count and other user statistics. Integrates well with Workflow NG and Token (if installed)."
+msgstr "Предоставляет счётчик сообщений и другую статистику пользователя. Хорошо работает вместе с модулями Workflow NG и Маркер (Token), если они установлены."
+
+#: user_stats.info:0
+msgid "User goodies"
+msgstr "Пользовательские \"фишки\""
+
+#: user_stats.module:567,566,589,576
+msgid "User post count incremented"
+msgstr "Счётчик сообщений пользователя увеличен"
+
+#: user_stats.module:19
+msgid "User stats settings"
+msgstr "Настройки статистики пользователя"
+
+#: user_stats.module:20,34,37
+msgid "Configuration of user stats module options."
+msgstr "Установка опций модуля пользовательской статистики."
+
+#: user_stats.module:27,41,45
+msgid "reset user post stats"
+msgstr "сбрасывать статистику сообщений пользователя"
+
+#: user_stats.module:155,176
+msgid "Are you sure you want to reset post counts?"
+msgstr "Вы уверены, что хотите сбросить счётчики сообщений?"
+
+#: user_stats.module:174,195
+msgid "The post counts will be reset during the next cron run."
+msgstr "Счётчики сообщений будут сброшены во время следующего запуска хронометра."
+
+#: user_stats.module:8,22,25
+msgid "administer user stats"
+msgstr "управлять статистикой  пользователя"
+
+#: user_stats.module:34,48,47,52
+msgid "reset user login stats"
+msgstr "сбрасывать статистику посещений пользователя"
+
+#: user_stats.module:163,184
+msgid "Are you sure you want to reset login counts?"
+msgstr "Вы уверены, что хотите сбрость счётчики посещений?"
+
+#: user_stats.module:185,206
+msgid "The user login counts have been reset"
+msgstr "Счётчики посещений были сброшены"
+
+#: user_stats.module:84,105,103
+msgid "User stats post count profile field"
+msgstr "Поле профиля пользователя, используемое счётчиком статистики сообщений"
+
+#: user_stats.module:85,106
+msgid "This is the profile field that holds the postcount for a user. Changing this can be useful if you have multiple sites using the same database (or you just do not like the default field used for post counts). <strong>The default setting should work for most people.</strong>"
+msgstr "Это поле профиля, в котором хранится счётчик сообщений пользователя. Изменение этого параметра может быть полезным, если вы используете одну базу данных на нескольких сайтах (или вам просто не нравится поле, используемое по умолчанию). <strong>Значение по умолчанию прекрасно подойдёт большинству пользователей.</strong>"
+
+#: user_stats.module:513,512,533,520
+msgid "Sorry, there is nothing for you to see here."
+msgstr "Извините, здесь не на что смотреть."
+
+#: user_stats.module:33,36
+msgid "User Stats settings"
+msgstr "Настройки User Stats"
+
+#: user_stats.info:0
+msgid "Provides post count and other user statistics. Integrates well with Token and Advanced Forum (if installed)."
+msgstr "Предоставляет счётчик сообщений и другую статистику пользователя. Хорошо работает вместе с модулями Маркер (Token) и Улучшенный форум (Advanced Forum), если они установлены."
+
+#: user_stats.module:104
+msgid "This is the profile field that holds the post count for a user. Changing this can be useful if you have multiple sites using the same database (or you just do not like the default field used for post counts). <strong>The default setting should work for most people.</strong>"
+msgstr "Это поле профиля, в котором хранится счётчик сообщений пользователя. Изменение этого параметра может быть полезным, если вы используете одну базу данных на нескольких сайтах (или вам просто не нравится поле, используемое по умолчанию). <strong>Значение по умолчанию прекрасно подойдёт большинству пользователей.</strong>"
+
+#: user_stats.rules.inc:16
+msgid "User login count increased"
+msgstr "Счётчик посещений пользователя увеличен"
+
+#: user_stats.rules.inc:21
+msgid "User login count decreased"
+msgstr "Счётчик посещений пользователя уменьшен"
+
+#: user_stats.rules.inc:26
+msgid "User login count reset"
+msgstr "Счётчик посещений пользователя сброшен"
+
+#: user_stats.rules.inc:31
+msgid "User post count increased"
+msgstr "Счётчик сообщений пользователя увеличен"
+
+#: user_stats.rules.inc:36
+msgid "User post count decreased"
+msgstr "Счётчик сообщений пользователя уменьшен"
+
+#: user_stats.rules.inc:46
+msgid "User has a new IP address"
+msgstr "Пользователь использует новый IP-адрес"
+
+#: user_stats.rules.inc:69
+msgid "Value of the statistic"
+msgstr "Значение статистики"
+
+#: user_stats.rules.inc:73
+msgid "User who's statistics have changed"
+msgstr "Пользователь, статистика которого была изменена"
+
+#: user_stats.module:453,501
+msgid "Reset user post count"
+msgstr "Сбросить счётчик сообщений пользователя"
+
+#: user_stats.module:463,511
+msgid "Reset user login count"
+msgstr "Сбросить счётчик посещений пользователя"
+
+#: user_stats.module:563,611
+msgid "User's login count"
+msgstr "Счётчик посещений пользователя"
+
+#: user_stats.admin.inc:95
+msgid "IP address tracking"
+msgstr "Отслеживание IP-адресов"
+
+#: user_stats.admin.inc:102
+msgid "Track IP addresses"
+msgstr "Отслеживать IP-адреса"
+
+#: user_stats.admin.inc:103
+msgid "If checked the IP addresses of users will be logged. This may be a privacy issue for some people, but is very useful for discovering spammers on community sites."
+msgstr "Если включено, IP-адреса пользователей будут записываться. Некоторые пользователи могут счесть это вмешательством в их личную жизнь, но это очень удобная функция для выявления спамеров на различных сайтах."
+
+#: user_stats.admin.inc:110
+msgid "Discard IP logs older than"
+msgstr "Убирать из журналов записи об IP-адресах старше, чем"
+
+#: user_stats.admin.inc:111
+msgid "Older IP log entries will be automatically discarded. (Requires a correctly configured <a href=\"@cron\">cron maintenance task</a>.)"
+msgstr "Старые записи об IP-адресах будут автоматически вычищаться (требует правильно настроенного <a href=\"@cron\">хронометра</a>)."
+

@@ -1,0 +1,11 @@
+<?php
+// $Id: formfilter.install,v 1.1 2007/01/12 04:14:46 nedjo Exp $
+
+/** 
+  * Implementation of hook_install(). 
+  */
+function formfilter_install() {  
+  // Set a high weight so the module is called after other modules that
+  // modify forms.
+  db_query("UPDATE {system} SET weight = 20 WHERE name = 'formfilter'");
+}

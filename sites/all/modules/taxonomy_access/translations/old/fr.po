@@ -1,0 +1,269 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2006-08-28 22:55+0100\n"
+"Last-Translator: Jérôme <EMAIL@ADDRESS>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Poedit-Language: French\n"
+"X-Poedit-Country: FRANCE\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-Basepath: ../\n"
+
+#: taxonomy_access.install:19
+#: ;38
+msgid "Taxonomy Access - Update #2: No queries executed. Field 'grant_list' already exists in tables 'term_access'."
+msgstr "Taxonomy Access - Mise à jour #2: Aucune requête exécutée. Le champ 'grant_list' existe déjà dans la table 'term_access'."
+
+#: taxonomy_access.module:13
+msgid "Allows users to specify how each category can be used by various roles."
+msgstr "Permet aux utilisateurs de définir la manière dont pourra être utilisé chaque catégories par les différents rôles."
+
+#: taxonomy_access.module:24
+msgid "The module is currently <u>ACTIVATED</u> properly."
+msgstr "Le module est actuellement <u>ACTIF</u>."
+
+#: taxonomy_access.module:25
+msgid "To disable the module properly: <ol><li><u>Deactivate</u> here. <em>(Save this configuration.)</em></li><li><u>Disable/Uninstall</u> it in the 'Modules Administration Page'.</li></ol>"
+msgstr "Pour désactiver le module correctement: <ol><li><u>Désactiver</u> ici. <em>(Sauve cette configuration.)</em></li><li><u>Désactiver/Désinstaller</u> dans la 'Page d'Administration des Modules'.</li></ol>"
+
+#: taxonomy_access.module:30
+msgid "The module is currently <u>DEACTIVATED</u>, but must also be disabled/uninstalled in the %module_page_link in order to be properly disabled."
+msgstr "Le module est actuellement <u>INACTIF</u>, mais doit aussi être désactivé/désinstallé dans la %module_page_link pour être correctement désactivé."
+
+#: taxonomy_access.module:30
+msgid "modules admin page"
+msgstr "page d'administration du module"
+
+#: taxonomy_access.module:31
+msgid "For controlling the Taxonomy Access System, the module has to be <u>Activated</u> on this page."
+msgstr "Pour paramétrer le système de contrôle d'accès par catégories, le module doit être <u>Activé</u> sur cette page."
+
+#: taxonomy_access.module:36
+msgid "The Taxonomy Access Control module allows users to specify how each category can be used by various roles."
+msgstr "Le module de contrôle d'accès par catégorie permet de spécifier la manière dont pourra être utilisée chaque catégorie par les différents rôles."
+
+#: taxonomy_access.module:37
+msgid "On the category permissions page for each role, each category displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>:"
+msgstr "Sur la page de permissions des catégorie, pour chaque rôle, chaque catégorie présente la liste de termes associé suivi de cinq types de permission: <em>Voir, Mise à jour, Supprimer, Créer</em> et <em>Lister</em>:"
+
+#: taxonomy_access.module:39
+msgid "<strong>VIEW</strong> enables the user to access content (nodes) with given term."
+msgstr "<strong>VOIR</strong> autorise l'utilisateur à visualiser les contenus (noeuds) associés à ce terme."
+
+#: taxonomy_access.module:40
+msgid "<strong>UPDATE, DELETE</strong> enables the user to Update/Delete <u>ALL</u> nodes with the given term. <br><em>(These two permissions are <u>administrator permissions</u>, that should be given ONLY to e.g. content administrators.)</em>"
+msgstr "<strong>MISE A JOUR, SUPPRIMER</strong> autorisent l'utilisateur à Mettre à jour/Supprimer <u>TOUS</u> les noeuds associés à ce terme. <br><em>(Ces deux permissions sont des <u>fonctions d'administration</u>, qui ne devraient être données QUE à par ex. de administrateurs de contenu.)</em>"
+
+#: taxonomy_access.module:41
+msgid "<strong>CREATE</strong> enables the user to set that term when adding a new node or when editing a node."
+msgstr "<strong>CREER</strong> autorise l'utilisateur à utiliser ce terme lors de l'édition ou la création d'un noeud."
+
+#: taxonomy_access.module:42
+msgid "<strong>LIST</strong> enables the user to view the name of the given term below the title of a node or in category lists.  It also controls whether a user can access the taxonomy page for the given term.  (e.g. \"taxonomy/term/*\")"
+msgstr "<strong>LISTER</strong> autorise l'utilisateur à voir le terme sous le titre d'un noeud ou dans une liste de catégories. Cela contrôle aussi l'accès à la page de catégorie de ce terme.  (ex. \"taxonomy/term/*\")"
+
+#: taxonomy_access.module:44
+msgid "VIEW, UPDATE, and DELETE control the node access system.  LIST and CREATE control if a user can view and select a given term.  (Note: In previous versions of Taxonomy Access Control, there was no LIST permission; its functionality was controlled by the VIEW permission.)"
+msgstr "VOIR, MISE A JOUR, et SUPRIMER contrôle le système d'accès aux noeuds. LISTER et CREER contrôle si un utilisateur peur voir et sélectionner le terme. (Note: Dans les version précédentes du contrôle d'accès par catégorie, il n'y avait pat de permission LISTER; cette fonctionnalité était contrôlée par la permission VOIR.)"
+
+#: taxonomy_access.module:45
+msgid "<strong>VIEW, UPDATE and DELETE have three options for each term: <u>A</u>llow, <u>I</u>gnore, and <u>D</u>eny.</strong>  Indicate which rights each role should have for each term."
+msgstr "<strong>VOIR, MISE A JOURet SUPRIMER ont trois options par terme: <u>A</u>utoriser, <u>I</u>gnorer, et <u>R</u>efuser.</strong> Défini ce que chaque rôle peu faire avec chaque terme."
+
+#: taxonomy_access.module:46
+msgid "<strong>CREATE and LIST have only two options for each term:  YES (selected) or NO (deselected).</strong>  Indicate what each role should be allowed to do with each term."
+msgstr "<strong>CREER et LISTER n'ont que deux postions par terme:  OUI (selectioné) ou NON (déselectioné).</strong> Défini ce que chaque rôle peu faire avec chaque terme."
+
+#: taxonomy_access.module:47
+msgid "<strong>IMPORTANT NOTE:</strong><br><u>The DENY directives are processed after the ALLOW directives. (DENY overrides ALLOW.)</u>  So, if a multicategory node is in Categories \"A\" and \"B\" and a user has ALLOW permissions for VIEW in Category \"A\" and DENY permissions for VIEW in Category \"B\", then the user will NOT be permitted to VIEW the node. (DENY overrides ALLOW.)<br><u>Access is denied by default.</u> So, if a multicategory node is in Categories \"C\" and \"D\" and a user has IGNORE permissions for VIEW in both Category \"C\" and \"D\", then the user will NOT be permitted to VIEW the node.<br>(If you are familiar with Apache mod_access, this permission system works similar to directive: <em>ORDER ALLOW, DENY</em>)"
+msgstr "<strong>NOTE IMPORTANTE :</strong><br><u>Les directives REFUSER sont effectuées après les directive AUTORISER. (REFUSER écrase AUTORISER.)</u> Donc, si un noeud est dans les catégories \"A\" et \"B\" et que l'utilisateur à les permissions AUTORISER de VOIR dans la catégorie \"A\" et REFUSER de VOIR dans la catégorie \"B\", alors l'utilisateur ne sera PAS autorisé à VOIR le noeud. (REFUSER écrase AUTORISER.)<br><u>L'accès est refusé par défaut.</u> Donc, si un noeud est dans les catégories \"C\" et \"D\" et que l'utilisateur à les permissions IGNORER pour VOIR dans chacune des catégorie \"C\" et \"D\", alors l'utilisateur ne sera PAS autorisé à VOIR le noeud.<br>(Si vous êtes habitué au mod_access de Apache, ce système de permissions fonctionne d'une manière similaire à la directive : <em>ORDER ALLOW, DENY</em>)"
+
+#: taxonomy_access.module:48
+msgid "<strong>Allow/Ignore/Deny All</strong> or <strong>Select/Deselect All:</strong><br>Beside each vocabulary title there are dropdowns containing the options that can be set for individual terms.  Selecting one of these options using the dropdown effectively <u>selects that option for ALL of the individual terms inside that vocabulary when the options are saved.</u><br>Selecting \"--\" does not make any automatic changes to the permission of the terms in that vocabulary; only manual changes that you make will be saved.<br>NOTE:  This does <u>not</u> change the \"Default\" option (described below)."
+msgstr "<strong>Autoriser/Ignorer/Refuser tout</strong> ou <strong>Sélectionner/Désélectionner tout :</strong><br>A coté de chaque titre de catégorie sont positionnés des listes déroulantes contenant les options qui peuvent êtres réglées sur chaque termes. Le choix de l'une de ces options dans la liste déroulante <u>sélectionne cette option pour TOUS les termes de cette catégorie lorsque les options sont sauvées.</u><br>Le choix de \"--\" n’opère aucun changement automatique de permission sur les termes de la catégorie; seuls les changements manuels que vous effectuez seront sauvés.<br>NOTE : Ceci ne change <u>PAS</u> l'option \"Par défaut\" (décrite ci-dessous)."
+
+#: taxonomy_access.module:49
+msgid "<strong>Default:</strong><br>This option, just underneath the vocabulary title, <u>sets the permission that will automatically be given</u> to the role, <u>for any new terms</u> that are added within the vocabulary.  This includes terms that are added via free tagging."
+msgstr "<strong>Par défaut :</strong><br>Cette option, juste sous le titre de la catégorie, <u>règle la permission qui sera automatiquement donnée</u> au rôle, <u>pour tout nouveau terme</u> qui sera ajouté à cette catégorie. Cela inclue les termes qui sont ajoutés par l'étiquetage libre."
+
+#: taxonomy_access.module:50
+msgid "<strong>GOOD TO KNOW:</strong><br><strong>Input formats:</strong>  <u>Node editing/deleting is blocked</u>, even when user has <em>UPDATE/DELETE</em> permission to the node, <u>when user is not allowed to use a filter format</u> that the node was saved at."
+msgstr "<strong>BON A SAVOIR :</strong><br><strong>Les formats d'entrée:</strong>  <u>L'édition et la suppression de noeuds est bloquée</u>, même si l'utilisateur a les permissions <em>MISE A JOUR/SUPPRIMER</em> sur le noeud, <u>lorsque l'utilisateur n'est pas autorisé a utiliser un format de filtre</u> dans le quel le noeud a été sauvé."
+
+#: taxonomy_access.module:57
+msgid "Taxonomy Access Control has to be <u>activated</u> on %settings_page, before configuring 'category permissions'."
+msgstr "Le contrôle d'accès par catégorie doir être <u>activé</u> sur la %settings_page, avant de configurer les 'permissions des catégories'."
+
+#: taxonomy_access.module:57
+#: ;450
+msgid "settings page"
+msgstr "page de paramètres"
+
+#: taxonomy_access.module:61
+msgid "<p><strong>Vocabulary Settings:</strong> Each vocabulary displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>.</p><p>For a detailed description of these permissions and how to use them, see <a href=\"%taxonomy_access_help\">Taxonomy Access Control help</a>. If you are new to Taxonomy Access Control, it is very important that you read the help page.</p>"
+msgstr "<p><strong>Réglages des catégories :</strong> Chaque catégorie présente une liste de termes associés, chacun avec cinq types de permissions: <em>Voir, Mise à Jour, Supprimer, Créer</em> et <em>Lister</em>.</p><p>Pour une description détaillée de ces permissions et de leur utilisation, voir <a href=\"%taxonomy_access_help\">l'aide sur le contrôle d'accès par catégories</a>. Si vous débutez avec le contrôle d'accès par catégorie, il est très important que vous lisiez cette page.</p>"
+
+#: taxonomy_access.module:65
+msgid "In this area you will define the permissions that each <a href=\"%role\">user role</a> has for each category.  Each category can have <em>View, Update, Delete, Create</em> and <em>List</em> permissions set for each user role."
+msgstr "Dans cette zone vous définissez les permissions que chaque <a href=\"%role\">rôle</a> a sur chaque catégorie. Chaque catégorie peu avoir les permissions <em>Voir, Mise à jour, Supprimer, Créer</em> et <em>Lister</em> réglées pour chaque rôle."
+
+#: taxonomy_access.module:90
+#: ;0
+msgid "taxonomy_access"
+msgstr "taxonomy_access"
+
+#: taxonomy_access.module:96
+msgid "category permissions"
+msgstr "permissions des catégories"
+
+#: taxonomy_access.module:146
+msgid "Allow all"
+msgstr "Autoriser tout"
+
+#: taxonomy_access.module:146
+msgid "Ignore all"
+msgstr "Ignorer tout"
+
+#: taxonomy_access.module:146
+msgid "Deny all"
+msgstr "Refuser tout"
+
+#: taxonomy_access.module:147
+msgid "Select all"
+msgstr "Sélectionner tout"
+
+#: taxonomy_access.module:147
+msgid "Deselect all"
+msgstr "Désélectionner tout"
+
+#: taxonomy_access.module:148
+#: ;253
+msgid "Allow"
+msgstr "Autoriser"
+
+#: taxonomy_access.module:148
+#: ;253
+msgid "Ignore"
+msgstr "Ignorer"
+
+#: taxonomy_access.module:148
+#: ;253
+msgid "Deny"
+msgstr "Refuser"
+
+#: taxonomy_access.module:212
+msgid "Save category permissions"
+msgstr "Sauver les permissions des catégories"
+
+#: taxonomy_access.module:227
+msgid "Role"
+msgstr "Rôle"
+
+#: taxonomy_access.module:229
+msgid "edit"
+msgstr "éditer"
+
+#: taxonomy_access.module:241
+msgid "Category"
+msgstr "Catégorie"
+
+#: taxonomy_access.module:242
+msgid "View"
+msgstr "Voir"
+
+#: taxonomy_access.module:243
+msgid "Update"
+msgstr "Mise à jour"
+
+#: taxonomy_access.module:244
+msgid "Delete"
+msgstr "Supprimer"
+
+#: taxonomy_access.module:245
+msgid "Create"
+msgstr "Créer"
+
+#: taxonomy_access.module:246
+msgid "List"
+msgstr "Liste"
+
+#: taxonomy_access.module:248
+msgid "A"
+msgstr "A"
+
+#: taxonomy_access.module:249
+msgid "I"
+msgstr "I"
+
+#: taxonomy_access.module:250
+msgid "D"
+msgstr "R"
+
+#: taxonomy_access.module:255
+msgid "Permissions for"
+msgstr "Permissions de"
+
+#: taxonomy_access.module:262
+msgid "Uncategorized nodes"
+msgstr "Noeuds inclassables"
+
+#: taxonomy_access.module:296
+msgid "Default"
+msgstr "Par défaut"
+
+#: taxonomy_access.module:432
+msgid "Your permission settings for '%role' role have been saved."
+msgstr "Vos réglages de permissions pour le rôle '%role' ont étés sauvées."
+
+#: taxonomy_access.module:447
+#: ;449
+msgid "active"
+msgstr "actif"
+
+#: taxonomy_access.module:448
+#: ;450
+msgid "Cannot be disabled!"
+msgstr "Ne peut pas être désactivé !"
+
+#: taxonomy_access.module:448
+msgid "Required by taxonomy_access module."
+msgstr "Requit par le module <em>taxonomy_access</em>."
+
+#: taxonomy_access.module:450
+msgid "First, <u>deactivate</u> on %settings_page"
+msgstr "Premièrement, <u>désactivez</u> sur la %settings_page"
+
+#: taxonomy_access.module:471
+msgid "The module %module was deactivated--it requires the following disabled/non-existant modules to function properly: %dependencies"
+msgstr "Le module %module a été désactivé--il requiert les modules désactivés/absents pour fonctionner correctement : %dependencies"
+
+#: taxonomy_access.module:701
+msgid "Taxonomy Access Control Activation"
+msgstr "Activation du contrôle d'accès par catégorie"
+
+#: taxonomy_access.module:704
+msgid "Activate"
+msgstr "Activer"
+
+#: taxonomy_access.module:704
+msgid "Deactivate"
+msgstr "Désactiver"
+
+#: taxonomy_access.module:715
+#: ;722;726
+msgid "Reset to defaults"
+msgstr "Rétablir par défaut"
+
+#: taxonomy_access.module:727
+msgid "The configuration options of taxonomy access have been reset to their default values."
+msgstr "Les options de configuration de contrôle d'accès par catégorie ont étés réinitialisées aà leurs valeurs par défaut."
+
+#: taxonomy_access.module:731
+msgid "The configuration options of taxonomy access have been saved."
+msgstr "Les options de configuration de contrôle d'accès par catégorie ont étés sauvées."
+

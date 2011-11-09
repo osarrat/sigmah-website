@@ -1,0 +1,107 @@
+<?php
+// $Id:
+// MultiLink SecurePages module for Drupal 6.
+// Provides integration between MultiLink and SecurePages module.
+// License: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+// Support: Commercial support and customization is available from www.netgenius.co.uk
+// Contact: www.netgenius.co.uk/contact or email drupal at netgenius.co.uk
+
+
+/*
+ * Get a url, including correct protocol.
+ * Returned url will be absolute if securepages is enabled, otherwise depending on passed $options.
+ */
+function multilink_securepages_url($path, $options = array()) {
+  // We do not use securepages_url as it does not seem to handle languages.
+  if (multilink_securepages_enable()) {
+    $https = securepages_match($path) || (securepages_is_secure() && !variable_get('securepages_switch', FALSE));
+    $options['base_url'] = securepages_baseurl($https);
+    $options['absolute'] = 1;
+  }
+  $url = url($path, $options);
+  //drupal_set_message(sprintf('https: %d, path: %s, url: %s', $https, $path, $url));
+  return $url;
+}
+
+// We do not use securepages_url as it does not seem to handle languages.
+/*
+function multilink_securepages_url($path, $options) {
+  if (multilink_securepages_enable()) {
+    $options['secure'] = securepages_match($path);
+    $url = securepages_url($path, $options);
+    drupal_set_message(sprintf('path: %s, url: %s, $path, $url), 'warning');
+  }
+  else {
+    $url = url($path, $options);
+  }
+
+  drupal_set_message(sprintf('path: %s, url: %s', $path, $url), 'error');
+  return $url;
+}
+*/
+
+/**
+ * Implementation of hook_link_alter().
+ */
+// SecurePages does not seem to generate links correctly in a multi-language site.
+// Here we try to fix that.
+function multilink_securepages_link_alter(&$links, &$node) {
+  if (multilink_securepages_enable()) {
+    foreach ($links as $module => &$link) {
+      if ($link['href'] && securepages_can_alter_url($link['href'])) {
+        //drupal_set_message(print_r($link, 1));
+        $url = multilink_securepages_url($link['href']);
+        //drupal_set_message('multilink securepages_link_alter:' . $link['href'] . '->' . $url, 'warning');
+        $links[$module]['href'] = $url;
+      }
+    }
+  }
+}
+
+// Utility function for MultiLink Redirect to fix interference with Secure Pages redirects.
+function multilink_securepages_redirect_fix($rpath) {
+
+  if (multilink_securepages_enable()) {
+    // If destination is set but the same as current requested path, remove destination.
+    // This fixes a loop condition with Secure Pages due to having a secure page in destination:
+    // Drupal redirects to http://[destination] and we then redirect to https://[destination], repeatedly.
+    // Example: http[s]://example.org/en/node/1?destination=node/1 where node/1 is set for https would loop.
+    if (isset($_REQUEST['destination'])) {
+      $destination = multilink_securepages_url($_REQUEST['destination']);
+      if ($rpath == $destination) {
+        unset($_REQUEST['destination']);
+        //drupal_set_message('Removed destination: ' . $destination, 'error');
+      }
+    }
+  }
+}
+
+// Utility function to check if Secure Pages is enabled and disable it prevent conflicts.
+// This with the form_alter hook below allow us to take over from Secure Pages for redirects and link processing.
+function multilink_securepages_enable() {
+  if (variable_get('securepages_enable', 0)) {
+    variable_del('securepages_enable');
+    variable_set('multilink_securepages_enable', TRUE);
+    return TRUE;
+  }
+  else {
+    return variable_get('multilink_securepages_enable', FALSE);
+  }
+}
+
+/*
+ * Hook form_FORM_ID_modify
+ */
+function multilink_securepages_form_securepages_settings_alter(&$form, $form_state)
+{
+  $old_element = $form['securepages_enable'];
+  $element = array(
+    '#title' => t($old_element['#title']) . ' ' . t('(via %module)', array('%module' => 'MultiLink')),
+    '#default_value' => multilink_securepages_enable(),
+    '#disabled' => $old_element['#disabled'] && !multilink_securepages_enable(),
+  );
+  $new_form['multilink_securepages_enable'] = array_merge($old_element, $element);
+  unset($form['securepages_enable']);
+  $form = array_merge($new_form, $form);
+}
+// --- Drupal docs advise NOT closing PHP tags ---

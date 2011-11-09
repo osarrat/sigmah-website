@@ -1,0 +1,60 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  sigmah.module: n/a
+#  sigmah.info,v 1.0 2011/05/17 12:09:00 nrebiai
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2011-05-31 10:31+0200\n"
+"PO-Revision-Date: 2011-05-31 10:36+0100\n"
+"Last-Translator: Nadia <nrebiai@urd.org>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: French\n"
+
+#: sigmah.module:27
+msgid "Would you like to receive a reply?"
+msgstr "Souhaitez-vous recevoir une réponse?"
+
+#: sigmah.module:28
+msgid "If yes, please enter your email address here"
+msgstr "Si oui, entrez votre adresse e-mail ici"
+
+#: sigmah.module:30
+msgid "Name"
+msgstr "Nom"
+
+#: sigmah.module:35
+msgid "Your e-mail"
+msgstr "Votre e-mail"
+
+#: sigmah.module:39
+msgid "(If you don't have one, a Sigmah.org account will be automatically set up)"
+msgstr "(Si vous n'en avez pas un, un compte Sigmah.org sera automatiquement créé)"
+
+#: sigmah.module:43
+msgid "In order to deal with your request more effectively"
+msgstr "Pour un traitement plus efficace de votre demande"
+
+#: sigmah.module:43
+msgid "You can specify which forum you would like your posting to appear in (Don't worry, a moderator will put your posting in an appropriate forum if you are not sure)"
+msgstr "Vous pouvez préciser dans quel forum envoyer votre post (Rassurez-vous, il pourra être réaigullier par un modérateur si vous ne savez pas où le mettre)"
+
+#: sigmah.module:107;108;108;108
+msgid "Your email"
+msgstr "Votre e-mail"
+
+#: sigmah.info:0;0
+msgid "Sigmah"
+msgstr "Sigmah"
+
+#: sigmah.info:0
+msgid "Sigmah custom theme."
+msgstr "Sigmah thème personnalisé."
+

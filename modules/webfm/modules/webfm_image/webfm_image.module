@@ -1,0 +1,161 @@
+<?php
+// $Id: webfm_image.module,v 1.3 2009/08/05 02:49:13 robmilne Exp $
+
+/**
+ * @file
+ * This module extends the WebFM contextmenu for resizing image files
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function webfm_image_menu(){
+  $items = array();
+
+  $items['webfm_image_js'] = array(
+    'title' => 'WebFM Image',
+    'page callback' => 'webfm_image_js',
+    'access callback' => 'user_access',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/settings/webfm_image'] = array(
+    'title' => t('WebFM image'),
+    'description' => 'Set context menu items for image resize.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webfm_image_settings'),
+    'access arguments' => array('administer webfm'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'webfm_image.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Helper function to return the defined sizes (or proper defaults).
+ */
+function _webfm_image_get_sizes() {
+  $sizes = variable_get('webfm_image_sizes', array(array('width' => 100, 'height' => 100, 'label' => 'thumbnail')));
+  return array_filter($sizes, create_function('$size', 'return !empty($size["label"]);'));
+}
+
+/**
+ * Menu callback used for AJAX calls
+ */
+function webfm_image_js(){
+  global $user;
+
+  //3 possible outcomes - the user is either an admin, user or prohibited
+  if(($user->uid == 1) || user_access('administer webfm')) {
+    // Admins have total access
+    $webfm_perm = WEBFM_ADMIN;
+  } else if(user_access('access webfm')) {
+    $webfm_perm = WEBFM_USER;
+  } else {
+    //no feedback
+    exit();
+  }
+
+  $webfm_root_path = webfm_get_root_path();
+  if($webfm_root_path == NULL) {
+    //WebFM root dir must exist
+    webfm_json(array('status' => FALSE, 'err' => t('WebFM root not set')));
+    exit();
+  }
+  $root_dir = ($webfm_perm == WEBFM_ADMIN)? file_directory_path() : file_directory_path().$webfm_root_path;
+
+  $action = trim(strtolower(rawurldecode($_POST["action"])));
+  if($action == 'get_menus') {
+      $sizes = _webfm_image_get_sizes();
+      foreach($sizes as $key => $value) {
+        $menus[] = $sizes[$key]['label'];
+      }
+      webfm_json(array('status' => TRUE, 'data' => $menus));
+  } else if (strpos($action, "resize to") === 0) {
+    //first check if we should operate on this file (i.e. one that is in the database)
+    $filepath = trim(rawurldecode($_POST["filepath"]));
+    if($file = webfm_get_file_record('', $root_dir.$filepath)) {
+      // Only admins, file owners or roles that can view this file can resize
+      if($webfm_perm == WEBFM_ADMIN ||
+         $user->uid == $file->uid   ||
+         webfm_file_view_access($file)) {
+        $dir = dirname($file->fpath);
+        $fname = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+        $name = $fname;
+        $ext = '';
+        // Get file name and extension for rename with suffix
+        if(strpos($fname, ".") !== FALSE) {
+          $pieces = explode('.', $fname);
+          $name = $pieces[0];
+          $ext = $pieces[count($pieces) - 1];
+        }
+
+        //extract operation from action variable
+        $variable = str_replace('resize to ', '', $action);
+        $suffix = str_replace(' ', '_', $variable);
+        $newfilename = $name.'_'.$suffix.'.'.$ext;
+        $path = $dir.'/'.$newfilename;
+        if(is_file($path)) {
+          webfm_json(array('status' => FALSE, 'data' => $newfilename.' already exists'));
+          exit();
+        }
+        $sizes = _webfm_image_get_sizes();
+
+        foreach($sizes as $key => $value) {
+          if($value['label'] == $variable) {
+            $height = $value['height'];
+            $width = $value['width'];
+          }
+        }
+
+        //as per moshe's patch but with added protection against sys error
+        $original_size = @getimagesize ($dir .'/'. $filename);
+        if(is_object($original_size)) {
+          // scale to a fixed width
+          if (!$height) {
+            $height = ($width / $original_size[0]) * $original_size[1];
+          }
+          // scale to a fixed height
+          if (!$width) {
+            $width = ($height / $original_size[1]) * $original_size[0];
+          }
+        } else {
+          if(empty($width))
+            if(empty($height))
+              //shouldn't happen after validation
+              exit();
+            else
+              $width = $height;
+          else if(empty($height))
+            $height = $width;
+        }
+
+        //create our new file
+        if(image_scale($file->fpath, $path, $width, $height)) {
+          $err_arr = array();
+          if($ret = webfm_insert_file($path, $err_arr)) {
+            webfm_json(array('status' => TRUE, 'data' => 'resize success'));
+          } else {
+            webfm_json(array('status' => FALSE, 'data' => $err_arr));
+          }
+        } else {
+          webfm_json(array('status' => FALSE, 'data' => 'resize failed for '.$fname));
+        }
+      } else {
+        webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
+      }
+    } else {
+      webfm_json(array('status' => FALSE, 'data' => 'file '.$filepath.' not found'));
+    }
+  } else {
+    webfm_json(array('status' => FALSE, 'data' => 'unknown operation'));
+  }
+  exit();
+}
+
+function webfm_image_webfm_extend_js(){
+  $modulepath = drupal_get_path('module', 'webfm_image');
+  drupal_add_js($modulepath. '/webfm_image.js');
+}
+

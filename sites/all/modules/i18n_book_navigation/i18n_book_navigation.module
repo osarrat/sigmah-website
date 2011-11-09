@@ -1,0 +1,471 @@
+<?php
+// $Id: i18n_book_navigation.module,v 1.4 2011/02/01 14:30:41 wadmiraal Exp $
+
+/**
+ * Implementation of hook_theme()
+ *
+ * The i18n_book_navigation uses the book-navigation.tpl.php file for theming
+ * the "footer" book navigation in book pages. It will use it to display
+ * this navigation on translated nodes, even if they're not part of a book
+ * outline.
+ * 
+ * The i18n_book_navigation_block uses the book-all-books-block.tpl.php for
+ * theming a Book navigation block, similar to the original Book navigation.
+ * The difference is this creates a new Block that will outline nodes even
+ * if they're translated and not part of a book outline.
+ */
+function i18n_book_navigation_theme($existing, $type, $theme, $path) {
+  return array(
+    'i18n_book_navigation' => array(
+      'arguments' => array('book_link' => NULL),
+      'path' => drupal_get_path('module', 'book'),
+      'template' => 'book-navigation'
+    ),
+    'i18n_book_navigation_block' => array(
+      'arguments' => array('book_menus' => array()),
+      'path' => drupal_get_path('module', 'book'),
+      'template' => 'book-all-books-block',
+    ),
+  );
+}
+
+/**
+* Implementation of hook_presave_translation() from Translation Management module.
+* New translated nodes should not be saved with book information as it inteferes with
+* this module.
+*
+* Patch by chaps2
+*/
+function i18n_book_navigation_presave_translation(&$node, $nid, $vid, $code) {
+  // Check that node is a new node cloned from a source node.
+  if(!isset($node->nid) && isset($node->tnid) && isset($node->book)) {
+    unset($node->book);
+    variable_set('icl_content_books_to_update', array());
+  }
+}
+
+/**
+ *  Implementation of hook_nodeapi()
+ *
+ *  Check wether this node is a translation and that the original
+ *  node is part of a book outline. If so, prepare the book navigation
+ */
+function i18n_book_navigation_nodeapi(&$node, $op, $teaser, $page) {
+  switch ($op) {
+    case 'view':
+      // Check that we're not dealing with the original node itself
+      // or with a non-translated node
+      if ($node->nid != $node->tnid && $node->tnid != 0 && !$teaser) {
+        // Get the original node book array
+        $tnode = (object) array('nid' => $node->tnid);
+        $book_info = book_nodeapi($tnode, 'load', $teaser, $page);
+        if (!empty($book_info['book']['bid'])) {
+          $node->content['i18n_book_navigation'] = array(
+            '#value' => theme('i18n_book_navigation', $book_info['book']),
+            '#weight' => 100,
+          );
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_block()
+ *
+ * Similar to book_block(). Creates a Book navigation for translated nodes,
+ * even when they're not part of the book outline.
+ */
+function i18n_book_navigation_block($op = 'list', $delta = 0, $edit = array()) {    
+  switch ($op) {
+    case 'view':
+      return _i18n_book_navigation_block(menu_get_object());
+      break;
+    
+    case 'list':
+      $block = array();
+      $block[0]['info'] = t('i18n Book Navigation');
+      $block[0]['cache'] = BLOCK_CACHE_PER_PAGE | BLOCK_CACHE_PER_ROLE;
+      return $block;
+  }
+}
+
+/**
+ * Creates the block array.
+ * Assembles the navigation for the "current" book outline and translates
+ * the links to the desired language.
+ */
+function _i18n_book_navigation_block($node) {
+  $block = array();
+  $book_menus = array();
+  $pseudo_tree = array(0 => array('below' => FALSE));
+  
+  // Get the original node
+  $tnode = _i18n_book_navigation_get_original_node($node);
+  
+  $block['subject'] = t('i18n Book navigation');
+  
+  foreach (_i18n_book_navigation_get_books() as $book_id => $book) {
+    if ($book['bid'] == $tnode->book['bid']) {
+      // Make the same query as in menu_tree_all_data()
+      // menu_tree_all_data() being dependent on the current
+      // path, it is not possible to call it directly, because
+      // we need the tree for the original book page node
+      $result = db_query("
+            SELECT m.load_functions, m.to_arg_functions, m.access_callback, m.access_arguments, m.page_callback, m.page_arguments, m.title, m.title_callback, m.title_arguments, m.type, m.description, ml.*
+            FROM {menu_links} ml LEFT JOIN {menu_router} m ON m.path = ml.router_path
+            WHERE ml.menu_name = '%s'
+            ORDER BY p1 ASC, p2 ASC, p3 ASC, p4 ASC, p5 ASC, p6 ASC, p7 ASC, p8 ASC, p9 ASC, weight ASC", $tnode->book['menu_name']);
+      
+      // Get the entire tree
+      $tree = menu_tree_data($result);
+            
+      // Create the tree with only the active trail expanded
+      $menu_tree = _i18n_book_navigation_create_menu_tree($tree, $tnode->book['mlid']);
+      
+      // Output the menu
+      $book_menus[$book_id] = menu_tree_output($menu_tree);
+    }
+    else {
+      // Since we know we will only display a link to the top node, there
+      // is no reason to run an additional menu tree query for each book.
+      $book['in_active_trail'] = FALSE;
+      $pseudo_tree[0]['link'] = $book;
+      _i18n_book_navigation_translate($pseudo_tree[0]['link']);
+      $book_menus[$book_id] = menu_tree_output($pseudo_tree);
+    }
+  }
+  // Use the book module to theme the navigation
+  $block['content'] = theme('book_all_books_block', $book_menus);
+      
+  return $block;
+}
+
+/**
+ * Get the active trail in the menu tree
+ */
+function _i18n_book_navigation_create_menu_tree($tree, $mlid) {  
+  // Find the entry in the menu tree 
+  $book_link = _i18n_book_navigation_recursive_array_search($tree, $mlid);
+  
+  // If it exists
+  if ($book_link['below']) {
+    // We only want the direct children and not a
+    // complete menu structure
+    foreach ($book_link['below'] as &$child) {
+      $child['below'] = FALSE;
+      $child['link']['in_active_trail'] = TRUE;
+      _i18n_book_navigation_translate($child['link']);
+    } 
+    $book_link['below'] = _i18n_book_navigation_sort_by_weigth($book_link['below']);
+  }
+  _i18n_book_navigation_translate($book_link['link']);
+    
+  // Now we need to get the parent menu structure, and
+  // only develop the active trail (as in the normal book
+  // navigation)
+  while ($book_link['link']['plid'] != 0) {
+    $prev_book_link = $book_link;
+    $book_link = _i18n_book_navigation_recursive_array_search($tree, $prev_book_link['link']['plid']);
+    // If it exists
+    if ($book_link['below']) {
+      // We only want the direct children and not a
+      // complete menu structure
+      foreach ($book_link['below'] as &$child) {
+        if ($child['link']['mlid'] == $prev_book_link['link']['mlid']) {
+          $child = $prev_book_link;
+        }
+        else {
+          $child['below'] = FALSE;
+          $child['link']['in_active_trail'] = TRUE;
+          _i18n_book_navigation_translate($child['link']);
+        }
+      } 
+      $book_link['below'] = _i18n_book_navigation_sort_by_weigth($book_link['below']);
+    }
+    _i18n_book_navigation_translate($book_link['link']);
+  }
+  // Return the menu tree
+  return array(0 => $book_link);
+}
+
+/**
+ * Return an array with all books. Similar to book_get_books()
+ */
+function _i18n_book_navigation_get_books() {
+  static $nids = array();
+  $all_books = array();
+  
+  if (!count($nids)) {
+    $res = db_query("SELECT DISTINCT(bid) FROM {book}");
+    while ($row = db_fetch_array($res)) {
+      $nids[] = $row['bid'];
+    }
+  }
+  
+  if ($nids) {
+    $result2 = db_query("SELECT n.type, n.title, b.*, ml.*
+                          FROM {book} b INNER JOIN {node} n ON b.nid = n.nid
+                            INNER JOIN {menu_links} ml ON b.mlid = ml.mlid
+                          WHERE n.nid IN (". implode(',', $nids) .") AND n.status = 1
+                        ORDER BY ml.weight, ml.link_title");
+    while ($link = db_fetch_array($result2)) {
+      $link['href'] = $link['link_path'];
+      $link['options'] = unserialize($link['options']);
+      $all_books[$link['bid']] = $link;
+    }
+  }
+  
+  return $all_books;
+}
+
+/**
+ * Similar to template_preprocess_book_navigation()
+ * Preprocesses the variables and creates the book navigation for the
+ * translated nodes.
+ */
+function template_preprocess_i18n_book_navigation(&$variables) {  
+  $book_link = $variables['book_link'];
+  
+  // Make the same query as in menu_tree_all_data()
+  // menu_tree_all_data() being dependent on the current
+  // path, it is not possible to call it directly, because
+  // we need the tree for the real book page node, in the default language
+  $tree = menu_tree_data(db_query("
+        SELECT m.load_functions, m.to_arg_functions, m.access_callback, m.access_arguments, m.page_callback, m.page_arguments, m.title, m.title_callback, m.title_arguments, m.type, m.description, ml.*
+        FROM {menu_links} ml LEFT JOIN {menu_router} m ON m.path = ml.router_path
+        WHERE ml.menu_name = '%s'
+        ORDER BY p1 ASC, p2 ASC, p3 ASC, p4 ASC, p5 ASC, p6 ASC, p7 ASC, p8 ASC, p9 ASC", $book_link['menu_name']));
+      
+  // Get all direct children to create the child tree
+  $children = array();
+  $children = _i18n_book_navigation_book_children($tree, $book_link['mlid'], TRUE);
+  
+  // Create a flat menu tree
+  $flat = array();
+  _book_flatten_menu(_i18n_book_navigation_sort_by_weigth($tree, TRUE), $flat);
+  
+  if ($book_link['mlid']) {
+    
+    if ($children) {
+      $variables['tree'] = menu_tree_output($children);
+    }
+    
+    if ($book_link['plid'] && $prev = _i18n_book_navigation_prev($flat, $book_link)) {
+      $prev_href = url($prev['href']);
+      drupal_add_link(array('rel' => 'prev', 'href' => $prev_href));
+      $variables['prev_url'] = $prev_href;
+      $variables['prev_title'] = check_plain($prev['title']);
+    }
+    
+    if ($book_link['plid'] && $parent = _i18n_book_navigation_up($flat, $book_link)) {
+      $parent_href = url($parent['href']);
+      drupal_add_link(array('rel' => 'up', 'href' => $parent_href));
+      $variables['parent_url'] = $parent_href;
+      $variables['parent_title'] = check_plain($parent['title']);
+    }
+    
+    if ($next = _i18n_book_navigation_next($flat, $book_link)) {
+      $next_href = url($next['href']);
+      drupal_add_link(array('rel' => 'next', 'href' => $next_href));
+      $variables['next_url'] = $next_href;
+      $variables['next_title'] = check_plain($next['title']);
+    }
+  
+  }
+  
+  $variables['has_links'] = FALSE;
+  // Link variables to filter for values and set state of the flag variable.
+  $links = array('prev_url', 'prev_title', 'parent_url', 'parent_title', 'next_url', 'next_title');
+  foreach ($links as $link) {
+    if (isset($variables[$link])) {
+      // Flag when there is a value.
+      $variables['has_links'] = TRUE;
+    }
+    else {
+      // Set empty to prevent notices.
+      $variables[$link] = '';
+    }
+  }
+}
+
+/**
+ * Create a menu tree with only the direct child elements
+ */
+function _i18n_book_navigation_book_children($tree, $plid, $only_direct_children = FALSE) {
+  // Find the entry in the menu tree 
+  $book_link = _i18n_book_navigation_recursive_array_search($tree, $plid);
+  
+  // If it exists
+  if ($book_link['below']) {
+    if ($only_direct_children) {
+      // We only want the direct children and not a
+      // complete menu structure
+      foreach ($book_link['below'] as &$child) {
+        $child['below'] = FALSE;
+        _i18n_book_navigation_translate($child['link']);
+      } 
+    }
+    $book_link['below'] = _i18n_book_navigation_sort_by_weigth($book_link['below']);
+    return $book_link['below'];
+  }
+}
+
+/**
+ * Get the previous book page
+ */
+function _i18n_book_navigation_prev($flat, $book_link) {
+  $i = 0;
+  $prev = array();
+  $flat_values = array_values($flat);
+  foreach ($flat as $key => $entry) {
+    if ($key == $book_link['mlid']) {
+      for ($j = $i-1; $j >= 0; $j--) {
+        if (_i18n_book_navigation_is_translated($flat_values[$j])) {
+          $prev = $flat_values[$j];
+          _i18n_book_navigation_translate($prev);
+          return $prev;
+        }
+      }
+    }
+    $i++;
+  }
+}
+
+/**
+ * Get the parent book page
+ */
+function _i18n_book_navigation_up($flat, $book_link) {
+  $i = 0;
+  $up = array();
+  foreach ($flat as $key => $entry) {
+    if ($key == $book_link['mlid']) {
+      $up = $flat[$entry['plid']];
+    }
+    $i++;
+  }
+  _i18n_book_navigation_translate($up);
+  return $up;
+}
+
+/**
+ * Get the next book page
+ */
+function _i18n_book_navigation_next($flat, $book_link) {
+  $i = 0;
+  $next = array();
+  $flat_values = array_values($flat);
+  foreach ($flat as $key => $entry) {
+    if ($key == $book_link['mlid']) {
+      for ($j = $i+1, $len = count($flat_values); $j < $len; $j++) {
+        if (_i18n_book_navigation_is_translated($flat_values[$j])) {
+          $next = $flat_values[$j];
+          _i18n_book_navigation_translate($next);
+          return $next;
+        }
+      }
+    }
+    $i++;
+  }
+}
+
+/**
+ * Translate the menu link
+ */
+function _i18n_book_navigation_translate(&$array) {
+  if ($tnode = _i18n_book_navigation_get_translated_node($array['link_path'])) {
+    $array['title'] = $array['link_title'] = $tnode->title;
+    $array['access'] = TRUE;
+    $array['href'] = $array['link_path'] = 'node/'.$tnode->nid;
+    $array['localized_options'] = array();
+  }
+  else {
+    $array = array();
+  }
+}
+
+/**
+ * Check if the menu link is translated
+ */
+function _i18n_book_navigation_is_translated($array) {
+  return (_i18n_book_navigation_get_translated_node($array['link_path']));
+}
+
+/**
+ * Get the translated node based one the original node path
+ */
+function _i18n_book_navigation_get_translated_node($link_path) {
+  global $language;
+  
+  $tnid = intval(substr($link_path, strlen('node/')));
+  
+  $nid = db_result(db_query("SELECT nid FROM {node} WHERE tnid = %d AND language = '%s'", array($tnid, $language->language)));
+  
+  if ($nid) {
+    return (object) db_fetch_array(db_query("SELECT nid, title FROM {node} WHERE nid = %d", array($nid)));
+  }
+  elseif (variable_get('i18n_selection_mode', 'mixed') == 'mixed') {
+    return (object) db_fetch_array(db_query("SELECT nid, title FROM {node} WHERE nid = %d", array($tnid)));
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Get the original node based on the current node
+ */
+function _i18n_book_navigation_get_original_node($node) {  
+  // Check if we are viewing a node or an admin page
+  if ($node->nid) {
+    $tnid = db_result(db_query("SELECT tnid FROM {node} WHERE nid = %d", array($node->nid)));
+    if ($tnid == $node->nid || $tnid == 0) {
+      return $node;
+    }
+    else {            
+      $tnode = (object) array('nid' => $tnid);
+      return (object) book_nodeapi($tnode, 'load', NULL, NULL);
+    }
+  }
+  else {
+    return new stdClass();
+  }
+}
+
+/**
+ * Search a key recursively inside an associative array
+ */
+function _i18n_book_navigation_recursive_array_search($array, $search_key) {
+  foreach ($array as $key => $value) {
+    if ($key == $search_key) {
+      return $value;
+    }
+    else if (is_array($value)) {
+      if ($temp = _i18n_book_navigation_recursive_array_search($value, $search_key)) {
+        return $temp;
+      }
+    }
+  }
+}
+
+/**
+ * Sort the menu tree by the 'weight' keys
+ */
+function _i18n_book_navigation_sort_by_weigth($array, $recursive = FALSE) {
+  $temp = array();
+  if (!$recursive) {
+    foreach ($array as $entry) {
+      $temp[] = $entry['link']['weight'];
+    }
+  }
+  else {
+    foreach ($array as &$entry) {
+      $temp[] = $entry['link']['weight'];
+      if ($entry['below']) {
+        $entry['below'] = _i18n_book_navigation_sort_by_weigth($entry['below'], TRUE);
+      }
+    }
+  }
+  array_multisort($temp, $array);
+  return $array;
+}

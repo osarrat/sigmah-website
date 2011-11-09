@@ -1,0 +1,21 @@
+--- filter.module.standard 
++++ filter.module 
+@@ -426,13 +426,17 @@
+  *    showing content that is not (yet) stored in the database (eg. upon preview),
+  *    set to TRUE so the user's permissions are checked.
+  */
++// Allow other modules to detect that we've installed the patch.'
++define('check_markup_language_patch_1', 1);
++
+ function check_markup($text, $format = FILTER_FORMAT_DEFAULT, $check = TRUE) {
+   // When $check = TRUE, do an access check on $format.
+   if (isset($text) && (!$check || filter_access($format))) {
+     $format = filter_resolve_format($format);
+ 
+     // Check for a cached version of this piece of text.
+-    $cache_id = $format .':'. md5($text);
++    $langcode = $GLOBALS['language']->language;
++    $cache_id = $format . ':' . $langcode . ':' . md5($text);
+     if ($cached = cache_get($cache_id, 'cache_filter')) {
+       return $cached->data;
+     }

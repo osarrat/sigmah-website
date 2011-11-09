@@ -1,0 +1,237 @@
+# FEHÉR János <feher.janos _at- mindworks.hu>, 2007.
+# Hungarian translation of Drupal (taxonomy_access.module)
+# Generated from file: taxonomy_access.module,v 1.102.2.7 2007/03/27 21:17:23 keve
+# $Id
+msgid ""
+msgstr ""
+"Project-Id-Version: taxonomy_access-module.hu\n"
+"POT-Creation-Date: 2007-04-02 17:05+0200\n"
+"PO-Revision-Date: 2007-04-02 18:32+0200\n"
+"Last-Translator: FEHÉR János <feher.janos _at- mindworks.hu>\n"
+"Language-Team: Hungarian <Drupal.hu Fordítási Csapat <forditas [at] drupal.hu>>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#: taxonomy_access.install:19;38
+msgid "Taxonomy Access - Update #2: No queries executed. Field 'grant_list' already exists in tables 'term_access'."
+msgstr ""
+
+#: taxonomy_access.install:151
+msgid "Taxonomy Access module installed tables successfully."
+msgstr "A „Taxonómia-hozzáférés” modul adatbázis tábláinak telepítése sikerült."
+
+#: taxonomy_access.install:154
+msgid "The installation of Taxonomy Access module was unsuccessful."
+msgstr "A „Taxonómia-hozzáférés” modul telepítése nem sikerült."
+
+#: taxonomy_access.install:162
+msgid "Taxonomy Access have been successfully uninstalled."
+msgstr "A „Taxonómia-hozzáférés” modul sikeresen el lett távolítva."
+
+#: taxonomy_access.info:0
+msgid "Taxonomy Access Control"
+msgstr "Taxonómia-hozzáférés vezérlés"
+
+#: taxonomy_access.info:0
+msgid "Access control for user roles based on taxonomy categories."
+msgstr "Kategória alapú hozzáférés szabályozás."
+
+#: taxonomy_access.module:25
+msgid "The Taxonomy Access Control module allows users to specify how each category can be used by various roles."
+msgstr "A Taxonómia-hozzáférés szabályozás modul lehetőséget ad a felhasználóknak a csoportok hozzáférésének kategória alapú meghatározására."
+
+#: taxonomy_access.module:26
+msgid "Permissions can be set differently to each USER ROLES. Be aware that setting Taxonony Access permissions works ONLY WITHIN ONE USER ROLE. <br /><em>(For users with multiple user roles, see section \"GOOD TO KNOW\" below.)</em>"
+msgstr "A jogosultságok minden csoport esetében külön meghatározhatóak és csak arra az adott csoportra érvényes.<br /><em>(Többcsoportos rendszer esetében érdemes átolvasni a JÓ TUDNI részt is.)</em>"
+
+#: taxonomy_access.module:27
+msgid "On the category permissions page for each role, each category displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>:"
+msgstr "A kategória jogosultság oldalon minden csoportra és kategóriára öt jogosultsági típus határozható meg: <em>Megtekintés, Frissítés, Törlés, Létrehozás</em> és <em>Listázás</em>"
+
+#: taxonomy_access.module:29
+msgid "<strong>VIEW</strong> enables the user to access content (nodes) with given term."
+msgstr "<strong>MEGTEKINTÉS</strong> engedélyezi a tartalmak hozzáférését egy adott kategórián belül."
+
+#: taxonomy_access.module:30
+msgid "<strong>UPDATE, DELETE</strong> enables the user to Update/Delete <u>ALL</u> nodes with the given term. <br><em>(These two permissions are <u>administrator permissions</u>, that should be given ONLY to e.g. content administrators.)</em>"
+msgstr "<strong>FRISSÍTÉS, TÖRLÉS</strong> engedélyezi a csoportnak a kategória <ul>összes</u> tartalmának frissítését és törlését. <br /><em>(Ezek adminisztrátori jogosultságok, ezért csak a tartalmak karbantartóinak célszerű megadni.)</em>"
+
+#: taxonomy_access.module:31
+msgid "<strong>CREATE</strong> enables the user to set that term when adding a new node or when editing a node."
+msgstr "<strong>LÉTREHOZÁS</strong> lehetővé teszi a felhasználóknak, hogy hozzárendeljék az adott kifejezést a tartalom létrehozásakor vagy szerkesztésekor."
+
+#: taxonomy_access.module:32
+msgid "<strong>LIST</strong> enables the user to view the name of the given term below the title of a node or in category lists.  It also controls whether a user can access the taxonomy page for the given term.  (e.g. \"taxonomy/term/*\")"
+msgstr ""
+
+#: taxonomy_access.module:34
+msgid "VIEW, UPDATE, and DELETE control the node access system.  LIST and CREATE control if a user can view and select a given term.  (Note: In previous versions of Taxonomy Access Control, there was no LIST permission; its functionality was controlled by the VIEW permission.)"
+msgstr ""
+
+#: taxonomy_access.module:35
+msgid "<strong>VIEW, UPDATE and DELETE have three options for each term: <u>A</u>llow, <u>I</u>gnore, and <u>D</u>eny.</strong>  Indicate which rights each role should have for each term."
+msgstr "A <strong>MEGTEKINTÉS, FRISSÍTÉS</strong> és <strong>TÖRLÉS</strong> jogosultságok esetében három lehetőségünk van minden kategóriánál minden csoportra: <u>E</u>ngedélyezés, <u>F</u>igyelmen kívül hagyás, és <u>T</u>iltás."
+
+#: taxonomy_access.module:36
+msgid "<strong>CREATE and LIST have only two options for each term:  YES (selected) or NO (deselected).</strong>  Indicate what each role should be allowed to do with each term."
+msgstr "A <strong>LÉTREHOZÁS</strong> és <strong>LISTÁZÁS</strong> csak két lehetőséggel rendelkezik minden kategóriánál minden csoportra: IGEN vagy NEM."
+
+#: taxonomy_access.module:37
+msgid "<strong>IMPORTANT NOTE:</strong><br><u>The DENY directives are processed after the ALLOW directives. (DENY overrides ALLOW.)</u>  So, if a multicategory node is in Categories \"A\" and \"B\" and a user has ALLOW permissions for VIEW in Category \"A\" and DENY permissions for VIEW in Category \"B\", then the user will NOT be permitted to VIEW the node. (DENY overrides ALLOW.)<br><u>Access is denied by default.</u> So, if a multicategory node is in Categories \"C\" and \"D\" and a user has IGNORE permissions for VIEW in both Category \"C\" and \"D\", then the user will NOT be permitted to VIEW the node.<br>(If you are familiar with Apache mod_access, this permission system works similar to directive: <em>ORDER ALLOW, DENY</em>)"
+msgstr ""
+
+#: taxonomy_access.module:38
+msgid "<strong>Allow/Ignore/Deny All</strong> or <strong>Select/Deselect All:</strong><br>Beside each vocabulary title there are dropdowns containing the options that can be set for individual terms.  Selecting one of these options using the dropdown effectively <u>selects that option for ALL of the individual terms inside that vocabulary when the options are saved.</u><br>Selecting \"--\" does not make any automatic changes to the permission of the terms in that vocabulary; only manual changes that you make will be saved.<br>NOTE:  This does <u>not</u> change the \"Default\" option (described below)."
+msgstr ""
+
+#: taxonomy_access.module:39
+msgid "<strong>Default:</strong><br>This option, just underneath the vocabulary title, <u>sets the permission that will automatically be given</u> to the role, <u>for any new terms</u> that are added within the vocabulary.  This includes terms that are added via free tagging."
+msgstr ""
+
+#: taxonomy_access.module:40
+msgid "GOOD TO KNOW:"
+msgstr "JÓ TUDNI:"
+
+#: taxonomy_access.module:41
+msgid "<strong>Users with multiple user roles:</strong> Allow/Ignore/Deny options are interpreted <u>only within one user role</u>. When a user belongs to multiple user roles, then <u>user gets access if ANY of his user roles</u> has the access granted. <br />In this case, permissions for the given user are calculated, so that the <u>permissions of ALL of his user roles are \"OR-ed\" together</u>. Meaning that Allow will take precedence over Deny. This is different from how node access permissions (for multi-category nodes) are handled within ONE USER ROLE, as noted above."
+msgstr ""
+
+#: taxonomy_access.module:42
+msgid "<br><strong>Input formats:</strong>  <u>Node editing/deleting is blocked</u>, even when user has <em>UPDATE/DELETE</em> permission to the node, <u>when user is not allowed to use a filter format</u> that the node was saved at."
+msgstr ""
+
+#: taxonomy_access.module:50
+msgid "<p><strong>Vocabulary Settings:</strong> Each vocabulary displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>.</p><p>For a detailed description of these permissions and how to use them, see <a href=\"@taxonomy_access_help\">Taxonomy Access Control help</a>. If you are new to Taxonomy Access Control, it is very important that you read the help page.</p>"
+msgstr ""
+
+#: taxonomy_access.module:54
+msgid "In this area you will define the permissions that each <a href=\"@role\">user role</a> has for each category.  Each category can have <em>View, Update, Delete, Create</em> and <em>List</em> permissions set for each user role."
+msgstr ""
+
+#: taxonomy_access.module:162
+msgid "Taxonomy Access: Settings"
+msgstr "Taxonómia-hozzáférés: Beállítások"
+
+#: taxonomy_access.module:170
+msgid "Taxonomy Access: Permissions"
+msgstr "Taxonómia-hozzáférés: Jogosultságok"
+
+#: taxonomy_access.module:171
+msgid "Sophisticated access control for content items based on category"
+msgstr "Hozzáférés szabályozás a tartalmak kategóriája alapján"
+
+#: taxonomy_access.module:0
+msgid "taxonomy_access"
+msgstr "taxonomy_access"
+
+#: taxonomy_access_admin.inc:23;26
+msgid "Reset to defaults"
+msgstr "Visszaállítás az alapértelmezett értékekre"
+
+#: taxonomy_access_admin.inc:27
+msgid "The configuration options of taxonomy access have been reset to their default values."
+msgstr "A taxonómia-hozzáférés beállításai visszaálltak az alapértelmezett értékekre."
+
+#: taxonomy_access_admin.inc:31
+msgid "The configuration options of taxonomy access have been saved."
+msgstr "A taxonómia-hozzáférés beállításai el lettek mentve."
+
+#: taxonomy_access_admin.inc:61
+msgid "Role"
+msgstr "Csoport"
+
+#: taxonomy_access_admin.inc:64
+msgid "edit"
+msgstr "szerkesztés"
+
+#: taxonomy_access_admin.inc:92
+msgid "Allow all"
+msgstr "Mindegyik engedélyezése"
+
+#: taxonomy_access_admin.inc:92
+msgid "Ignore all"
+msgstr "Mindegyik figyelmen kívül hagyása"
+
+#: taxonomy_access_admin.inc:92
+msgid "Deny all"
+msgstr "Mindegyik tiltása"
+
+#: taxonomy_access_admin.inc:93
+msgid "Select all"
+msgstr "Mindegyik kiválasztása"
+
+#: taxonomy_access_admin.inc:93
+msgid "Deselect all"
+msgstr "Kiválasztások megszüntetése"
+
+#: taxonomy_access_admin.inc:150
+msgid "Save category permissions"
+msgstr "A kategória jogosultságainak mentése"
+
+#: taxonomy_access_admin.inc:168
+msgid "Category"
+msgstr "Kategória"
+
+#: taxonomy_access_admin.inc:169
+msgid "View"
+msgstr "Megtekintés"
+
+#: taxonomy_access_admin.inc:170
+msgid "Update"
+msgstr "Frissítés"
+
+#: taxonomy_access_admin.inc:171
+msgid "Delete"
+msgstr "Törlés"
+
+#: taxonomy_access_admin.inc:172
+msgid "Create"
+msgstr "Létrehozás"
+
+#: taxonomy_access_admin.inc:173
+msgid "List"
+msgstr "Listázás"
+
+#: taxonomy_access_admin.inc:175
+msgid "A"
+msgstr "E"
+
+#: taxonomy_access_admin.inc:176
+msgid "I"
+msgstr "F"
+
+#: taxonomy_access_admin.inc:177
+msgid "D"
+msgstr "T"
+
+#: taxonomy_access_admin.inc:180
+msgid "Allow"
+msgstr "Engedélyezés"
+
+#: taxonomy_access_admin.inc:180
+msgid "Ignore"
+msgstr "Figyelmen kívül hagyás"
+
+#: taxonomy_access_admin.inc:180
+msgid "Deny"
+msgstr "Tiltás"
+
+#: taxonomy_access_admin.inc:182
+msgid "Permissions for"
+msgstr "Engedélyei:"
+
+#: taxonomy_access_admin.inc:189
+msgid "Uncategorized nodes"
+msgstr "Kategorizálatlan tartalmak"
+
+#: taxonomy_access_admin.inc:223
+msgid "Default"
+msgstr "Alapértelmezett"
+
+#: taxonomy_access_admin.inc:364
+msgid "Your permission settings for '%role' role have been saved."
+msgstr "A jogosultsági beállítások el lettek mentve az alábbi csoport részére: %role ."
+

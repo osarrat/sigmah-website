@@ -1,0 +1,283 @@
+<?php
+/**
+ * @file
+ * Deployment API which enables modules to deploy items between servers.
+ *
+ * This module manages deployment-related issues for nodes.
+ */
+
+// For now this is needed for node deployment. Later, when these are all dynamic includes,
+// I'll have a less-hacky solution.
+include_once('./'. drupal_get_path('module', 'node') .'/node.pages.inc');
+
+/**
+ * Implementation of hook_menu().
+ */
+function node_deploy_menu() {
+  $items = array();
+
+  $items['node/%node/deploy'] = array(
+    'title' => t('Deploy'),
+    'description' => t('Add a node to a deployment plan.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_deploy_add_form', 1),
+    'access arguments' => array('add items to deployment plan'),
+    'file' => 'node_deploy.pages.inc',
+    'type' => MENU_LOCAL_TASK
+  );
+
+  $items['node_operations/deploy'] = array(
+    'title' => t('Deploy'),
+    'description' => t('Add nodes to a deployment plan.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_deploy_operations_add_form', 2),
+    'access arguments' => array('add items to deployment plan'),
+    'file' => 'node_deploy.pages.inc',
+    'type' => MENU_CALLBACK
+  );
+
+  $items['node_operations/deploy_now'] = array(
+    'title' => t('Deploy'),
+    'description' => t('Deploy nodes.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_deploy_operations_add_now_form', 2),
+    'access arguments' => array('deploy items'),
+    'file' => 'node_deploy.pages.inc',
+    'type' => MENU_CALLBACK
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function node_deploy_nodeapi(&$node, $op, $a3, $a4) {
+  // Remove the deleted node from all plans.
+  if ($op == 'delete') {
+    deploy_plan_item_delete(array('module' => 'node', 'data' => $node->nid));
+  }
+}
+
+/**
+ * Implementation of hook_deploy_check().
+ *
+ * Used to manage deployment dependencies
+ *
+ * @param $nid
+ *   Nid of the node we're trying to deploy
+ */
+function node_deploy_check($nid) {
+  // pid of the plan we're deploying
+  $pid = variable_get('deploy_pid', 0);
+  $node = node_load($nid);
+
+  // If this node is a translation of another node, and this
+  // other node is not already on the remote server, add it
+  // to the plan.
+  if ($node->tnid && $node->tnid != $node->nid) {
+    if (!deploy_item_is_in_plan($pid, 'node', $node->tnid)) {
+      // Does this node exist on the remote server?
+      $remote_key = deploy_get_remote_key(deploy_uuid_get_node_uuid($node->tnid), 'node');
+
+      // If it doesn't exist or the local version is newer, add it to the deployment plan, 
+      // with a weight of min(weight) - 1, and then run dependency checking on it
+      $plan_node = node_load($node->tnid);
+      if (!$remote_key || $remote_key['changed'] < $plan_node->changed) {
+        deploy_add_to_plan($pid, 'node', $plan_node->type .': '. $plan_node->title, $plan_node->nid, deploy_get_min_weight($pid)-1, DEPLOY_NODE_GROUP_WEIGHT);
+        module_invoke_all('node_deploy_check', $plan_node);
+      }
+    }    
+  }
+
+  if ($node) {
+    module_invoke_all('node_deploy_check', $node);
+  }
+}
+
+/**
+ * Implementation of hook_deploy(),
+ *
+ * @param $nid
+ *   Unique identifier for the node we're deploying.
+ * @return
+ *   The results of our xmlrpc call.
+ */
+function node_deploy($nid) {
+  // Bail if this node doesn't exist.
+  $node = node_load($nid);
+  if (empty($node)) {
+    return xmlrpc_error($xmlrpcusererr + 1, t('Node not found'));
+  }
+
+  // Now go deploy it.
+  return node_deploy_node($node);
+}
+
+/**
+ * Deploy a node.
+ *
+ * @param $node
+ *   Node object we are deploying.
+ * @return
+ *   The nid of the new node.
+ */
+function node_deploy_node($node) {
+  // Check remote node info. If the local node and the remote node
+  // have the same 'changed' value (indicating that no new local changes
+  // have been made) then just bail and don't bother going through the
+  // rest.
+  $remote_key = deploy_get_remote_key($node->uuid, 'node');
+  if ($node->changed <= $remote_key['changed']) {
+    return $remote_key['nid'];
+  }
+  $remote_nid = isset($remote_key['nid']) ? $remote_key['nid'] : NULL;
+  
+  // If this node was translated from another node, then set the node's
+  // tnid properly as well.
+  if ($node->tnid) {
+    if ($node->tnid == $node->nid) {
+      $node->tnid = $remote_nid;
+    }
+    else {
+      $uuid = deploy_uuid_get_node_uuid($node->tnid);
+      $remote_key = deploy_get_remote_key($uuid, 'node');
+      $node->tnid = isset($remote_key['nid']) ? $remote_key['nid'] : NULL;      
+    }
+  }
+
+  // When this gets submitted to services, it will be passed through
+  // drupal_execute() to be saved. The format drupal_execute() expects for
+  // a submitted node is much different than that created by node_load().
+  // So we jump through some neat FAPI hooks which get it all sorted out.
+  // This essentially drupal_get_form() without the render.
+  $form_id = $node->type .'_node_form';
+  
+  $form_state = array('storage' => NULL, 'submitted' => FALSE, 'post' => '$_POST');
+
+  $form = drupal_retrieve_form($form_id, $form_state, $node);
+  drupal_prepare_form($form_id, $form, $form_state);
+  drupal_process_form($form_id, $form, $form_state);
+
+  $node = (object) $form_state['values'];
+  
+  // Having gotten all the dependencies (supposedly) already deployed based
+  // on the weight sorting in deploy.module, it should be "easy" now to replace
+  // all our linked ids with their remote equivalents and go.
+
+  // Node author. don't bother checking the remote key if it is admin or anonymous
+  if ($node->uid > 1) {
+    $remote_key = deploy_get_remote_key(deploy_uuid_get_user_uuid($node->uid), 'users');
+    $node->uid = $remote_key['uid'];
+  }
+  
+  // Taxonomy handling. 
+  //
+  // Taxonomy comes to us like this:
+  // [taxonomy] => Array (
+  //   [<vid>] => Array (
+  //     [<tid>] => <tid>,
+  //   )
+  //   [<vid>] => Array (
+  //     [<tid>] => <tid>,
+  //     [<tid>] => <tid>,
+  //   )
+  //   [tags] => Array (
+  //     [<vid>] => term1, term2
+  //     [<vid>] => term1, term2
+  //   )
+  // )
+  //
+  // except for tags which come like this
+  //
+  
+
+  // This is the transformed array that we will assign to the node object
+  // when we're done.
+  if (!empty($node->taxonomy)) {
+    $taxonomy = array();
+
+    // This is the cache array for vocabularies.
+    $vocabularies = array();
+
+    foreach ($node->taxonomy as $vid => $terms) {
+      // Tags are handled differently for some reason, so they have
+      // an exception here.
+      if ($vid == 'tags') {
+        $taxonomy['tags'] = array();
+        foreach ($terms as $vid => $tags) {
+          $remote_data = deploy_get_remote_key(deploy_uuid_get_vocabulary_uuid($vid), 'vocabulary');
+          $remote_vid = $remote_data['vid'];
+          $taxonomy['tags'][$remote_vid] = $tags;
+        }
+      }
+      else {
+        $remote_data = deploy_get_remote_key(deploy_uuid_get_vocabulary_uuid($vid), 'vocabulary');
+        $remote_vid = $remote_data['vid'];
+        $taxonomy[$remote_vid] = array();
+
+        foreach ($terms as $tid) {
+          $uuid = deploy_uuid_get_term_uuid($tid);
+          $remote_data = deploy_get_remote_key(deploy_uuid_get_term_uuid($tid), 'term_data');
+          $tid = $remote_data['tid'];
+          $taxonomy[$remote_vid][$tid] = $tid;
+        }
+      }
+    }
+    $node->taxonomy = $taxonomy;
+  }
+  
+  // add this flag because on the other side, there's some special stuff
+  // done in nodeapi specifically related to deployed nodes vs non-deployed
+  $node->deploy = TRUE;
+  
+  // this is getting set unintentionally causing all node bodies to break before
+  // the first character and I'm not sure why yet. Hammer solution in play.
+  unset($node->teaser_js);
+  
+  // Now let all the modules that extend node make their own adjustments
+  module_invoke_all('node_deploy', $node);
+
+  // Finally set the node's ID to match the remote nid
+  $node->nid = $remote_nid;
+
+  // And we're off.
+  $nid = deploy_send(array('node.save'), array($node));
+
+  return $nid;
+}
+
+/**
+ * Implementation of hook_node_operations().
+ *
+ * Opens up bulk node deployments in admin/content.
+ */
+function node_deploy_node_operations() {
+  $operations = array(
+    'deploy_now' => array(
+      'label' => t('Deploy'),
+      'callback' => 'node_deploy_operations_deploy_now',
+    ),
+  );
+  
+  // If there are any plans created, add the 'add to plan' operation
+  $plans = deploy_get_plans();
+  if (!empty($plans)) {
+    $operations['deploy'] = array(
+      'label' => t('Add to deployment plan'),
+      'callback' => 'node_deploy_operations_deploy',
+    );
+  }
+  
+  return $operations;
+}
+
+function node_deploy_operations_deploy($nodes) {
+  $nodes = implode(",", $nodes);
+  drupal_goto('node_operations/deploy/' .$nodes);
+}
+
+function node_deploy_operations_deploy_now($nodes) {
+  $nodes = implode(",", $nodes);
+  drupal_goto('node_operations/deploy_now/' .$nodes);
+}

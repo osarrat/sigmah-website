@@ -1,0 +1,253 @@
+<?php
+
+  function deploy_uuid_schema() {
+    $schema = array();
+
+    // node mapping
+    $schema['node_uuid'] = array(
+      'fields' => array(
+        'uuid' => deploy_uuid_get_field_definition(),
+        'nid' => array(
+          'type' => 'int', 
+          'not null' => TRUE,
+        ),
+      ),
+      'primary key' => array('nid'),
+      'unique keys' => array(
+        'uuid' => array('uuid'),
+      ),
+    );    
+
+    // user field mapping
+    $schema['users_uuid'] = array(
+      'fields' => array(
+        'uuid' => deploy_uuid_get_field_definition(),
+        'uid' => array(
+          'type' => 'int', 
+          'not null' => TRUE,
+        ),
+      ),
+      'primary key' => array('uid'),
+      'unique keys' => array(
+        'uuid' => array('uuid'),
+      ),
+    );
+
+    // comment field mapping
+    $schema['comments_uuid'] = array(
+      'fields' => array(
+        'uuid' => deploy_uuid_get_field_definition(),
+        'cid' => array(
+          'type' => 'int', 
+          'not null' => TRUE,
+        ),
+      ),
+      'primary key' => array('cid'),
+      'unique keys' => array(
+        'uuid' => array('uuid'),
+      ),
+    );
+
+    // taxonomy mapping
+    $schema['term_data_uuid'] = array(
+      'fields' => array(
+        'uuid' => deploy_uuid_get_field_definition(),
+        'tid' => array(
+          'type' => 'int', 
+          'not null' => TRUE,
+        ),
+      ),
+      'primary key' => array('tid'),
+      'unique keys' => array(
+        'uuid' => array('uuid'),
+      ),
+    );
+
+    $schema['vocabulary_uuid'] = array(
+      'fields' => array(
+        'uuid' => deploy_uuid_get_field_definition(),
+        'vid' => array(
+          'type' => 'int', 
+          'not null' => TRUE,
+        ),
+      ),
+      'primary key' => array('vid'),
+      'unique keys' => array(
+        'uuid' => array('uuid'),
+      ),
+    );    
+
+    // filefield mapping
+    $schema['files_uuid'] = array(
+      'fields' => array(
+        'uuid' => deploy_uuid_get_field_definition(),
+        'fid' => array(
+          'type' => 'int', 
+          'not null' => TRUE,
+        ),
+      ),
+      'primary key' => array('fid'),
+      'unique keys' => array(
+        'uuid' => array('uuid'),
+      ),
+    );    
+
+    return $schema; 
+  }
+
+  /**
+  * Implementation of hook_install().
+  */
+  function deploy_uuid_install() {
+    drupal_install_schema('deploy_uuid');
+    deploy_uuid_generate_nodes();
+    deploy_uuid_generate_users();
+    deploy_uuid_generate_terms();
+    deploy_uuid_generate_vocabularies();
+    deploy_uuid_generate_comments();
+    deploy_uuid_generate_files();
+    
+    // Put us as very first in the chain, guaranteeing that UUIDs get
+    // generated before anyone else's hooks fire.
+    db_query("UPDATE {system} SET weight = -1 WHERE name = 'deploy_uuid'"); 
+  }
+  
+  /**
+  * Implementation of hook_uninstall().
+  */
+  function deploy_uuid_uninstall() {
+    drupal_uninstall_schema('deploy_uuid');
+  }
+  
+  /**
+  * Return the field definition for a uuid field
+  *
+  * It seems entirely likely that the uuid field def may change at some point
+  * so having a single place to modify it seems prudent
+  */
+  function deploy_uuid_get_field_definition() {
+    return array(
+      'type' => 'varchar', 
+      'length' => '32', 
+      'not null' => TRUE,
+    ); 
+  }
+
+  
+  /**
+  * Generate uuids for any existing nodes at install-time
+  */
+  function deploy_uuid_generate_nodes() {
+    $result = db_query("SELECT nid FROM {node}");
+    while ($row = db_fetch_array($result)) {
+      $uuid = uniqid(rand(), TRUE);
+      db_query("INSERT INTO {node_uuid} (nid, uuid) values (%d, '%s')", $row['nid'], $uuid);
+    }
+  }
+  
+  /**
+  * Generate uuids for any existing files at install-time
+  */
+  function deploy_uuid_generate_files() {
+    $result = db_query("SELECT fid FROM {files}");
+    while ($row = db_fetch_array($result)) {
+      $uuid = uniqid(rand(), TRUE);
+      db_query("INSERT INTO {files_uuid} (fid, uuid) values (%d, '%s')", $row['fid'], $uuid);
+    }
+  }
+  
+  /**
+  * Generate uuids for any existing users at install-time
+  */
+  function deploy_uuid_generate_users() {
+    $result = db_query("SELECT uid FROM {users}");
+    while ($row = db_fetch_array($result)) {
+      $uuid = uniqid(rand(), TRUE);
+      db_query("INSERT INTO {users_uuid} (uid, uuid) values (%d, '%s')", $row['uid'], $uuid);
+    }
+  }
+  
+  /**
+  * Generate uuids for any existing taxonomy terms at install-time
+  */
+  function deploy_uuid_generate_terms() {
+    $result = db_query("SELECT tid FROM {term_data}");
+    while ($row = db_fetch_array($result)) {
+      $uuid = uniqid(rand(), TRUE);
+      db_query("INSERT INTO {term_data_uuid} (tid, uuid) values (%d, '%s')", $row['tid'], $uuid);
+    }
+  }
+  
+  /**
+  * Generate uuids for any existing taxonomy vocabularies at install-time
+  */
+  function deploy_uuid_generate_vocabularies() {
+    $result = db_query("SELECT vid FROM {vocabulary}");
+    while ($row = db_fetch_array($result)) {
+      $uuid = uniqid(rand(), TRUE);
+      db_query("INSERT INTO {vocabulary_uuid} (vid, uuid) values (%d, '%s')", $row['vid'], $uuid);
+    }
+  }
+  
+  /**
+  * Generate uuids for any existing comments at install-time
+  */
+  function deploy_uuid_generate_comments() {
+    $result = db_query("SELECT cid FROM {comments}");
+    while ($row = db_fetch_array($result)) {
+      $uuid = uniqid(rand(), TRUE);
+      db_query("INSERT INTO {comments_uuid} (cid, uuid) values (%d, '%s')", $row['cid'], $uuid);
+    }
+  }
+  
+  // Add files_uuid table.
+  function deploy_uuid_update_6001() {
+    $ret = array();
+    
+    $files_uuid_schema = array(
+      'fields' => array(
+        'uuid' => deploy_uuid_get_field_definition(),
+        'fid' => array(
+          'type' => 'int', 
+          'not null' => TRUE,
+        ),
+      ),
+    );    
+    db_create_table($ret, 'files_uuid', $files_uuid_schema);
+    deploy_uuid_generate_files();
+    
+    return $ret;
+  }
+  
+  // Put us as very first in the chain, guaranteeing that UUIDs get
+  // generated before anyone else's hooks fire.
+  function deploy_uuid_update_6002() {
+    $ret = array();
+    
+    db_query("UPDATE {system} SET weight = -1 WHERE name = 'deploy_uuid'"); 
+    
+    return $ret;
+  }
+  
+  // Add indexes to all tables
+  function deploy_uuid_update_6003() {
+    $ret = array();
+
+    $ret[] = update_sql("ALTER TABLE {comments_uuid} ADD UNIQUE (uuid)");
+    $ret[] = update_sql("ALTER TABLE {files_uuid} ADD UNIQUE (uuid)");
+    $ret[] = update_sql("ALTER TABLE {node_uuid} ADD UNIQUE (uuid)");
+    $ret[] = update_sql("ALTER TABLE {role_uuid} ADD UNIQUE (uuid)");
+    $ret[] = update_sql("ALTER TABLE {term_data_uuid} ADD UNIQUE (uuid)");
+    $ret[] = update_sql("ALTER TABLE {users_uuid} ADD UNIQUE (uuid)");
+    $ret[] = update_sql("ALTER TABLE {vocabulary_uuid} ADD UNIQUE (uuid)");
+    
+    $ret[] = update_sql("ALTER TABLE {comments_uuid} ADD KEY (cid)");
+    $ret[] = update_sql("ALTER TABLE {files_uuid} ADD KEY (fid)");
+    $ret[] = update_sql("ALTER TABLE {node_uuid} ADD KEY (nid)");
+    $ret[] = update_sql("ALTER TABLE {role_uuid} ADD KEY (rid)");
+    $ret[] = update_sql("ALTER TABLE {term_data_uuid} ADD KEY (tid)");
+    $ret[] = update_sql("ALTER TABLE {users_uuid} ADD KEY (uid)");
+    $ret[] = update_sql("ALTER TABLE {vocabulary_uuid} ADD KEY (vid)");
+    
+    return $ret;
+  }

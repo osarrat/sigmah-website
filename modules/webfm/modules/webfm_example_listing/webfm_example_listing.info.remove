@@ -1,0 +1,7 @@
+; $Id: webfm_example_listing.info.remove,v 1.1 2009/08/19 15:24:35 robmilne Exp $
+name = Web File Manager File Example Listing
+description = A demo custom module to list files from the Web File Manager Module.
+package = WebFM
+core = 6.x
+dependencies[] = webfm
+

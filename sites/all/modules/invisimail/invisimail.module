@@ -1,0 +1,395 @@
+<?php
+// $Id: invisimail.module,v 1.3.4.17 2010/11/18 00:03:43 crell Exp $
+
+define('INVISIMAIL_MAILTO_ASCII', '&#109;&#97;&#105;&#108;&#116;&#111;&#58;');
+
+/**
+ * @file
+ * This module provides a filter that will search content for email addresses
+ * and replace them with their ascii equivalents before display. This is not
+ * a complete protection from spam harvesters, but it is some help.
+ */
+
+/**
+ * Implementation of hook_help().
+ *
+ */
+function invisimail_help($section) {
+  switch ($section) {
+    case 'admin/help#invisimail':
+      return t('<p>The invisimail module privides a filter to hide email addresses from email harvesting spam-bots.</p><p>How it works: Invisimail scans content for email addresses and then converts each character of the address to its ASCII-code equivalent. The email address will appear normally on the page, but the source html will not appear as an email address. For even more security, the filter can use a JavaScript write command to further obscure the email address.</p><p>For example:<br /><i>you@example.com</i> will appear in the html source as: <div style="font-family:courier;border:1px solid #666;padding: 5px">&amp;#121;&amp;#111;&amp;#117;&amp;#64;&amp;#101;&amp;#120;&amp;#97;&amp;#109;&amp;#112;&amp;#108;&amp;#101;&amp;#46;&amp;#99;&amp;#111;&amp;#109;</div></p><p>With the JavaScript and Auto-link options enabled, the source would become: <div style="font-family:courier;border:1px solid #666;padding: 5px">&lt;script type=\'text/javascript\'&gt;&lt;!--<br />
+document.write(\'&lt;a href= "&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&amp;#111;&amp;#58;\' + \'&amp;#121;&amp;#111;&amp;#117;&amp;#64;\' + \'&amp;#101;&amp;#120;&amp;#97;&amp;#109;&amp;#112;&amp;#108;&amp;#101;&amp;#46;\' + \'&amp;#99;&amp;#111;&amp;#109;\' + \'"&gt;\' + \'&amp;#121;&amp;#111;&amp;#117;&amp;#64;\' + \'&amp;#101;&amp;#120;&amp;#97;&amp;#109;&amp;#112;&amp;#108;&amp;#101;&amp;#46;\' + \'&amp;#99;&amp;#111;&amp;#109;\' + \'&lt;/a&gt;\');<br />
+//--&gt;<br />
+&lt;/script&gt;</div></p><p>Doesn\'t look like an email address, does it?</p><p>Of course the best protection against spam-bots is to not publish an email address at all, but on a community site some users are going to publish email addresses. Invisimail provides another level of security to keep them from recieving spam.</p><p>To configure Invisimail, select "configure" next to the <a href="%url">input format</a> you\'d like to use. Enable "Encode Email Addresses" and submit the form. Then select the "configure" tab to choose options for Invisimail.</p>', array('%url' => url('admin/filters')));
+  }
+}
+
+/**
+ * Implementation of hook_menu();
+ */
+function invisimail_menu() {
+
+  $items = array();
+
+  // This configuration page only really makes sense if you have email field installed.
+  if (module_exists('email')) {
+    $items['admin/settings/invisimail'] = array(
+      'title' => t('Invisimail formatter'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('invisimail_formatter_settings'),
+      'access arguments' => array('administer invisimail formatter'),
+      'type' => MENU_NORMAL_ITEM,
+    );
+  }
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function invisimail_perm() {
+  return array('administer invisimail formatter');
+}
+
+/**
+ * Implementation of hook_filter_tips().
+ *
+ */
+function invisimail_filter_tips($delta, $format, $long = FALSE) {
+  switch ($delta) {
+    case 0:
+      return t('Email addresses will be obfuscated in the page source to reduce the chances of being harvested by spammers.');
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_filter().
+ *
+ */
+function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
+  if ($op == 'list') {
+    return array(0 => t('Encode email addresses'));
+  }
+
+  switch ($delta) {
+    case 0:
+      switch ($op) {
+        case 'description':
+          return t('Hide email addresses from spam-bots.');
+
+        case 'prepare':
+          return $text;
+
+        case 'process':
+          return invisimail($text, $format);
+
+        case 'settings':
+          $form['invisimail_settings'] = array(
+            '#type' => 'fieldset',
+            '#title' => t('Invisimail email address encoding filter'),
+            '#collapsible' => TRUE,
+            '#collapsed' => FALSE,
+          );
+          $form['invisimail_settings'] += _invisimail_settings($format);
+
+          return $form;
+      }
+      break;
+  }
+}
+
+function invisimail($string, $format) {
+  // The check for the user/name portion of the email address. This is
+  // encapsulable regex that looks for at least one valid character (in most
+  // cases, a space), preceded by one invalid character, followed by at least
+  // one valid character.
+  $valid_user_chars = 'a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\'';
+  $user = "(?<![$valid_user_chars])[$valid_user_chars]+";
+  // For the domain portion of an email addy, you can have a string domain,
+  // an ipv4 address, or an ipv6 address. These three regex capture each of
+  // those possibilities, respectively.
+  $domain = '(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}';
+  $ipv4 = '[0-9]{1,3}(?:\.[0-9]{1,3}){3}';
+  $ipv6 = '[0-9a-fA-F]{1,4}(?:[0-9a-fA-F]{1,4}){7}';
+  // Now we stick it all together into a generalized, encapsulated, portable,
+  // and non-subitem-capturing (hence all the '(?:', which mark subpatterns as
+  // non-capturing) regex for grabbing email addresses.
+  $mail = "(?:$user)+\@(?:$domain|(?:\[(?:$ipv4|$ipv6)\]))";
+  // PCRE pattern modifiers; 'i' enables case-insensitivity, and 'S' enables
+  // the additional pattern analysis, as our regex is one that can benefit
+  // (it is a non-anchored pattern without a single fixed starting character.
+  // see http://us2.php.net/manual/en/reference.pcre.pattern.modifiers.php).
+  // Global case insensitivity is a little sloppy to use, but selectively
+  // toggling it within only some of the subpatterns isn't really worth the
+  // effort.
+  $modifiers = 'iS';
+  // The final pattern. We deal with these as an entire group because invisimail
+  // allows options that require us to deal with both an href and its text
+  // in relation to one another.
+  $pattern = "@(?:(<a [^>]*href=['\"](mailto:$mail)['\"][^>]*>)?((?".">(?<!mailto:))$mail))|(<a [^>]*href=['\"](mailto:$mail)['\"][^>]*>(.*?)</a>)@$modifiers";
+  $pattern_diff_link_text = "@(<a [^>]*href=['\"](mailto:$mail)['\"][^>]*>(.*?)</a>)@$modifiers";
+  $pattern_same_link_text = "@(?:(<a [^>]*href=['\"](mailto:$mail)['\"][^>]*>)?((?".">(?<!mailto:))$mail))@$modifiers";
+
+  // The callback needs to know about the filter we're using, but there's no way
+  // to hand off that variable through preg_replace_callback. So we set it as a
+  // global variable.
+  $GLOBALS['invisimail_format'] = array(
+    'js' => variable_get('invisimail_js_'.$format, FALSE),
+    'link' => variable_get('invisimail_link_'.$format, FALSE),
+  );
+
+  // Chunking will help determin in which portino of the overall string a call
+  // to preg_replace_callback may fail.
+  if ( variable_get('invisimail_chunk_'.$format, TRUE) ) {
+    $substrings = preg_split( '/(<a [^>]*>.+?<\/a>)/', $string, -1, PREG_SPLIT_DELIM_CAPTURE );
+  }
+  else {
+    $substrings = array( $string );
+  }
+  $return = '';
+  foreach ( $substrings as $phrase ) {
+    // Call preg_replace_callback twice to avoid prolems with hitting the
+    // backtrack limit, as the more complex $pattern has issues with domains more
+    // than 13 characters.
+    $replaced_phrase = preg_replace_callback($pattern_diff_link_text, 'invisimail_callback', $phrase);
+    if ($error_code = preg_last_error()) {
+      watchdog('invisimail', 'preg_replace_callback failed on first pass with preg_last_error() of !code with pattern %pattern on text: !text',
+            array(
+              '!code'=>$error_code,
+              '%pattern' => check_plain($pattern_diff_link_text),
+              '!text' => check_plain($phrase),
+            ),
+            WATCHDOG_ERROR,
+            request_uri());
+    }
+    $replaced_phrase = preg_replace_callback($pattern_same_link_text, 'invisimail_callback', $replaced_phrase);
+    if ($error_code = preg_last_error()) {
+      watchdog('invisimail', 'preg_replace_callback failed on second pass with preg_last_error() of !code with pattern %pattern on text: !text',
+            array(
+              '!code'=>$error_code,
+              '%pattern' => check_plain($pattern_same_link_text),
+              '!text' => check_plain($phrase),
+            ),
+            WATCHDOG_ERROR,
+            request_uri());
+    }
+    $return .= $replaced_phrase;
+  }
+
+  return $return;
+}
+
+/**
+ * Callback function used by preg_replace_callback.
+ *
+ * Expects the regex pattern defined in invisimail() to be used.
+ *
+ * @param array $matches
+ *  An array of matched patterns from our regex. Any match will have four keys,
+ *  numbered 0-3, which correspond to the capturing groups in our regex. For all
+ *  these examples, assume the following string:
+ *  <p><a href="mailto:user@domain.com">user@domain.com</a></p>
+ *    - 0: The entire matched string. This will include the email address, as
+ *      well as that email address' corresponding href mailto iff it exists. In
+ *      the example, it would be
+ *        <a href="mailto:user@domain.com">user@domain.com
+ *    - 1: The full string of the <a> tag portion of the match, iff that portion
+ *      was matched; otherwise an empty string. In the example, it would be
+ *        <a href="mailto:user@domain.com">
+ *    - 2: The mailto + email address string from the href portion of the match,
+ *      iff an href was found. In the example, it would be:
+ *        mailto:user@domain.com
+ *    - 3: The email address itself. In the example, just:
+ *      user@domain.com
+ *  for the next set of array elements, assume the following string:
+ *  <p><a href="mailto:user@domain.com">click here to eMail</a></p>
+ *    - 1: The entire matched string, but this time where the link text does not
+ *      match the mailto address.  In the example, it would be
+ *        <a href="mailto:user@domain.com">click here to eMail
+ *    - 2:The mailto + email address string from the href portion of the match,
+ *      iff an href was found. In the example, it would be:
+ *        mailto:user@domain.com
+ *    - 3: The link text. In the example, just:
+ *      click here to eMail
+ *
+ * @return string
+ *   The full ASCII-encoded string that will replace the entire match.
+ */
+function invisimail_callback($matches) {
+  $format = $GLOBALS['invisimail_format'];
+
+  // If $matches[1] is empty, no link portion was matched for this item, so
+  // it's a simple replace operation.
+  if (empty($matches[1])) {
+    return invisimail_ascii_encode($matches[3], $format['js'], $format['link']);
+  }
+
+  // If $matches[3] is something other than the eMail address, then we
+  // matched on an <a> tag that didn't have the link text the same as the
+  // mailto eMail address, so just replace the eMail address
+  if ( $matches[2] != 'mailto:'.$matches[3] ) {
+    return str_replace($matches[2], _invisimail_encode_string($matches[2], FALSE),
+          $matches[0]);
+  }
+  
+  // We DO have an existing link portion. Do our best to preserve it; that means
+  // ignoring the js setting, since it makes for heinous string transformations.
+  return str_replace(array($matches[2], $matches[3]),
+    array(_invisimail_encode_string($matches[2], FALSE), _invisimail_encode_string($matches[3], FALSE)),
+    $matches[0]);
+}
+
+function invisimail_encode_add_link($string, $js, $text) {
+  static $counter = 0;
+  $encode = _invisimail_encode_string($string, $js);
+
+  $text = is_null($text) ? $encode : $text;
+
+  if ($js) {
+      $linkId = md5("mailto_link_{$counter}");
+      $counter ++;
+      $output = "<span id=\"$linkId\"></span>";
+      $output .="
+            <script type=\"text/javascript\" > <!--
+        document.getElementById('$linkId')
+                .innerHTML = '<a href=\"" . INVISIMAIL_MAILTO_ASCII . "'+'$encode'+'\">'+'"
+                . $text . "' + '</a>';"
+      ."\n // --> </script>";
+  }
+  else {
+    $output = '<a href="' . INVISIMAIL_MAILTO_ASCII . "$encode\">$text</a>";
+  }
+  return $output;
+}
+
+/**
+ * ASCII-encode an email address.
+ *
+ * @param $string
+ *   A string containing _only_ an email address to be encoded.
+ * @param $js
+ *   Optional: A boolean which sets whether Javascript is used for encoding.
+ * @param $link
+ *   Optional: A boolean which set whether the result includes a mailto link.
+ * @param $text
+ *   Optional: The text to be used for the link.
+ * @return
+ *   An ascii encoded email address, optionally with link included.
+ */
+function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NULL) {
+  return $link ? invisimail_encode_add_link($string, $js, $text) : _invisimail_encode_string($string, $js, $link);
+}
+
+/**
+ * Performs ASCII encoding on the provided string.
+ *
+ * @param string $string
+ * @param bool $js
+ * @return string
+ */
+function _invisimail_encode_string($string, $js, $link = FALSE) {
+  $encode = '';
+  for ($i=0; $i < strlen($string); $i++)   {
+    $char = substr($string, $i, 1);
+    $encode .= '&#'.ord($char).';';
+    if ($js && $link) {
+      if (in_array($char, array('.', '@'))) {
+      // break strings after ats and dots.
+        $encode .= "'+'";
+      }
+    }
+  }
+  return $encode;
+}
+
+
+/**
+ * Implementation of hook_field_formatter_info(),.
+ */
+function invisimail_field_formatter_info() {
+  return array(
+    'invisimail' => array(
+      'label' => t('Encode with Invisimail'),
+      'field types' => array('email'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function invisimail_theme() {
+  return array(
+    'invisimail_formatter_invisimail' => array(
+      'arguments' => array(
+        'element' => NULL,
+      ),
+    ),
+  );
+}
+
+function theme_invisimail_formatter_invisimail($element) {
+
+  // If there's no email address, don't bother trying to encode it.
+  if ($element['#item']['email'] == '') {
+    return;
+  }
+
+  if (module_exists('invisimail')) {
+    return invisimail_ascii_encode($element['#item']['email'], variable_get('invisimail_js_formatter', 0), variable_get('invisimail_link_formatter', 0));
+  }
+  else {
+    return '<a href="mailto:'. $element['#item']['email'] .'">'. check_plain($element['#item']['email']) .'</a>';
+  }
+}
+
+/**
+ * Settings form for the invisimail CCK formatter.
+ *
+ */
+function invisimail_formatter_settings() {
+  return system_settings_form(_invisimail_settings('formatter'));
+}
+
+/**
+ * Helper function for the invisimail configuration form.
+ *
+ * @param $format
+ *   The key of the format we are defining a setting for.  For the CCK formatter,
+ *   this will be "formatter".  For input filters, it will be an integer.
+ * @return A form fragment.
+ */
+function _invisimail_settings($format) {
+  $form['invisimail_js_'. $format] = array(
+    '#type' => 'radios',
+    '#title' => t('JavaScript'),
+    '#default_value' => variable_get('invisimail_js_'. $format, 0),
+    '#options' => array(0 => t('No JavaScript - greater compatibility'), 1 => t('Use JavaScript - greater security')),
+    '#description' => t('Selecting "Use JavaScript" will nearly guarantee protection from spam harvesters. However email addresses will not appear for browsers without JavaScript capability.'),
+  );
+
+  $form['invisimail_link_'. $format] = array(
+    '#type' => 'radios',
+    '#title' => t('Auto-link Emails'),
+    '#default_value' => variable_get('invisimail_link_'. $format, 0),
+    '#options' => array(0 => t('Do not create links.'), 1 => t('Automatically create links from email addresses.')),
+    '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
+  );
+  
+  $form['invisimail_chunk_'. $format] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Break up text for filtering'),
+    '#default_value' => variable_get( 'invisimail_chunk_'. $format, TRUE ),
+    '#description' => t('Break up the text to be filtered into chunks with and
+                          without anchor tags.  Selecting this option may slow
+                          down the filtering of text slightly, but will provide
+                          better error messages in the <em>Recent log entries</em>
+                          should content not render as you expect it when there
+                          are e-mail addresses to obfuscate.'),
+  );
+
+  return $form;
+}

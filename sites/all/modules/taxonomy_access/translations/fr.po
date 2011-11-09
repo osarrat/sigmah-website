@@ -1,0 +1,222 @@
+# $Id: fr.po,v 1.1.2.1 2010/02/21 12:52:34 keve Exp $
+#
+# FRENCH translation of taxonomy_access
+msgid ""
+msgstr ""
+"Project-Id-Version: Taxonomy Access Control (6.x-1.0)\n"
+"POT-Creation-Date: 2008-07-26 02:28+0200\n"
+"PO-Revision-Date: 2009-11-12 16:40+0100\n"
+"Last-Translator: Simon Georges <simon.georges@alumni.enseeiht.fr>\n"
+"Language-Team: Capgemini Drupal Factory <drupal-factory@capgemini.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: taxonomy_access_admin.inc:47
+msgid "Role"
+msgstr "Rôle"
+
+#: taxonomy_access_admin.inc:60
+msgid "disable"
+msgstr "désactiver"
+
+#: taxonomy_access_admin.inc:62
+msgid "edit"
+msgstr "éditer"
+
+#: taxonomy_access_admin.inc:65
+msgid "enable"
+msgstr "activer"
+
+#: taxonomy_access_admin.inc:88
+msgid "Are you sure you want to delete all grant rules for role %rid?"
+msgstr "Etes-vous sûr de supprimer tous les droits accordés au rôle %rid?"
+
+#: taxonomy_access_admin.inc:89
+msgid "This action cannot be undone."
+msgstr "Cette action ne peut pas être annulée."
+
+#: taxonomy_access_admin.inc:90
+msgid "Delete all"
+msgstr "Supprimer tout"
+
+#: taxonomy_access_admin.inc:90
+msgid "Cancel"
+msgstr "Annuler"
+
+#: taxonomy_access_admin.inc:142;152
+msgid "<em>default</em>"
+msgstr "<em>défaut</em>"
+
+#: taxonomy_access_admin.inc:143
+msgid "can't be disabled without disabling TAC for this role"
+msgstr "ne peut pas être désactivé sans désactiver le Taxonomy Access Control pour ce rôle"
+
+#: taxonomy_access_admin.inc:156
+msgid "*default*"
+msgstr "défaut"
+
+#: taxonomy_access_admin.inc:184;312
+msgid "Add"
+msgstr "Ajouter"
+
+#: taxonomy_access_admin.inc:190;286
+msgid "Delete selected"
+msgstr "Supprimer sélectionnés"
+
+#: taxonomy_access_admin.inc:195;324
+msgid "Save all"
+msgstr "Enregistrer tout"
+
+#: taxonomy_access_admin.inc:207
+msgid "Category"
+msgstr "Catégorie"
+
+#: taxonomy_access_admin.inc:208
+msgid "View"
+msgstr "Voir"
+
+#: taxonomy_access_admin.inc:209
+msgid "Update"
+msgstr "Modifier"
+
+#: taxonomy_access_admin.inc:210
+msgid "Delete"
+msgstr "Supprimer"
+
+#: taxonomy_access_admin.inc:211
+msgid "Create"
+msgstr "Créer"
+
+#: taxonomy_access_admin.inc:212
+msgid "List"
+msgstr "Lister"
+
+#: taxonomy_access_admin.inc:215
+msgid "A"
+msgstr "A"
+
+#: taxonomy_access_admin.inc:216
+msgid "I"
+msgstr "I"
+
+#: taxonomy_access_admin.inc:217
+msgid "D"
+msgstr "R"
+
+#: taxonomy_access_admin.inc:224
+msgid "Allow"
+msgstr "Autoriser"
+
+#: taxonomy_access_admin.inc:224
+msgid "Ignore"
+msgstr "Ignorer"
+
+#: taxonomy_access_admin.inc:224
+msgid "Deny"
+msgstr "Refuser"
+
+#: taxonomy_access_admin.inc:226
+msgid "Grants for %role"
+msgstr "Droits pour %role"
+
+#: taxonomy_access.module:17
+msgid "The Taxonomy Access Control module allows users to specify how each category can be used by various roles."
+msgstr "Le module Taxonomy Access Control permet de spécifier comment chaque catégorie peut être utilisée par les différents rôles."
+
+#: taxonomy_access.module:18
+msgid "Permissions can be set differently to each USER ROLES. Be aware that setting Taxonony Access permissions works ONLY WITHIN ONE USER ROLE. <br /><em>(For users with multiple user roles, see section \"GOOD TO KNOW\" below.)</em>"
+msgstr "Les permissions peuvent être affectées différemment pour chaque ROLES UTILISATEUR. Le paramétrage des permissions Taxonony Access ne fonctionne QU'AU SEIN D'UN ROLE UTILISATEUR. <br /><em>(Pour les utilisateurs ayant plusieurs rôles utilisateur, voir la section \"BON A SAVOIR\" ci-dessous.)</em>"
+
+#: taxonomy_access.module:19
+msgid "On the category permissions page for each role, each category displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>:"
+msgstr "Sur la page de permissions de catégorie pour chaque rôle, chaque catégorie affiche une liste des termes contenus, chacune avec cinq types de permissions : <em>Voir, Modifier, Supprimer, Créer</em> et <em>Lister</em> :"
+
+#: taxonomy_access.module:21
+msgid "<strong>VIEW</strong> enables the user to access content (nodes) with given term."
+msgstr "<strong>VOIR</strong> permet à l'utilisateur d'accéder au contenu (noeuds) avec le terme donné."
+
+#: taxonomy_access.module:22
+msgid "<strong>UPDATE, DELETE</strong> enables the user to Update/Delete <u>ALL</u> nodes with the given term. <br><em>(These two permissions are <u>administrator permissions</u>, that should be given ONLY to e.g. content administrators.)</em>"
+msgstr "<strong>MODIFIER, SUPPRIMER</strong> permet à l'utilisateur de Modifier/Supprimer <u>TOUS</u> les noeuds avec le terme donné. <br><em>(Ces deux permissions sont des <u>permissions d'administrateur</u>, elles doivent être données par exemple aux administrateurs de contenu.)</em>"
+
+#: taxonomy_access.module:23
+msgid "<strong>CREATE</strong> enables the user to set that term when adding a new node or when editing a node."
+msgstr "<strong>CREER</strong> permet à l'utilisateur d'affecter ce terme à l'ajout d'un nouveau noeud ou à l'édition d'un noeud."
+
+#: taxonomy_access.module:24
+msgid "<strong>LIST</strong> enables the user to view the name of the given term below the title of a node or in category lists.  It also controls whether a user can access the taxonomy page for the given term.  (e.g. \"taxonomy/term/*\")"
+msgstr "<strong>LISTER</strong> permet à l'utilisateur de visualiser le nom du terme donné sous le titre d'un noeud ou dans les listes de catégories.  Il contrôle aussi qu'un utilisateur puisse accèder à la page taxonomie pour le terme donné.  (ex. \"taxonomie/terme/*\")"
+
+#: taxonomy_access.module:26
+msgid "VIEW, UPDATE, and DELETE control the node access system.  LIST and CREATE control if a user can view and select a given term.  (Note: In previous versions of Taxonomy Access Control, there was no LIST permission; its functionality was controlled by the VIEW permission.)"
+msgstr "VOIR, MODIFIER et SUPPRIMER contrôlent le système d'accès au noeud.  LISTER et CREER contrôlent si un utilisateur peut visualiser ou sélectionner un terme donné.  (Note: Dans les précédentes versions de Taxonomy Access Control, il n'y avait pas de permission LISTER ; sa fonctionnalité était contrôlée par la permission VOIR.)"
+
+#: taxonomy_access.module:27
+msgid "<strong>VIEW, UPDATE and DELETE have three options for each term: <u>A</u>llow, <u>I</u>gnore, and <u>D</u>eny.</strong>  Indicate which rights each role should have for each term."
+msgstr "<strong>VOIR, MODIFIER et SUPPRIMER ont trois options pour chaque terme : <u>A</u>utoriser, <u>I</u>gnorer et <u>R</u>efuser.</strong>  Indique quels droits chaque rôle doit avoir pour chaque terme."
+
+#: taxonomy_access.module:28
+msgid "<strong>CREATE and LIST have only two options for each term:  YES (selected) or NO (deselected).</strong>  Indicate what each role should be allowed to do with each term."
+msgstr "<strong>CREER et LISTER ont seulement deux options pour chaque terme : OUI (sélectionné) ou NON (désélectionné).</strong>  Indique ce que chaque rôle doit être autorisé à faire avec chaque terme."
+
+#: taxonomy_access.module:29
+msgid "<strong>IMPORTANT NOTE:</strong><br><u>The DENY directives are processed after the ALLOW directives. (DENY overrides ALLOW.)</u>  So, if a multicategory node is in Categories \"A\" and \"B\" and a user has ALLOW permissions for VIEW in Category \"A\" and DENY permissions for VIEW in Category \"B\", then the user will NOT be permitted to VIEW the node. (DENY overrides ALLOW.)<br><u>Access is denied by default.</u> So, if a multicategory node is in Categories \"C\" and \"D\" and a user has IGNORE permissions for VIEW in both Category \"C\" and \"D\", then the user will NOT be permitted to VIEW the node.<br>(If you are familiar with Apache mod_access, this permission system works similar to directive: <em>ORDER ALLOW, DENY</em>)"
+msgstr "<strong>NOTE IMPORTANTE :</strong><br><u>L'instruction REFUSER est appliquée après l'instruction AUTORISER. (REFUSER est prioritaire sur AUTORISER.)</u>  Ainsi, si un noeud est dans plusieurs catégories \"A\" et \"B\" et qu'un utilisateur a les permissions AUTORISER pour VOIR dans la catégorie \"A\" et les permissions REFUSER pour VOIR dans la catégorie \"B\", alors l'utilisateur ne sera PAS autorisé à VOIR le noeud. (REFUSER est prioritaire sur AUTORISER.)<br><u>L'accès est refusé par défaut.</u> Ainsi, si un noeud est dans plusieurs catégories \"C\" et \"D\" et que l'utilisateur a les permissions IGNORER pour VOIR dans les deux catégories \"C\" et \"D\", alors l'utilisateur ne sera PAS autorisé à VOIR le noeud.<br>(Si vous êtes familier avec le mod_access d'Apache, ce système de permissions est semblable aux directives : <em>ordre AUTORISER, REFUSER</em>)"
+
+#: taxonomy_access.module:30
+msgid "<strong>Allow/Ignore/Deny All</strong> or <strong>Select/Deselect All:</strong><br>Beside each vocabulary title there are dropdowns containing the options that can be set for individual terms.  Selecting one of these options using the dropdown effectively <u>selects that option for ALL of the individual terms inside that vocabulary when the options are saved.</u><br>Selecting \"--\" does not make any automatic changes to the permission of the terms in that vocabulary; only manual changes that you make will be saved.<br>NOTE:  This does <u>not</u> change the \"Default\" option (described below)."
+msgstr "<strong>Autoriser/Ignorer/Refuser Tout</strong> ou <strong>Sélectionner/Désélectionner Tout :</strong><br>A côté de chaque titre de vocabulaire, des listes déroulantes affichent les options pouvant être affectées pour des termes individuels.  La sélection d'une de ces options <u>sélectionne cette option pour TOUS les termes individuels dans le vocabulaire quand les options sont enregistrées.</u><br>La sélection de \"--\" ne change rien automatiquement aux permissions des termes du vocabulaire ; seuls les changements manuels que vous effectuez seront enregistrés.<br>NOTE :  Cela ne change <u>pas</u> l'option \"Défaut\" (décrite ci-dessous)."
+
+#: taxonomy_access.module:31
+msgid "<strong>Default:</strong><br>This option, just underneath the vocabulary title, <u>sets the permission that will automatically be given</u> to the role, <u>for any new terms</u> that are added within the vocabulary.  This includes terms that are added via free tagging."
+msgstr "<strong>Défaut :</strong><br>Cette option, en dessous du titre du vocabulaire, <u>affecte les permissions qui seront automatiquement données</u> au rôle, <u>pour tous les nouveaux termes</u> qui sont ajoutes dans le vocabulaire.  Cela inclut les termes ajoutés via le marquage libre."
+
+#: taxonomy_access.module:32
+msgid "GOOD TO KNOW:"
+msgstr "BON A SAVOIR :"
+
+#: taxonomy_access.module:33
+msgid "<strong>Users with multiple user roles:</strong> Allow/Ignore/Deny options are interpreted <u>only within one user role</u>. When a user belongs to multiple user roles, then <u>user gets access if ANY of his user roles</u> has the access granted. <br />In this case, permissions for the given user are calculated, so that the <u>permissions of ALL of his user roles are \"OR-ed\" together</u>. Meaning that Allow will take precedence over Deny. This is different from how node access permissions (for multi-category nodes) are handled within ONE USER ROLE, as noted above."
+msgstr "<strong>Utilisateurs avec plusieurs rôles utilisateur :</strong> les options Autoriser/Ignorer/Refuser sont interprétées <u>seulement au sein d'un rôle utilisateur</u>. Quand un utilisateur appartient à plusieurs rôles utilisateur, alors <u>l'utilisateur a accès si N'IMPORTE LEQUEL de ses rôles utilisateur</u> a l'accès autorisé. <br />Dans ce cas, les permissions pour l'utilisateur donné sont calculées, pour que les <u>permissions de TOUS ses rôles utilisateur aient un comportement \"OU\" ensemble</u>. Cela signifie que Autoriser est prioritaire sur Refuser. Ceci est différent de la manière dont sont gérées les permissions d'accès au noeud (pour les noeuds multi-catégories) au sein d'UN ROLE UTILISATEUR, comme précisé ci-dessus."
+
+#: taxonomy_access.module:34
+msgid "<br><strong>Input formats:</strong>  <u>Node editing/deleting is blocked</u>, even when user has <em>UPDATE/DELETE</em> permission to the node, <u>when user is not allowed to use a filter format</u> that the node was saved at."
+msgstr "<br><strong>Formats d'entrée :</strong>  <u>L'édition/suppression de noeud est bloquée</u>, même quand l'utilisateur a les permissions <em>MODIFIER/SUPPRIMER</em> sur le noeud, <u>quand l'utilisateur n'est pas autorisé à utiliser un format de filtre</u> avec lequel le noeud a été enregistré."
+
+#: taxonomy_access.module:152
+msgid "Taxonomy access permissions"
+msgstr "Permissions d'accès à la taxonomie"
+
+#: taxonomy_access.module:153
+msgid "Taxonomy-based access control for content"
+msgstr "Contrôle d'accès au contenu basé sur la taxonomie"
+
+#: taxonomy_access.module:0
+msgid "taxonomy_access"
+msgstr "taxonomy_access"
+
+#: taxonomy_access.install:19;38
+msgid "Taxonomy Access - Update #2: No queries executed. Field 'grant_list' already exists in tables 'term_access'."
+msgstr "Taxonomy Access - Mise à jour #2: Aucune requête exécutée. Le champ 'grant_list' existe déjà dans la table 'term_access'."
+
+#: taxonomy_access.install:171
+msgid "Taxonomy Access module installed tables successfully."
+msgstr "Tables du module Taxonomy Access installées avec succès."
+
+#: taxonomy_access.install:174
+msgid "The installation of Taxonomy Access module was unsuccessful."
+msgstr "L'installation du module Taxonomy Access a échoué."
+
+#: taxonomy_access.install:182
+msgid "Taxonomy Access have been successfully uninstalled."
+msgstr "Module Taxonomy Access désinstallé avec succès."
+
+#: taxonomy_access.info:0
+msgid "Taxonomy Access Control"
+msgstr "Taxonomy Access Control"
+
+#: taxonomy_access.info:0
+msgid "Access control for user roles based on taxonomy categories."
+msgstr "Contrôle d'accès pour les rôles utilisateur basé sur les catégories de la taxonomie."

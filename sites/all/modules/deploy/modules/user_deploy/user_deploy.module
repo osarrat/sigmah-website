@@ -1,0 +1,110 @@
+<?php
+/**
+ * @file
+ * Deployment API which enables modules to deploy items between servers.
+ *
+ * This module manages deployment-related issues for users.
+ *
+ * @todo 
+ *   Need to expose a UI for user's to add users to plans by hand.
+ */
+
+/**
+ * Implementation of hook_node_deploy_check().
+ *
+ * This is the dependency checking hook for nodes, called when
+ * a deployment has been requested that includes a node.
+ *
+ * @param $node
+ *   The node object being deployed
+ */
+function user_deploy_node_deploy_check($node) {
+  user_deploy_check_user($node->uid);
+}
+
+/**
+ * Check to see if a user should be added to the deployment plan currently being pushed.
+ *
+ * This function goes through the motions of checking whether a user
+ * should be deployed, or whether it can just be ignored. This is part of the
+ * dependency checking mechanism for drupal items that refer to users (like for
+ * instance nodes.)
+ *
+ * @param $uid
+ *   The unique identifier for the user being checked.
+ */
+function user_deploy_check_user($uid) {
+  // Get the remote server info.
+  $url = variable_get('deploy_server_url', '');
+  $pid = variable_get('deploy_pid', 0);
+
+  // If this user is already in the deployment plan then either
+  // a) it was added by the user and will get checked down the line or
+  // b) it was added through dependency checks and its already been
+  // dealt with. So we just move on in this case.
+  //
+  // Also skip past if uid > 1 (IE this is not the admin or anonymous user)
+  // If anyone knows of a less-ugly way to say that then I'd love to hear
+  // about it.
+  if (!deploy_item_is_in_plan($pid, 'user', $uid) && $uid > 1) {
+    $account = user_load(array('uid' => $uid));
+
+    // Does this user exist on the remote server?    
+    $remote_key = deploy_get_remote_key($account->uuid, 'users');
+
+    // If not we're going to add it to the deployment plan, with a weight
+    // of min(weight) - 1.
+    if (!$remote_key) {
+      deploy_add_to_plan($pid, 'user', 'User: '. $account->name, $uid, deploy_get_min_weight($pid)-1, DEPLOY_USER_GROUP_WEIGHT);
+
+      // Now that we're deploying a user, we need to check all of its
+      // dependencies (might be able to skip this now that we've eliminated roles)
+      module_invoke_all('user_deploy_check', $account);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_deploy().
+ *
+ * Called when an item is being deployed (as opposed to when we're checking
+ * to see if it can be deployed.)
+ *
+ * @param $uid
+ *   Unique identifier for the user we're deploying.
+ * @return
+ *   The results of our xmlrpc call.
+ */
+function user_deploy($uid) {
+  // Does this user exist? If not abort.
+  $account = user_load($uid);
+  if (empty($account)) {
+    return xmlrpc_error($xmlrpcusererr + 1, t('User not found'));
+  }
+
+  // add in any authmap info if it exists
+  $result = db_query("SELECT * from {authmap} WHERE uid = %d", $account->uid);
+  while ($row = db_fetch_array($result)) {
+    $auth = "authname_" .$row['module'];
+    $account->{$auth} = $row['authname']; 
+  }
+
+  // Check to see if the user exists on the remote site. If so, set our
+  // user's UID to the remote user's UID and push. If not, then this will
+  // be a new user on the other side.  
+  $remote_key = deploy_get_remote_key($account->uuid, 'users');
+  if ($remote_key) {
+    $account->uid = $remote_key['uid'];
+  }
+  else {
+    unset($account->uid);
+  }
+  
+  // There is some special action that needs to take place on the remote
+  // server when a user is saved via deployment, so we add this flag to signal
+  // where this user came from. This is similar to the method used in
+  // node_deploy().
+  $account->deploy = TRUE;
+
+  return deploy_send(array('user.save'), array($account));
+}

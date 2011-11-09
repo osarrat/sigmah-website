@@ -1,0 +1,177 @@
+<?php
+/**
+ * @file
+ * Deployment API which enables modules to deploy items between servers.
+ *
+ * This module manages deployment-related issues for comments.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function comment_deploy_menu() {
+  $items = array();
+  $plans = deploy_get_plans();
+
+  $items['comment_operations/deploy'] = array(
+    'title' => t('Deploy'),
+    'description' => t('Add comments to a deployment plan.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('comment_deploy_operations_add_form', 2),
+    'access arguments' => array('add items to deployment plan'),
+    'file' => 'comment_deploy.pages.inc',
+    'type' => MENU_CALLBACK
+  );
+
+  $items['comment_operations/deploy_now'] = array(
+    'title' => t('Deploy'),
+    'description' => t('Deploy comments.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('comment_deploy_operations_add_now_form', 2),
+    'access arguments' => array('deploy items'),
+    'file' => 'comment_deploy.pages.inc',
+    'type' => MENU_CALLBACK
+  );
+
+  return $items;
+  
+}
+
+/**
+ * Implementation of hook_deploy_check().
+ *
+ * Used to manage deployment dependencies. In a perfect world, I would
+ * module_invoke_all('comment_deploy_check') here, allowing anyone extending
+ * comment to hook in. However to keep complexity down, and acknowledging that
+ * its pretty rare that anyone extends comment, I'm just going to manage
+ * it by hand right here.
+ *
+ * @param $cid
+ *   Cid of the comment we're trying to deploy
+ */
+function comment_deploy_check($cid) {
+  $pid = variable_get('deploy_pid', 0);
+  $comment = _comment_load($cid);
+  
+  // Does our node exist? If not add it and run its dependency checks
+  $nid = $comment->nid;
+  if (!deploy_item_is_in_plan($pid, 'node', $nid)) {
+    // Does this node exist on the remote server?
+    $remote_key = deploy_get_remote_key(deploy_uuid_get_node_uuid($nid), 'node');
+
+    // If not we're going to add it to the deployment plan, with a weight
+    // of min(weight) - 1.
+    if (!$remote_key) {
+      $plan_node = node_load($nid);
+      deploy_add_to_plan($pid, 'node', $plan_node->type .': '. $plan_node->title, $plan_node->nid, deploy_get_min_weight($pid)-1, DEPLOY_NODE_GROUP_WEIGHT);
+      module_invoke_all('node_deploy_check', $plan_node);
+    }
+  }
+  
+  // Ditto the user
+  $uid = $comment->uid;
+  if (!deploy_item_is_in_plan($pid, 'user', $uid) && $uid > 1) {
+    $account = user_load(array('uid' => $uid));
+
+    // Does this user exist on the remote server?
+    $remote_key = deploy_get_remote_key($account->uuid, 'users');
+
+    // If not we're going to add it to the deployment plan, with a weight
+    // of min(weight) - 1.
+    if (!$remote_key) {
+      deploy_add_to_plan($pid, 'user', 'User: '. $account->name, $uid, deploy_get_min_weight($pid)-1, DEPLOY_USER_GROUP_WEIGHT);
+
+      // Now that we're deploying a user, we need to check all of its
+      // dependencies (might be able to skip this now that we've eliminated roles)
+      module_invoke_all('user_deploy_check', $account);
+    }
+  }
+  
+  // And the parent comment if there is one.
+  if ($comment->pid) {
+    if (!deploy_item_is_in_plan($pid, 'comment', $comment->pid)) {
+      deploy_add_to_plan(variable_get('deploy_pid', 0), 'comment', 'Comment: '. $comment->pid, $comment->pid, deploy_get_min_weight($pid)-1, DEPLOY_COMMENT_GROUP_WEIGHT);
+      comment_deploy_check($comment->pid);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_deploy(),
+ *
+ * @param $nid
+ *   Unique identifier for the node we're deploying.
+ * @return
+ *   The results of our xmlrpc call.
+ */
+function comment_deploy($cid) {
+  // Bail if this node comment exist.
+  $comment = _comment_load($cid);
+  if (empty($comment)) {
+    return xmlrpc_error($xmlrpcusererr + 1, t('Comment not found'));
+  }
+  
+  // comments do not have a load hook, so we have to add the uuid into the
+  // object by hand
+  $comment->uuid = deploy_uuid_get_comment_uuid($cid);
+  
+  // Comment author, don't bother if user is anon or admin
+  if ($comment->uid > 1) {
+    $remote_key = deploy_get_remote_key(deploy_uuid_get_user_uuid($comment->uid), 'users');
+    $comment->uid = $remote_key['uid'];
+  }
+  
+  // Comment node. Did you know that if no nid is specified in a comment, the
+  // comment will still save without error? Isn't that convenient?
+  $remote_key = deploy_get_remote_key(deploy_uuid_get_node_uuid($comment->nid), 'node');
+  if (!$remote_key) {
+    return xmlrpc_error($xmlrpcusererr + 1, t('Comment node not found.'));
+  }
+  $comment->nid = $remote_key['nid'];
+  
+  // Parent comment, if there is one
+  if ($comment->pid) {
+    $remote_key = deploy_get_remote_key(deploy_uuid_get_comment_uuid($comment->pid), 'comments');
+    $comment->pid = $remote_key['cid'];
+  }  
+
+  // Normally, like with users and nodes, the uuid is added to the object in the 'load'
+  // op of their hook. Comments have no load op, so we have to get it by hand.
+  $remote_key = deploy_get_remote_key($comment->uuid, 'comments');
+  $comment->cid = isset($remote_key['cid']) ? $remote_key['cid'] : NULL; 
+  
+  // And we're off.
+  $cid = deploy_send(array('comment.save'), array($comment));
+
+  return $cid;
+}
+
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ */
+function comment_deploy_form_comment_admin_overview_alter(&$form, $form_state) {
+  $plans = deploy_get_plans();
+  if (!empty($plans)) {
+    $form['options']['operation']['#options']['comment_deploy-add_to_plan'] = t('Add selected comments to deployment plan');
+  }
+  $form['options']['operation']['#options']['comment_deploy-deploy_now'] = t('Deploy selected comments now');
+  $form['#submit'][] = 'comment_deploy_comment_admin_overview_submit';
+}
+
+/**
+ * Submit handler for comment_admin_overview_form().
+ *
+ * Grabs comments and redirects to the appropriate form, depending on 
+ * the operation being performed.
+ */
+function comment_deploy_comment_admin_overview_submit($form, &$form_state) {
+  list($id, $operation) = explode('-', $form_state['values']['operation']);
+
+  if ($id == 'comment_deploy') {
+    $comments = implode(",", $form_state['values']['comments']);
+    if ($operation == 'add_to_plan') {
+      drupal_goto('comment_operations/deploy/'. $comments);
+    }
+    drupal_goto('comment_operations/deploy_now/' .$comments);
+  }
+}

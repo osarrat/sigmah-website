@@ -1,0 +1,1318 @@
+<?php
+/**
+ * This is the Multiple Mandatory Groups by Role module for Organic Groups
+ * 
+ * <p>This file contains information on the og_multiple_mandatory_groups_by_role module. The module allows
+ * a site admin to make one or more groups mandatory to new site subscribers, to Group admins, or by
+ * role.</p>
+ * 
+ * @author Ryan Constantine
+ * @version $Id: og_multiple_mandatory_groups_by_role.module,v 1.6.2.3 2010/08/04 20:27:32 rconstantine Exp $;
+ * @package OG_MMGBR
+ * @category NeighborForge
+ * @filesource
+ * @license http://www.gnu.org/licenses/gpl.txt GNU_GENERAL_PUBLIC_LICENSE
+ * @link http://drupal.org/project/og_multiple_mandatory_groups_by_role Visit the OG_Multiple_Mandatory_Groups_By_Role project page here.
+ * TODO alternate selector/checkboxes depending on the number of groups a site has (if more than 20,
+ * switch to drop-down selector)
+ * TODO let admin select which types of groups (based on 'selective') they want to choose from for mandatory groups (a filter)
+ * TODO make the retroactive feature apply selectively based on 'selection' (could be used to only make
+ * 'selection' = 3 (closed groups) added/deleted at updates)
+ * TODO create separate mandatory group lists based on account type (account type feature to be added as separate user module update)
+ */
+/**
+ * Implementation of hook_help
+ *
+ * @param string $path
+ * @param array $arg
+ * @return string
+ */
+function og_multiple_mandatory_groups_by_role_help($path, $arg) {
+  switch ($path) {
+    case 'admin/og_settings/og_multiple_mandatory_groups_by_role':
+      $output =  '<p>' .t('Choose one or more group that all new users will be put into. You can chose either an open or a closed group. The user will be auto-approved as a member of the group.');
+      $output .= '</p><p>' .t('You may also choose to require the new user to join one group in addition to any mandatory group. This setting will only have an effect if there are groups listed in the user registration form.'). '</p>';
+      $output .= '</p><p>' .t('Additionally, you may specify mandatory groups for those who are assigned certain roles.'). '</p>';
+      $output .= '</p><p>' .t('Lastly, you can specify mandatory groups for Group admins.'). '</p>';
+      return $output;
+  }
+} // function og_multiple_mandatory_groups_by_role_help()
+
+/**
+ * Implementation of hook_perm
+ *
+ * Valid permissions for this module
+ * @return array An array of valid permissions for the onthisdate module
+ */
+function og_multiple_mandatory_groups_by_role_perm() {
+  return array('administer og mandatory groups by role');
+} // function og_multiple_mandatory_groups_by_role_perm()
+
+/**
+ * Implementation of hook_menu
+ *
+ * Add this module to the menu system and set the callback to present the forms.
+ * @return array
+ */
+function og_multiple_mandatory_groups_by_role_menu() {
+  
+  $items = array();
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role'] = array( //main settings page; add roles to have mandatory groups for; links to edit and delete settings
+      'title' => 'Multiple mandatory groups by role',
+      'description' => 'Make one or more groups mandatory for new users, group admins, specific roles and/or require new users to pick an additional group to join at registration.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_main'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_NORMAL_ITEM,
+      );
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role/overview'] = array( //tab to take us to main settings page
+      'title' => 'Overview',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_main'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+      'weight' => 0,
+      );
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role/groups'] = array( //assign mandatory groups for each role under administration
+      'title' => 'Available Groups',
+      'description' => 'Decide which groups are available to make mandatory.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_groups'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 5,
+      );
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role/admin'] = array( //assign mandatory groups for each role under administration
+      'title' => 'Assign Groups',
+      'description' => 'Assign which groups you\'d like to be mandatory for each role.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_admin'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 10,
+      );
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role/delete'] = array( //delete a role from mandatory group management
+      'title' => 'Delete',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_confirm_delete'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_CALLBACK,
+      );
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role/delete_unsubscribe'] = array( //delete a role from mandatory group management
+      'title' => 'Delete Role and Unsubscribe All Users',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_confirm_delete_unsub'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_CALLBACK,
+      );
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role/groups_delete'] = array( //delete a group from available groups list
+      'title' => 'Delete group from availability list',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_group_confirm_delete'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_CALLBACK,
+      );
+  
+  $items['admin/og/og_multiple_mandatory_groups_by_role/groups_delete_unsubscribe'] = array( //delete a group from available groups list
+      'title' => 'Delete group from availability list and unsubscribe users',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('og_multiple_mandatory_groups_by_role_group_confirm_delete_unsubscribe'),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer og mandatory groups by role'),
+      'type' => MENU_CALLBACK,
+      );
+  
+  return $items;
+} // function og_multiple_mandatory_groups_by_role_menu()
+
+//Site administration section---------------------------------------------------------------------------------
+//This section is only for administration forms and form processing
+
+/**
+ * Callback function: Add roles to administer the mandatory groups for.
+ *
+ * @param integer $rid
+ *   The RID of the role.
+ * @return mixed
+ */
+function og_multiple_mandatory_groups_by_role_main($rid = NULL) {
+  if ($admin = user_access('administer og mandatory groups by role')) {
+    $options = user_roles(1);
+    unset($options[2]);
+    $added = _og_multiple_mandatory_groups_by_role_get_added();
+    foreach ($added as $role_id => $name) {//remove from the select, groups we're already working with
+      if (array_key_exists($role_id, $options)) {
+        unset($options[$role_id]);
+      }
+    }
+    $form['roles'] = array(
+        '#type' => 'select',
+        '#title' => t('Roles'),
+        '#options' => $options,
+        );
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Add role'),
+        );
+  }
+  return $form;
+} // function og_multiple_mandatory_groups_by_role_main()
+
+/**
+ * Validate the role name before adding or saving it
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ */
+function og_multiple_mandatory_groups_by_role_main_validate($form, &$form_state) {
+  if ($form_state['values']['roles']) {
+    //make sure the user isn't injecting something not on the list.
+    $check_options = _og_multiple_mandatory_groups_by_role_get_added();
+    //if ($form_state['values']['op'] == t('Add role')) {
+    if (array_key_exists($form_state['values']['roles'], $check_options)) {
+      form_set_error('role', t('The role name %name is already added. Please choose another role name.', array('%name' => $form_state['values']['roles']['name'])));
+    }
+    //}
+  }
+  else {
+    form_set_error('name', t('You must specify a valid role name.'));
+  }
+}//function og_multiple_mandatory_groups_by_role_main_validate()
+
+/**
+ * Submit the role name and id to be added to the database.
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ * @return string
+ */
+function og_multiple_mandatory_groups_by_role_main_submit($form, &$form_state) {
+  //if ($form_state['values']['op'] == t('Add role')) {
+  $all_roles = user_roles(1);
+  unset($options[2]);
+  db_query("INSERT INTO {og_multi_mand_groups_role} (rid, role_name, mand_groups) VALUES (%d, '%s', '%s')", $form_state['values']['roles'], $all_roles[$form_state['values']['roles']], serialize(array()));
+  drupal_set_message(t('The role has been added.'));
+  //}
+  $form_state['redirect'] = 'admin/og/og_multiple_mandatory_groups_by_role';
+} //function og_multiple_mandatory_groups_by_role_main_submit()
+
+/**
+ * Theme for the add page of the main function.
+ *
+ * <p>This lists all of the current roles with links to edit them or their assigned groups, followed with
+ * a field and button to add a new role name to the list.</p>
+ * @param mixed $form
+ * @return mixed
+ */
+function theme_og_multiple_mandatory_groups_by_role_main($form) {
+  $rows = array();
+  $header = array(t('Role'), array('data' => t('Operations'), 'colspan' => 3));
+  $added_roles = _og_multiple_mandatory_groups_by_role_get_added();
+  //keep the all_user settings at the top...
+  $name = $added_roles[-1];
+  $admin = l(t('assign groups'), 'admin/og/og_multiple_mandatory_groups_by_role/admin/' . -1);
+  $rows[] = array($name, $admin, NULL, NULL);
+  //...with the default group settings next...
+  $name = $added_roles[0];
+  $admin = l(t('assign groups'), 'admin/og/og_multiple_mandatory_groups_by_role/admin/' . 0);
+  $rows[] = array($name, $admin, NULL, NULL);
+  //...then finish the rest in alphabetical order
+  foreach ($added_roles as $rid => $name) {
+    if ($rid != -1 && $rid != 0) {
+      $admin = l(t('assign groups'), 'admin/og/og_multiple_mandatory_groups_by_role/admin/' .$rid);
+      $delete = l(t('delete'), 'admin/og/og_multiple_mandatory_groups_by_role/delete/' .$rid);
+      $delete_uns = l(t('delete and unsubscribe'), 'admin/og/og_multiple_mandatory_groups_by_role/delete_unsubscribe/' .$rid);
+      $rows[] = array($name, $admin, $delete, $delete_uns);
+    }
+  }
+  $rows[] = array(drupal_render($form['roles']), array('data' => drupal_render($form['submit']), colspan => 3));
+  
+  $output = drupal_render($form);
+  $output .= theme('table', $header, $rows);
+  
+  return $output;
+} //function theme_og_multiple_mandatory_groups_by_role_main()
+
+/**
+ * A theme function
+ */
+function og_multiple_mandatory_groups_by_role_theme() {
+  return array(
+      'og_multiple_mandatory_groups_by_role_groups' => array(
+        'arguments' => array('form' => NULL),
+        ),
+      'og_multiple_mandatory_groups_by_role_main' => array(
+        'arguments' => array('form' => NULL),
+        ),
+      );
+}
+
+/**
+ * Returns a confirmation page for deleting a role from the mandatory group admin table.
+ *
+ * @param integer $rid Value of role to be deleted; passed in from path.
+ * @return array $form The RID is passed to the submit.
+ */
+function og_multiple_mandatory_groups_by_role_confirm_delete() {
+  $rid = arg(4);
+  if ($rid == NULL) {
+    drupal_goto('admin/og/og_multiple_mandatory_groups_by_role');
+    return;
+  }
+  $sql = "SELECT ommgr.rid, ommgr.role_name FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+  $result = db_fetch_object(db_query($sql, $rid));
+  $form['name'] = array('#type' => 'value', '#value' => $result->role_name);
+  $form['rid'] = array('#type' => 'value', '#value' => $rid);
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role';
+  $form = confirm_form($form, t('Are you sure you want to delete the role %name from the mandatory group manager?',
+        array('%name' => $result->role_name)), $return_address,
+      t('Deleting a role here will make groups previously associated with that role no longer mandatory. Users will not be unsubscribed from the group(s). This action cannot be undone.'),
+      t('Delete'), t('Cancel'));
+  return $form;
+} // function og_multiple_mandatory_groups_by_role_confirm_delete()
+
+/**
+ * Implementation of forms api _submit call. Deletes a role from the og_multi_mand_groups_role table after confirmation.
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ * @return string $return_address The path to return to after we've deleted the record.
+ */
+function og_multiple_mandatory_groups_by_role_confirm_delete_submit($form, &$form_state) {
+  $dbquery = db_query('DELETE FROM {og_multi_mand_groups_role} WHERE rid = %d', $form_state['values']['rid']);
+  if ($dbquery) {
+    drupal_set_message(t('The role %rid has been removed from the mandatory groups admin table.', array('%rid' => $form_state['values']['name'])));
+    watchdog('content', 'og_multiple_mandatory_groups_by_role: deleted %rid.', array('%rid' => $form_state['values']['name']));
+  }
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role';
+  $form_state['redirect'] =  $return_address;
+} // function og_multiple_mandatory_groups_by_role_confirm_delete_submit()
+
+/**
+ * Returns a confirmation page for deleting a role from the mandatory group admin table.
+ *
+ * @param integer $rid Value of role to be deleted; passed in from path.
+ * @return array $form The RID is passed to the submit.
+ */
+function og_multiple_mandatory_groups_by_role_confirm_delete_unsub() {
+  $rid = arg(4);
+  if ($rid == NULL) {
+    drupal_goto('admin/og/og_multiple_mandatory_groups_by_role');
+    return;
+  }
+  $sql = "SELECT ommgr.rid, ommgr.role_name FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+  $result = db_fetch_object(db_query($sql, $rid));
+  $form['name'] = array('#type' => 'value', '#value' => $result->role_name);
+  $form['rid'] = array('#type' => 'value', '#value' => $rid);
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role';
+  $form = confirm_form($form, t('Are you sure you want to delete the role %name from the mandatory group manager?',
+        array('%name' => $result->role_name)), $return_address,
+      t('Deleting a role here will make groups previously associated with that role no longer mandatory. Users will be unsubscribed from the group(s). This action cannot be undone.'),
+      t('Delete'), t('Cancel'));
+  return $form;
+} // function og_multiple_mandatory_groups_by_role_confirm_delete_unsub()
+
+/**
+ * Implementation of forms api _submit call. Deletes a role from the og_multi_mand_groups_role table after confirmation.
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ * @return string $return_address The path to return to after we've deleted the record.
+ */
+function og_multiple_mandatory_groups_by_role_confirm_delete_unsub_submit($form, &$form_state) {
+  //unsubscribe users that have been in this role's groups if they won't still be in the groups via other roles
+  $all_allowed_groups = _og_multiple_mandatory_groups_by_groups_get_added();
+  $sql = "SELECT o.rid, o.role_name, o.mand_groups FROM {og_multi_mand_groups_role} o ORDER BY o.rid ASC";
+  $results = db_query($sql);
+  $all_groups = array();
+  $these_groups = array();
+  while ($result = db_fetch_object($results)) {
+    if ($result->rid != $form_state['values']['rid']) {
+      $mand_groups = unserialize($result->mand_groups);
+      foreach ($mand_groups as $gid => $value) {
+        if (!key_exists($gid, $all_groups) && ($mand_groups[$gid] == $gid)) {
+          $all_groups[$gid] = $value;
+        }
+      }
+    }
+    else {
+      $mand_groups = unserialize($result->mand_groups);
+      foreach ($mand_groups as $gid => $value) {
+        if (!key_exists($gid, $these_groups) && ($mand_groups[$gid] == $gid)) {
+          $these_groups[$gid] = $value;
+        }
+      }
+    }
+  }
+  foreach ($these_groups as $gid => $value) {
+    if (key_exists($gid, $all_groups)) {
+      unset($these_groups[$gid]);
+    }
+  }
+  foreach ($these_groups as $gid => $value) {
+    $sql = "SELECT ou.uid, ou.nid FROM {og_uid} ou LEFT JOIN {node} n ON ou.nid = n.nid AND ou.uid = n.uid WHERE ou.nid = %d AND n.uid IS NULL ORDER BY ou.uid ASC";
+    $results = db_query($sql, $gid);
+    while ($result = db_fetch_object($results)) {
+      og_delete_subscription($result->nid, $result->uid);
+      drupal_set_message(t('The user %uid has been unsubscribed from group %gid.', array('%uid' => $result->uid, '%gid' => $all_allowed_groups[$result->nid])));
+    }
+  }
+  
+  $dbquery = db_query('DELETE FROM {og_multi_mand_groups_role} WHERE rid = %d', $form_state['values']['rid']);
+  if ($dbquery) {
+    drupal_set_message(t('The role %rid has been removed from the mandatory groups admin table.', array('%rid' => $form_state['values']['name'])));
+    watchdog('content', 'og_multiple_mandatory_groups_by_role: deleted %rid.', array('%rid' => $form_state['values']['name']));
+  }
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role';
+  $form_state['redirect'] = $return_address;
+} // function og_multiple_mandatory_groups_by_role_confirm_delete_unsub_submit()
+
+/**
+* Menu callback; passes a og_multiple_mandatory_groups_by_role_admin
+*/
+function og_multiple_mandatory_groups_by_role_admin_load($rid) {
+  if (!is_numeric($rid)) {
+    return NULL;
+  }
+  $roles = _og_multiple_mandatory_groups_by_role_get_added();
+  if (!isset($roles[$rid])) {
+    return FALSE;
+  }
+  return $rid;
+}
+
+/**
+ * Callback function: Assign mandatory groups to roles.
+ *
+ * @param
+ * @return array $form
+ */
+function og_multiple_mandatory_groups_by_role_admin($form_state) {
+  $rid = arg(4);
+  if ($rid == NULL) {
+    $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr ORDER BY ommgr.role_name ASC";
+    $results = db_query($sql);
+    $coll = 1;
+  }
+  else {
+    $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d ORDER BY ommgr.role_name ASC";
+    $results = db_query($sql, $rid);
+    $coll = 0;
+  }
+  $options = _og_multiple_mandatory_groups_by_groups_get_added();
+  $unsubs = _og_multiple_mandatory_groups_by_role_get_insubs();
+  $form['roles'] = array('#tree' => TRUE);
+  while ($result = db_fetch_object($results)) { //grab a role that we're monitoring
+    //fetch the stored groups associated with this role
+    $groups_of_role = unserialize($result->mand_groups);
+    //create this part of the form
+    $form['roles'][$result->role_name] = array(
+        '#type' => 'fieldset',
+        '#title' => $result->role_name,
+        '#tree' => TRUE,
+        '#collapsible' => TRUE,
+        '#collapsed' => $coll,
+        '#weight' => 0,
+        );
+    if ($result->role_name == t('All users')) {
+      $form['roles'][$result->role_name]['#weight'] = -10;
+    }
+    if ($result->role_name == t('Group admins')) {
+      $form['roles'][$result->role_name]['#description'] = t('For the Group admins section only, make sure that mandatory groups from this section are not used in the other role sections!!!');
+      $form['roles'][$result->role_name]['#weight'] = -8;
+    }
+    $form['roles'][$result->role_name]['og_multiple_mandatory_groups_by_role'] = array(
+        '#type' => 'checkboxes',
+        '#options' => $options,
+        '#default_value' => $groups_of_role,
+        );
+    $form['roles'][$result->role_name]['og_multiple_mandatory_groups_by_role_old_values'] = array(
+        '#type' => 'hidden',
+        '#value' => $result->mand_groups,
+        );
+    if ($result->role_name == t('All users')) {
+      $form['roles'][$result->role_name]['og_mandatory_additional_group'] = array(
+          '#type' => 'checkbox', 
+          '#title' => t('Require One Additional Group'),
+          '#description' => t('Require new users to join at least one group in addition to any mandatory group(s).'),
+          '#default_value' => variable_get('og_mandatory_additional_group', FALSE),
+          );
+    }
+    //users with that role to make sure they are subscribed/unsubscribed to the right groups
+    $form['roles'][$result->role_name]['unsub'] = array(
+        '#type' => 'checkbox',
+        '#title' => 'Unsubscribe unchecked boxes', 
+        '#description' => t('Unsubscribe all members of this role from the unchecked groups as indicated above at next save.'),
+        '#default_value' => isset($unsubs[$result->role_name]) ? $unsubs[$result->role_name] : 0,
+        '#return_value' => 1,
+        );
+  }
+  
+  if ($rid == NULL) {
+    $form['roles']['retro'] = array(
+        '#type' => 'checkbox',
+        '#title' => 'Update Subscriptions Retroactively', 
+        '#description' => t('Subscribe or unsubscribe all members of each role to the groups as indicated above at next save.<br />
+            WARNING: This is potentially a VERY expensive procedure. It is best to save any changes first, then check this and save again.<br />
+            This will update users who existed prior to your use of this module and synchronize them with the above settings.'),
+        '#default_value' => 0,
+        '#return_value' => 1,
+        );
+  }
+  //create a submit button
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save assignments'));
+  
+  return $form;
+} //function og_multiple_mandatory_groups_by_role_admin()
+
+/**
+ * Submit the role/group associations for storage
+ *  
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ */
+function og_multiple_mandatory_groups_by_role_admin_submit($form, &$form_state) {
+  $error = FALSE;
+  $og_groups = array();
+  $hold_updates = array();
+  $all_users = array();
+  $old = array();
+  $retro = $form_state['values']['roles']['retro'];
+  
+  //fetch titles for all og groups
+  $sql = "SELECT o.nid, n.title FROM {node} n INNER JOIN {og} o ON n.nid = o.nid ORDER BY o.nid ASC";
+  $results = db_query($sql);
+  while ($result = db_fetch_object($results)) {
+    $og_groups[$result->nid] = $result->title;
+  }
+  
+  foreach (element_children($form_state['values']['roles']) as $role) {
+    //for some reason, if we have a role without assignments and we save, erroneous values are added in sequence.
+    //by unsetting any 0 index we find, this doesn't happen -- might not be happening in D6, so we could take it out!!!
+    if (isset($form_state['values']['roles'][$role]['og_multiple_mandatory_groups_by_role']['0'])) {
+      unset($form_state['values']['roles'][$role]['og_multiple_mandatory_groups_by_role']['0']);
+    }
+    $query = db_query("UPDATE {og_multi_mand_groups_role} SET mand_groups = '%s' WHERE role_name = '%s'",
+        serialize($form_state['values']['roles'][$role]['og_multiple_mandatory_groups_by_role']), $role);
+    $old[$role] = unserialize($form_state['values']['roles'][$role]['og_multiple_mandatory_groups_by_role_old_values']);
+    $hold_updates[$role] = $form_state['values']['roles'][$role]['og_multiple_mandatory_groups_by_role']; // we have to hold all values until later so we don't unsubscribe from groups we shouldn't
+    
+    if (!$query) {
+      $error = TRUE;
+    }
+  }
+  //collect info on users so we don't unsubscribe from groups on accident; we always overwrite subscriptions, but only add unsubscriptions when a subscription doesn't exist
+  //first get all users and set groups to subscribe and unsubscribe from
+  if (key_exists('All users', $hold_updates)) {
+    $sql = "SELECT u.uid, u.name FROM {users} u WHERE u.uid > 1 ORDER BY u.uid ASC";
+    $results = db_query($sql);
+    while ($result = db_fetch_object($results)) {
+      foreach ($hold_updates['All users'] as $group => $val) {
+        $all_users[$result->uid]['name'] = $result->name;
+        if (($group == $val) && (($val != $old['All users'][$group]) || $retro)) {//either we're forcing the update (retro==1) or something changed
+          $all_users[$result->uid][$group] = $val;
+        }
+        elseif (($group != $val) && (!isset($all_users[$result->uid][$group])) && (($val != $old['All users'][$group]) || $retro || $form_state['values']['roles']['All users']['unsub'])) {
+          //the group is not required by the current role, and another role has not yet required it, and either the setting has changed, or we're forcing it (retro==1)
+          $all_users[$result->uid][$group] = 0;
+        }
+      }
+    }
+  }
+  
+  //then get any group admins and set groups to subscribe/unsubscribe
+  if (key_exists('Group admins', $hold_updates)) {
+    $sql = "SELECT u.uid, u.nid FROM {og_uid} u WHERE u.uid > 1 AND u.is_admin > 0 ORDER BY u.uid ASC";
+    $results = db_query($sql);
+    while ($result = db_fetch_object($results)) {
+      foreach ($hold_updates['Group admins'] as $group => $val) {
+        if (($group == $val) && (($val != $old[$role][$group]) || $retro)) { //the user admins at least one group
+          $all_users[$result->uid][$group] = $val;
+        }
+        elseif (($group == $val) && !isset($all_users[$result->uid][$group]) && (($val != $old[$role][$group]) || $retro || $form_state['values']['roles']['All users']['unsub'])) { //the user doesn't admin any group
+          $all_users[$result->uid][$group] = 0;
+        }
+        elseif (($group != $val) && !isset($all_users[$result->uid][$group]) && (($val != $old[$role][$group]) || $retro || $form_state['values']['roles']['All users']['unsub'])) { //the user doesn't admin any group
+          $all_users[$result->uid][$group] = 0;
+        }
+      }
+    }
+  }
+  
+  //next, go through each role, find the role's membership, set groups to subscribe/unsubscribe for each user of that role
+  foreach ($hold_updates as $role => $value) {
+    if ($role != 'All users' && $role != 'Group admins') {
+      $sql = "SELECT ur.uid, ur.rid FROM {users_roles} ur INNER JOIN {role} r ON ur.rid = r.rid WHERE r.name = '%s' AND ur.uid > 1 ORDER BY ur.uid ASC";
+      $results = db_query($sql, $role);
+      while ($result = db_fetch_object($results)) {
+        foreach ($value as $group => $val) {
+          if (($group == $val) && (($val != $old[$role][$group]) || $retro)) {//the group is required for this role and it either changed or we're forcing ($retro==1) the save
+            $all_users[$result->uid][$group] = $val;
+          }
+          elseif (($group == $val) && isset($all_users[$result->uid][$group]) && ($all_users[$result->uid][$group] == 0)) {//we set it to zero above, but now need to set it to subscribe the group
+            $all_users[$result->uid][$group] = $val;
+          }
+          elseif (($group != $val) && !isset($all_users[$result->uid][$group]) && (($val != $old[$role][$group]) || $retro || $form_state['values']['roles']['All users']['unsub'])) {
+            $all_users[$result->uid][$group] = 0;
+          }
+        }
+      }
+    }
+  }
+  
+  //finally, find which groups the user admins for, then subscribe and unsubscribe as needed, taking care not to unsubscribe an admin
+  foreach ($all_users as $user_id => $group_id) {
+    if (!is_array($all_users[$user_id]['owns'])) {
+      $all_users[$user_id]['owns'] = array();
+      $sql = "SELECT u.nid FROM {og_uid} u WHERE uid = %d AND is_admin > 0 ORDER BY u.nid ASC";
+      $results = db_query($sql, $user_id);
+      while ($result = db_fetch_object($results)) {
+        $all_users[$user_id]['owns'][] = $result->nid;
+      }
+    }
+    foreach ($group_id as $gid => $value) {
+      $sql = "SELECT * FROM {og_uid} u WHERE uid = %d AND nid = %d";
+      $results = db_fetch_object(db_query($sql, $user_id, $gid));
+      if (($gid == $value) && !$results) { //only subscribe if no subscription exists
+        og_save_subscription($gid, $user_id, array('is_active' => 1));
+        if (user_access('administer users')) {
+          drupal_set_message(t('The user \'%user\' has been subscribed to group \'%group\'.', array('%user' => $all_users[$user_id]['name'], '%group' => $og_groups[$gid])));
+        }
+      }
+      elseif (($gid != $value) && $results && !in_array($gid, $all_users[$user_id]['owns'])) { //only unsubscribe if a subscription exists
+        og_delete_subscription($gid, $user_id);
+        if (user_access('administer users')) {
+          drupal_set_message(t('The user \'%user\' has been unsubscribed from group \'%group\'.', array('%user' => $all_users[$user_id]['name'], '%group' => $og_groups[$gid])));
+        }
+      }
+    }
+  }
+  
+  
+  if (isset($form_state['values']['roles']['All users']['og_mandatory_additional_group'])) {
+    variable_set('og_mandatory_additional_group', $form_state['values']['roles']['All users']['og_mandatory_additional_group']);
+  }
+  else {
+    variable_set('og_mandatory_additional_group', 0);
+  }
+  
+  foreach ($form_state['values']['roles'] as $group => $therest) {
+    if ($group != 'retro') {
+      $unsubs[$group] = $form_state['values']['roles'][$group]['unsub'];
+    }
+  }
+  if ($unsubs = serialize($unsubs)) {
+    variable_set('og_mandatory_unsubs', $unsubs);
+  }
+  else {
+    variable_set('og_mandatory_unsubs', array());
+  }
+  
+  if ($error) {
+    drupal_set_message(t('There was an error processing the data. Try again, or contact your site administrator.'), 'error');
+  }
+  else {
+    drupal_set_message(t('All assignments have been processed.'));
+  }
+} //function og_multiple_mandatory_groups_by_role_admin_submit()
+
+/**
+ * Callback function: Add groups to an availability list. These groups will be available to use as mandatory groups.
+ *
+ * @param integer $gid
+ *   The GID of the group.
+ * @return mixed
+ */
+function og_multiple_mandatory_groups_by_role_groups() {
+  if ($admin = user_access('administer og mandatory groups by role')) {
+    
+    $option_result = db_query("SELECT n.nid, n.title, o.* FROM {node} n INNER JOIN {og} o ON n.nid = o.nid WHERE (o.og_selective = %d OR o.og_selective = %d) ORDER BY n.title", OG_CLOSED, OG_OPEN);
+    if (db_affected_rows($option_result) <= 0) {
+      $options = array( "" => "<no groups enabled>" );
+    }    
+    else {
+      while ($group = db_fetch_object($option_result)) {
+        $options[$group->nid] = $group->title;
+        switch ($group->og_selective) {
+          case OG_OPEN:
+            $options[$group->nid] .= ' | ' .t('Open group, users can unsubscribe.');
+            break;
+          case OG_CLOSED:
+            $options[$group->nid] .= ' | ' .t('Closed group, users can not leave.');
+            break;
+        }
+      }
+    }
+    
+    
+    $added = _og_multiple_mandatory_groups_by_groups_get_added();
+    foreach ($added as $group_id => $name) {//remove from the select, groups we're already working with
+      if (array_key_exists($group_id, $options)) {
+        unset($options[$group_id]);
+      }
+    }
+    $form['groups'] = array(
+        '#type' => 'select',
+        '#title' => t('Open or Closed Groups'),
+        '#description' => t('Any group added from this list will be automatically subscribed or unsubscribed as required with each change<br />
+            a) on the multiple user edit page (admin/user/user)<br />
+            b) on the user edit page (user/X/edit)<br />
+            c) on the user registration page (admin/user/user/create)<br />
+            Do not add any groups to the list for which you do not want this automatic feature.'),
+        '#options' => $options,
+        );
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Add group'),
+        );
+  }
+  return $form;
+} // function og_multiple_mandatory_groups_by_role_groups()
+
+/**
+ * Validate the group name before adding or saving it
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ */
+function og_multiple_mandatory_groups_by_role_groups_validate($form, &$form_state) {
+  if ($form_state['values']['groups']) {
+    //make sure the user isn't injecting something not on the list.
+    $check_options = _og_multiple_mandatory_groups_by_groups_get_added();
+    //if ($form_state['values']['op'] == t('Add group')) {
+    if (array_key_exists($form_state['values']['groups'], $check_options)) {
+      form_set_error('groups', t('The group name %name is already added. Please choose another group name.', array('%name' => $form_state['values']['groups']['name'])));
+    }
+    //}
+  }
+  else {
+    form_set_error('name', t('You must specify a valid group name.'));
+  }
+}//function og_multiple_mandatory_groups_by_role_groups_validate()
+
+/**
+ * Submit the group name and id to be added to the database.
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ * @return string
+ */
+function og_multiple_mandatory_groups_by_role_groups_submit($form, &$form_state) {
+  //if ($form_state['values']['op'] == t('Add group')) {
+  $sql = "SELECT og.nid, n.title FROM {og} og INNER JOIN {node} n ON og.nid = n.nid ORDER BY og.nid ASC";
+  $results = db_query($sql);
+  while ($result = db_fetch_object($results)) {
+    $all_groups[$result->nid] = $result -> title;
+  }
+  db_query("INSERT INTO {og_multi_mand_groups_role_groups} (gid, group_name) VALUES (%d, '%s')", $form_state['values']['groups'], $all_groups[$form_state['values']['groups']]);
+  drupal_set_message(t('The group has been added.'));
+  //}
+  $form_state['redirect'] =  'admin/og/og_multiple_mandatory_groups_by_role/groups';
+} //function og_multiple_mandatory_groups_by_role_groups_submit()
+
+/**
+ * Theme for the add page of the main function.
+ *
+ * <p>This lists all of the current roles with links to edit them or their assigned groups, followed with
+ * a field and button to add a new role name to the list.</p>
+ * @param mixed $form
+ * @return mixed
+ */
+function theme_og_multiple_mandatory_groups_by_role_groups($form) {
+  $rows = array();
+  $header = array(t('Group'), array('data' => t('Operations')));
+  $added_groups = _og_multiple_mandatory_groups_by_groups_get_added();
+  foreach ($added_groups as $gid => $name) {
+    $delete = l(t('delete'), 'admin/og/og_multiple_mandatory_groups_by_role/groups_delete/' .$gid);
+    $delete_uns = l(t('delete and unsubscribe'), 'admin/og/og_multiple_mandatory_groups_by_role/groups_delete_unsubscribe/' .$gid);
+    $rows[] = array($name, $delete, $delete_uns);
+  }
+  $rows[] = array(drupal_render($form['groups']), array('data' => drupal_render($form['submit']), colspan => 3));
+  
+  $output = drupal_render($form);
+  $output .= theme('table', $header, $rows);
+  
+  return $output;
+} //function theme_og_multiple_mandatory_groups_by_role_groups()
+
+/**
+ * Returns a confirmation page for deleting a group from the mandatory group availability table.
+ *
+ * @param integer $gid Value of group to be deleted; passed in from path.
+ * @return array $form The GID is passed to the submit.
+ */
+function og_multiple_mandatory_groups_by_role_group_confirm_delete() {
+  $gid = arg(4);
+  if ($gid == NULL) {
+    drupal_goto('admin/og/og_multiple_mandatory_groups_by_role/groups');
+    return;
+  }
+  $sql = "SELECT ommgrg.gid, ommgrg.group_name FROM {og_multi_mand_groups_role_groups} ommgrg WHERE ommgrg.gid = %d";
+  $result = db_fetch_object(db_query($sql, $gid));
+  $form['name'] = array('#type' => 'value', '#value' => $result->group_name);
+  $form['gid'] = array('#type' => 'value', '#value' => $gid);
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role/groups';
+  $form = confirm_form($form, t("Are you sure you want to delete the group %name from the mandatory group availability list?",
+        array('%name' => $result->group_name)), $return_address,
+      t('Deleting a group here will make that group no longer mandatory under any role. Users will NOT be unsubscribed from the group(s). This action cannot be undone.'), t('Delete'), t('Cancel'));
+  return $form;
+} // function og_multiple_mandatory_groups_by_role_group_confirm_delete()
+
+/**
+ * Implementation of forms api  call. Deletes a group from the og_multi_mand_groups_role_groups table after confirmation.
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ * @return string $return_address The path to return to after we've deleted the record.
+ */
+function og_multiple_mandatory_groups_by_role_group_confirm_delete_submit($form, &$form_state) {
+  //update the monitored roles' mandatory lists
+  $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr ORDER BY ommgr.rid";
+  $results = db_query($sql);
+  while ($result = db_fetch_object($results)) {
+    $mand_groups = unserialize($result->mand_groups);
+    unset($mand_groups[$form_state['values']['gid']]);
+    $query = db_query("UPDATE {og_multi_mand_groups_role} SET mand_groups = '%s' WHERE role_name = '%s'", serialize($mand_groups), $result->role_name);
+  }
+  $dbquery = db_query('DELETE FROM {og_multi_mand_groups_role_groups} WHERE gid = %d', $form_state['values']['gid']);
+  if ($dbquery) {
+    drupal_set_message(t('The group %gid has been removed from the mandatory group availability table.', array('%gid' => $form_state['values']['name'])));
+    watchdog('content', 'og_multiple_mandatory_groups_by_role_groups: deleted %gid.', array('%gid' => $form_state['values']['name']));
+  }
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role/groups';
+  $form_state['redirect'] =  $return_address;
+} // function og_multiple_mandatory_groups_by_role_group_confirm_delete()
+
+/**
+ * Returns a confirmation page for deleting a group from the mandatory group availability table.
+ *
+ * @param integer $gid Value of group to be deleted; passed in from path.
+ * @return array $form The GID is passed to the submit.
+ */
+function og_multiple_mandatory_groups_by_role_group_confirm_delete_unsubscribe() {
+  $gid = arg(4);
+  if ($gid == NULL) {
+    drupal_goto('admin/og/og_multiple_mandatory_groups_by_role/groups');
+    return;
+  }
+  $sql = "SELECT ommgrg.gid, ommgrg.group_name FROM {og_multi_mand_groups_role_groups} ommgrg WHERE ommgrg.gid = %d";
+  $result = db_fetch_object(db_query($sql, $gid));
+  $form['name'] = array('#type' => 'value', '#value' => $result->group_name);
+  $form['gid'] = array('#type' => 'value', '#value' => $gid);
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role/groups';
+  $form = confirm_form($form, t('Are you sure you want to delete the group %name from the mandatory group availability list?',
+        array('%name' => $result->group_name)), $return_address,
+      t('Deleting a group here will make that group no longer mandatory under any role. Users will be unsubscribed from the group(s). This action cannot be undone.'), t('Delete'), t('Cancel'));
+  return $form;
+} // function og_multiple_mandatory_groups_by_role_group_confirm_delete_unsubscribe()
+
+/**
+ * Implementation of forms api  call. Deletes a group from the og_multi_mand_groups_role_groups table after confirmation.
+ *
+ * @param string $form_id
+ * @param mixed $form_state['values']
+ * @return string $return_address The path to return to after we've deleted the record.
+ */
+function og_multiple_mandatory_groups_by_role_group_confirm_delete_unsubscribe_submit($form, &$form_state) {
+  //unsubscribe users that have been in this group since we have been taking care of auto-subscibing/unsubscribing for this group anyway, don't unsubscribe the owner
+  $sql = "SELECT ou.uid, ou.nid FROM {og_uid} ou LEFT JOIN {node} n ON ou.nid = n.nid AND ou.uid = n.uid WHERE ou.nid = %d AND n.uid IS NULL ORDER BY ou.uid ASC";
+  $results = db_query($sql, $form_state['values']['gid']);
+  while ($result = db_fetch_object($results)) {
+    og_delete_subscription($result->nid, $result->uid);
+    drupal_set_message(t('The user %uid has been unsubscribed from group %gid.', array('%uid' => $result->uid, '%gid' => $form_state['values']['name'])));
+  }
+  //update the monitored roles' mandatory lists
+  $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr ORDER BY ommgr.rid";
+  $results = db_query($sql);
+  while ($result = db_fetch_object($results)) {
+    $mand_groups = unserialize($result->mand_groups);
+    unset($mand_groups[$form_state['values']['gid']]);
+    $query = db_query("UPDATE {og_multi_mand_groups_role} SET mand_groups = '%s' WHERE role_name = '%s'", serialize($mand_groups), $result->role_name);
+  }
+  $dbquery = db_query('DELETE FROM {og_multi_mand_groups_role_groups} WHERE gid = %d', $form_state['values']['gid']);
+  if ($dbquery) {
+    drupal_set_message(t('The group \'%gid\' has been removed from the mandatory group availability table.', array('%gid' => $form_state['values']['name'])));
+    watchdog('content', 'og_multiple_mandatory_groups_by_role_groups: deleted %gid.', array('%gid' => $form_state['values']['name']));
+  }
+  $return_address = 'admin/og/og_multiple_mandatory_groups_by_role/groups';
+  $form_state['redirect'] = $return_address;
+} // function og_multiple_mandatory_groups_by_role_group_confirm_delete_unsubscribe()
+
+//Nuts and bolts, Meat and potatoes section---------------------------------------------------------------
+//This section contains all processing to make sure that as users are un/assigned roles, that they are
+//subscribed to the correct groups. Also, we need to take care of newly registered users. We also need
+//to monitor changes to what we are monitoring. If a role is added to our list, we need to make sure that
+//those who already have the role are subscribed to the group... etc. etc.
+
+/**
+ * Implementation of hook_nodeapi
+ * 
+ * @param mixed &$node The node being operated on.
+ * @param string $op The operation being performed.
+ * @param array $a3 Used with $op == 'view' or 'validate'
+ * @param array $a4 Used with $op == 'view'
+ */
+function og_multiple_mandatory_groups_by_role_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  switch ($op) {
+    case 'insert':
+      $og_node_types = variable_get('og_node_types', array());
+      if (in_array($node->type, $og_node_types)) {
+        global $user;
+        $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = 0";
+        $result = db_fetch_object(db_query($sql));
+        $mandatory_groups = unserialize($result->mand_groups);
+        if (array_sum($mandatory_groups) != 0) {
+          foreach ($mandatory_groups as $key => $value) {
+            if ($key == $value) {
+              og_save_subscription($value, $user->uid, array('is_active' => 1));
+            }
+          }
+        }
+      }
+      break;
+    case 'update':
+      if ($group = db_fetch_object(db_query("SELECT gid FROM {og_multi_mand_groups_role_groups} WHERE gid = %d", $node->nid))) {
+        $sql = "UPDATE {og_multi_mand_groups_role_groups} SET group_name = '%s' WHERE gid = %d";
+        $result = db_query($sql, $node->title, $group->gid);
+        if (!$result) {
+          drupal_set_message('Problem updating the group name for the <em>OG Multiple Mandatory Groups by Role</em> table.', 'error');
+        }
+      }
+      break;
+    case 'delete': 
+      $og_node_types = variable_get('og_node_types', array());
+      if (in_array($node->type, $og_node_types)) {
+        //if the owner of the group doesn't have any more groups, unsubscribe them from the "Group admins" mandatory groups
+        $sql = "SELECT u.uid, u.nid FROM {og_uid} u WHERE u.uid = %d AND u.is_admin > 0";
+        $results = db_query($sql, $node->uid);
+        $still_admin = FALSE;
+        while ($result = db_fetch_object($results)) {
+          if ($result->nid != $node->nid) {
+            $still_admin = TRUE;
+          }
+        }
+        if ($still_admin == FALSE) {
+          $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = 0";
+          $result = db_fetch_object(db_query($sql));
+          $mandatory_groups = unserialize($result->mand_groups);
+          if (array_sum($mandatory_groups) != 0) {
+            foreach ($mandatory_groups as $key => $value) {
+              if ($key == $value) {
+                og_delete_subscription($value, $node->uid);
+              }
+            }
+          }
+        }
+        //we need to clean up our own data when a group is deleted
+        $sql = "SELECT gid FROM {og_multi_mand_groups_role_groups} WHERE gid = %d";
+        if ($result = db_fetch_object(db_query($sql, $node->nid))) {
+          //update the monitored roles' mandatory lists
+          $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr ORDER BY ommgr.rid";
+          $results = db_query($sql);
+          while ($result = db_fetch_object($results)) {
+            $mand_groups = unserialize($result->mand_groups);
+            unset($mand_groups[$node->nid]);
+            $query = db_query("UPDATE {og_multi_mand_groups_role} SET mand_groups = '%s' WHERE role_name = '%s'", serialize($mand_groups), $result->role_name);
+          }
+          $dbquery = db_query('DELETE FROM {og_multi_mand_groups_role_groups} WHERE gid = %d', $node->nid);
+          if ($dbquery) {
+            drupal_set_message(t('The group %gid has been removed from the mandatory group availability table.', array('%gid' => $node->title)));
+            watchdog('content', 'og_multiple_mandatory_groups_by_role_groups: deleted %gid.', array('%gid' => $node->title));
+          }
+        }
+      }
+      break;
+  }
+} // function og_multiple_mandatory_groups_by_role_nodeapi()
+
+/**
+ * Implementation of hook_form_alter
+ *
+ * if we want a user to join at least one group other than the mandatory ones,
+ * alter the user_register form and add the functionality for them to sign up
+ * for those groups
+ * @param array &$form
+ * @param array $form_state
+ * @param string $form_id
+ */
+function og_multiple_mandatory_groups_by_role_form_alter(&$form, $form_state, $form_id) {
+  
+  if ($form_id == 'user_register' && isset($form['og_register'])) {
+    $group_count = count($form['og_register']['og_register']['#options']);
+    $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = -1";
+    $result = db_fetch_object(db_query($sql));
+    $mandatory_groups = unserialize($result->mand_groups);
+    if ($mandatory_groups && (array_sum($mandatory_groups) != 0)) {
+      $form['og_register']['og_multiple_mandatory_groups_by_roles_in_form'] = array(
+          '#type' => 'fieldset',
+          '#title' => t('The following groups are mandatory:'),
+          '#weight' => '-1',
+          '#tree' => TRUE,
+          );
+      //loop through the mandatory groups, use those whose values match the key
+      foreach ($mandatory_groups as $key => $value) {
+        
+        /*check if $mandatory_group ($key) has a matching value.*/
+        if ($key == $value) {
+          //with all groups now stored in og_multiple_mandatory_groups_by_role, only set $mandatory_group_in_form if $key = $value
+          $mandatory_group_in_form = TRUE;
+          $form['og_register']['og_mandatory_in_form'] = array(
+              '#type' => 'value',
+              '#value' => $mandatory_group_in_form,
+              );
+          $title = $form['og_register']['og_register']['#options'][$key]. ' ' .t('(This group is mandatory)');
+          $form['og_register']['og_multiple_mandatory_groups_by_roles_in_form'][$key] = array(
+              '#type' => 'checkbox',
+              '#title' => $title,
+              '#value' => $value,
+              '#disabled' => TRUE,
+              );
+          unset($form['og_register']['og_register']['#options'][$key]);
+          $group_count--;
+        }
+        //preserve the keys? probably, since our keys need to match our values. hence the TRUE below.
+        $form['og_register'] = array_reverse($form['og_register'], TRUE);
+      }
+    }
+    
+    if ($group_count > 0 && variable_get('og_mandatory_additional_group', FALSE)) {
+      if ($mandatory_groups && $mandatory_group_in_form) {
+        $form['og_register']['minimum'] = array ('#value' => t('You must join at least one additional (non-mandatory) group.'));
+      }
+      else {
+        $form['og_register']['minimum'] = array ('#value' => t('You must join at least one group.'));
+      }
+    }
+  }
+  
+  if ($form_id == 'user_admin_role') { //React to a role deletion and update our data accordingly.
+    $id = arg(4);
+    if ($id) {
+      $form['#submit'][] = 'og_multiple_mandatory_groups_by_role_confirm_delete_unsub';
+    }
+  }
+} // function og_multiple_mandatory_groups_by_role_form_alter()
+
+/**
+ * Implementation of hook_user
+ *
+ * connect the mandatory groups with the users. update the related tables accordingly.
+ * @param string $op
+ * @param mixed $&$edit
+ * @param mixed &$account
+ * @param unknown_type $category
+ */
+function og_multiple_mandatory_groups_by_role_user($op, &$edit, &$account, $category = NULL) {
+  if (!module_exists('og')) {
+    return;
+  }
+  switch ($op) {
+    case 'validate':
+      if (isset($edit['og_register']) && variable_get('og_mandatory_additional_group', FALSE)) { //only present during registration
+        
+        if (count($edit['og_register']) > 0 && count(array_filter($edit['og_register'])) < 1) { //no callback in array_filter, so removes entries with FALSE values (FALSE, NULL, '')
+          if ($edit['og_mandatory_in_form']) {
+            form_set_error('og_register', "You must join at least one group in addition to the mandatory groups");
+          }
+          else {
+            form_set_error('og_register', "You must join at least one group");
+          }
+        }
+      }
+      break;
+    
+    case 'insert':
+      $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = -1";
+      $result = db_fetch_object(db_query($sql));
+      $mandatory_groups = unserialize($result->mand_groups);
+      if (array_sum($mandatory_groups) != 0) {
+        foreach ($mandatory_groups as $key => $value) {
+          if ($key == $value) {
+            og_save_subscription($value, $account->uid, array('is_active' => 1));
+          }
+        }
+      }
+      
+      if (isset($edit['roles'])) {
+        foreach ($edit['roles'] as $key_r => $value_r) {
+          if ($key_r == $value_r) {
+            $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+            if($result = db_fetch_object(db_query($sql, $key_r))) {
+              $mandatory_groups = unserialize($result->mand_groups);
+              foreach ($mandatory_groups as $key_g => $value_g) {
+                if ($key_g == $value_g) {
+                  og_save_subscription($value_g, $account->uid, array('is_active' => 1));
+                  //drupal_set_message('Subscribed to the ' .$value_g. ' group.');
+                }
+              }
+            }
+          }
+        }
+      }
+      break;
+    case 'update': 
+      GLOBAL $form_state;
+      //for now, let's process users from the user_admin_account form another way...via og_multiple_mandatory_groups_by_role_user_admin_account, above
+      if (isset($form_state['values']['operation'])) {
+        $operation_rid = explode('-', $form_state['values']['operation']);
+        $operation = $operation_rid[0];
+        $rid = $operation_rid[1];
+        if ($operation == 'remove_role') {
+          $subscribe = 0;
+        }
+        elseif ($operation == 'add_role') {
+          $subscribe = 1;
+        }
+      }
+      else {
+        $operation = NULL;
+      }
+      
+      //Compatibility with LDAP Groups helper here
+      if (isset($edit['ldap_drupal_roles'])){
+        //for testing:
+        //foreach($edit['ldap_drupal_roles'] as $pr_key => $pr_item){
+        //drupal_set_message("LDAPROLES: " . $pr_key . " : " . $pr_item);
+        //}
+        //get the current users roles
+        $existing_roles = array();
+        foreach ($account->roles as $item_key => $item){
+          $existing_roles[$item_key] = $item;
+        }
+        //check each existing role to see if they are valid and are NOT managed by og_mult_mand_groups_by_role and add them to the 'ldap_drupal_roles' array 
+        //query to see if this is still a valid role
+        $valid_roles = array();
+        foreach ($existing_roles as $akrole_key => $akrole){
+          $valid_role_sql = "select rid from role where name='%s'";
+          $valid_role_results = db_query($valid_role_sql, $akrole);
+          while ($valid_role_result = db_fetch_object($valid_role_results)){
+            $valid_roles[$akrole_key] = $akrole;
+          }
+        }
+        
+        //we have our valid roles, now let's see which ones are not managed
+        foreach ($valid_roles as $nmrole_key => $nmrole){
+          $nmrole_sql = "select rid from og_multi_mand_groups_role where role_name='%s'";
+          $nmrole_results = db_query($nmrole_sql,$nmrole);
+          if (!db_fetch_object($nmrole_results)){
+            //this is not a  managed role - add this to our main array 
+            $edit['ldap_drupal_roles'][] = $nmrole;
+          }
+        }
+        unset($edit['roles']);
+        $temparray = array();
+        foreach ($edit['ldap_drupal_roles'] as $myVal){
+          $tempsql = "SELECT rid from role where name='%s'"; 
+          $tempresults = db_query($tempsql, $myVal);
+          while ($tempresult = db_fetch_object($tempresults)){
+            //get role id (rid) from result and store away in the $edit['roles'] array
+            //the array index must be the same as the rid in the array below
+            $temparray[$tempresult->rid] = $tempresult->rid;
+          }
+        }
+        $edit['roles'] = $temparray;
+      }
+      //END LDAP Groups help here
+      
+      if (isset($edit['roles'])) {
+        $unsubscribe_ok = 1; //TODO make this receive value from checkbox as to whether the admin wants to unsubscribe from no-longer-allowed groups
+        $all_subscriptions = array();
+        //get all monitored roles
+        $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr ORDER BY ommgr.rid";
+        $results = db_query($sql);
+        while ($result = db_fetch_object($results)) {
+          $all_monitored_roles[$result->rid] = $result; //get all monitored roles so we can check against their mandatory groups
+          $all_monitored_roles[$result->rid]->mand_groups = unserialize($result->mand_groups);
+        }
+        
+        //we're updating a user through user_edit, so start collecting which groups to subscribe/unsubscribe
+        if (!empty($edit['roles']) && ($operation == NULL)) {
+          foreach ($edit['roles'] as $key_r => $value_r) {
+            $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+            if ($result = db_fetch_object(db_query($sql, $key_r))) {
+              $mandatory_groups = unserialize($result->mand_groups);
+              foreach ($mandatory_groups as $key_g => $value_g) {
+                if ($key_r) { //add to subscription list, since they have the role & remove groups no longer associated with this role
+                  if ($key_g == $value_g) {
+                    $all_subscriptions[$key_g] = $value_g; //subscriptions for this role will be added over top of previous roles' as well as previous unsubscriptions
+                  }
+                  elseif (!isset($all_subscriptions[$key_g]) && $unsubscribe_ok) { //unsubscribe if no role so far has required it
+                    $all_subscriptions[$key_g] = 0;
+                  }
+                }
+                //go through the rest of the roles so we can unsubscribe from groups no longer allowed (due to role revoke)
+                elseif ((!isset($all_subscriptions[$key_g])) || ($all_subscriptions[$key_g] != $key_g)) { //make sure another role doesn't require the group
+                  $all_subscriptions[$key_g] = 0;
+                  //this should catch the case where the group was unassociated from the role AND we're now unassociating the role from the user 
+                }
+              }
+            }
+          }
+        }
+        
+        //couldn't use an 'else' here or we'd miss the empty($all_subscriptions) case which takes care of having roles checked which don't have groups...
+        //and all roles with groups are unchecked, and may have previously been checked. in other words, if only roles without groups are checked, then
+        //we wouldn't unsubscribe from groups of roles previously checked
+        if (empty($edit['roles']) || (empty($all_subscriptions) && ($operation == NULL))) { //no roles are assigned to this user (other than authenticated user), so let's unsubscribe him from all role-related groups
+          foreach ($all_monitored_roles as $key_r => $value_r) {
+            $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+            $result = db_fetch_object(db_query($sql, $key_r));
+            if ($result) {
+              $mandatory_groups = unserialize($result->mand_groups);
+              foreach ($mandatory_groups as $key_g => $value_g) {
+                if ((!isset($all_subscriptions[$key_g])) || ($all_subscriptions[$key_g] != $key_g)) { //make sure another role doesn't require the group
+                  $all_subscriptions[$key_g] = 0;
+                  //this should catch the case where the group was unassociated from the role AND we're now unassociating the role from the user 
+                }
+              }
+            }
+          }
+        }
+        
+        //since we're using #type = checkboxes instead of #type = checkbox for admin UI, we don't know the names of the groups, so let's get them here 
+        $sql = "SELECT og.nid, n.title, n.uid FROM {og} og INNER JOIN {node} n ON og.nid = n.nid ORDER BY og.nid ASC";
+        $results = db_query($sql);
+        while ($result = db_fetch_object($results)) {
+          $all_groups[$result->nid] = $result->title;
+          $owners_list[$result->nid] = $result->uid;
+        }
+        
+        if ($operation == NULL) { //we don't want to do this if we came from user_admin_account
+          //step through the 'All users' list and make sure any groups are added to the $all_subscriptions list
+          $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+          $result = db_fetch_object(db_query($sql, -1));//all users
+          if ($result) {
+            $mandatory_groups = unserialize($result->mand_groups);
+            foreach ($mandatory_groups as $key_g => $value_g) {
+              if ($key_g == $value_g) {
+                $all_subscriptions[$key_g] = $value_g; //subscriptions for this role will be added over top of previous roles' as well as previous unsubscriptions
+              }
+              elseif (!isset($all_subscriptions[$key_g]) && $unsubscribe_ok) { //unsubscribe if no role so far has required it
+                $all_subscriptions[$key_g] = 0;
+              }
+            }
+          }
+        }
+        
+        //does the user own any groups? if so, step through the 'Group admins' mandatory list and add to $all_subscriptions
+        $owns_groups = FALSE;
+        foreach ($owners_list as $nid => $uid) {
+          if ($uid == $account->uid) {
+            $owns_groups = TRUE;
+            $groups_owned[$nid] = $nid;
+            unset($all_subscriptions[$nid]);// we aren't setting or unsetting the 'is_admin' column of og_uid when we subscribe users, so make sure we don't screw with existing subscriptions
+          }
+        }
+        
+        if ($operation == NULL) { //we don't want to do this if we came from user_admin_account
+          $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+          $result = db_fetch_object(db_query($sql, 0));//group admins
+          if ($result) {
+            $mandatory_groups = unserialize($result->mand_groups);
+            foreach ($mandatory_groups as $key_o => $value_o) {
+              if (($key_o == $value_o) && ($owns_groups == TRUE)) {
+                $all_subscriptions[$key_o] = $value_o; //subscriptions for this role will be added over top of previous roles' as well as previous unsubscriptions
+              }
+              elseif (!isset($all_subscriptions[$key_o]) && !key_exists($key_o, $groups_owned) && $unsubscribe_ok) { //unsubscribe if no role so far has required it
+                $all_subscriptions[$key_o] = 0;
+              }
+            }
+          }
+        }
+        
+        if (($operation == 'remove_role') || ($operation == 'add_role')) { //we're handling one role from user_admin_account only; this is separate from nearly everything above
+          //now process the users and the role
+          $sql = "SELECT ommgr.rid, ommgr.role_name, ommgr.mand_groups FROM {og_multi_mand_groups_role} ommgr WHERE ommgr.rid = %d";
+          $result = db_fetch_object(db_query($sql, $rid));
+          if ($result) {
+            $mandatory_groups = unserialize($result->mand_groups);
+            foreach ($mandatory_groups as $key_g => $value_g) {
+              if (($subscribe == 1) && ($key_g == $value_g) && ($owners_list[$key_g] != $account->uid)) { //since we don't save the is_admin part, let's not screw that up
+                $all_subscriptions[$key_g] = $key_g;
+              }
+              elseif (($subscribe == 0) && ($key_g == $value_g) && ($owners_list[$key_g] != $account->uid)) { //make sure the user isn't the owner of the group
+                //we need to check all other roles before we delete the subscription to make sure we don't step on toes
+                $delete_ok = 1;
+                foreach ($all_monitored_roles as $role) {
+                  if (in_array($key_g, $role->mand_groups) &&
+                      key_exists($role->rid, $account->roles) &&
+                      ($role->rid != $result->rid)) {
+                    $delete_ok = 0;
+                  }
+                }
+                if ($delete_ok == 1) {
+                  $all_subscriptions[$key_g] = 0;
+                }    
+              }
+            }
+          }
+        }
+        
+        //use the user's existing subscriptions as reference, and only work on those that exist
+        foreach ($all_subscriptions as $key_a => $value_a) {
+          if (($key_a == $value_a) && !key_exists($key_a, $account->og_groups)) { //subscribe if subscription doesn't already exist, we don't want to screw up 'is_admin'
+            og_save_subscription($value_a, $account->uid, array('is_active' => 1));
+            if (user_access('administer users')) {
+              drupal_set_message(t('The user %uid has been subscribed to group %gid.', array('%uid' => $account->name, '%gid' => $all_groups[$value_a])));
+            }
+          }
+          elseif (($key_a != $value_a) && key_exists($key_a, $account->og_groups)) { //unsubscribe only if already subscribed
+            og_delete_subscription($key_a, $account->uid);
+            if (user_access('administer users')) {
+              drupal_set_message(t('The user %uid has been unsubscribed from group %gid.', array('%uid' => $account->name, '%gid' => $all_groups[$key_a])));
+            }
+          }
+        }
+      }
+      break; 
+  }
+} // function og_multiple_mandatory_groups_by_role_user()
+
+//Helper/ utility functions-------------------------------------------------------------------------------
+//Functions that help those above and don't accomplish directly any of the design items
+
+/**
+ * Return an array containing all roles that we're monitoring. Suitable for a form item.
+ */
+function _og_multiple_mandatory_groups_by_role_get_added() {
+  $sql = "SELECT ommgr.rid, ommgr.role_name FROM {og_multi_mand_groups_role} ommgr ORDER BY ommgr.role_name ASC";
+  $result = db_query($sql);
+  while ($row = db_fetch_object($result)) {
+    $options[$row->rid] = $row->role_name;
+  }
+  return $options ? $options : array();
+} // function _og_multiple_mandatory_groups_by_role_get_added()
+
+/**
+ * Return an array containing all groups that are available as mandatory. Suitable for a form item.
+ */
+function _og_multiple_mandatory_groups_by_groups_get_added() {
+  $sql = "SELECT ommgrg.gid, ommgrg.group_name FROM {og_multi_mand_groups_role_groups} ommgrg ORDER BY ommgrg.group_name ASC";
+  $result = db_query($sql);
+  while ($row = db_fetch_object($result)) {
+    $options[$row->gid] = $row->group_name;
+  }
+  return $options ? $options : array();
+} // function _og_multiple_mandatory_groups_by_groups_get_added()
+
+/**
+ * 
+ */
+function _og_multiple_mandatory_groups_by_role_get_insubs() {
+  $unsubs = variable_get('og_mandatory_unsubs', '0');
+  return unserialize($unsubs);
+} // function _og_multiple_mandatory_groups_by_role_get_insubs()

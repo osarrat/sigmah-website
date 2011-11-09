@@ -1,0 +1,95 @@
+<?php
+/**
+ * $Id: og_multiple_mandatory_groups_by_role.install,v 1.2.2.1 2008/07/19 16:31:25 rconstantine Exp $
+ * @package OG_MMGBR
+ * @category NeighborForge
+ */
+ 
+/**
+ * Implementation of hook_install().
+ */
+function og_multiple_mandatory_groups_by_role_install() {
+  $query_results = drupal_install_schema('og_multiple_mandatory_groups_by_role');
+      
+  //setup vars for default (un-deleteable mandatory group lists
+  $all_users_rid = -1;
+  $all_users_name = t('All users');
+  $all_users_mand_groups = array();
+  $group_owners_rid = 0;
+  $group_owners_name = t('Group admins');
+  $group_owners_mand_groups = array();
+  
+  if ($all = variable_get(og_mandatory_group, FALSE)) {
+    $all_users_mand_groups = $all;
+    drupal_set_message(t('Found previously used Mandatory Group variables...'));
+    drupal_set_message(t('using existing Mandatory Groups for new <em>All Users</em> category...'));
+    if (db_table_exists(og_multi_mand_groups_role_groups)) {
+      drupal_set_message(t('using existing Mandatory Groups for new <em>Available Groups</em> table...'));
+      foreach ($all as $gid => $value) {
+        $sql = "SELECT n.title FROM {node} n WHERE n.nid = %d";
+        $result = db_fetch_object(db_query($sql, $gid));
+        if (db_query("INSERT INTO {og_multi_mand_groups_role_groups} VALUES (%d, '%s')", $gid, $result->title)) {
+          drupal_set_message(t("added <em>%name</em> to the group availability table...", array('%name' => $result->title)));
+        }
+      }
+    }
+    db_query("DELETE FROM {variable} WHERE name = '%s'", 'og_mandatory_group');
+  }
+  if ($group_o = variable_get(og_mandatory_group_admin, array())) {
+    $group_owners_mand_groups = $group_o;
+    db_query("DELETE FROM {variable} WHERE name = '%s'", 'og_mandatory_group_admin');
+  }
+  
+  //insert the defaults into the new db table
+  if (db_table_exists(og_multi_mand_groups_role)) {
+    $query3 = db_query("INSERT INTO {og_multi_mand_groups_role} VALUES (%d, '%s', '%s')", $all_users_rid, $all_users_name, serialize($all_users_mand_groups));
+    $query4 = db_query("INSERT INTO {og_multi_mand_groups_role} VALUES (%d, '%s', '%s')", $group_owners_rid, $group_owners_name, serialize($group_owners_mand_groups));
+  }
+  
+  //make sure all went well
+  if ($query_results[0]['success'] && $query_results[1]['success'] && $query3 && $query4) {
+    drupal_set_message('The OG Multiple Mandatory Groups by Role module was installed successfully. Two tables were added to the database. Default settings were initialized.');
+  }
+  else {
+    drupal_set_message('There was an error installing the OG Multiple Mandatory Groups by Role database table.', 'error');
+  }
+}
+
+/**
+* Implementation of hook_schema().
+*/
+function og_multiple_mandatory_groups_by_role_schema() {
+  $schema['og_multi_mand_groups_role'] = array(
+    'fields' => array(
+      'rid'  => array('type' => 'int', 'unsigned' => FALSE, 'length' => 11, 'not null' => TRUE, 'default' => 0, 'description' => 'The role id from the {roles} table.'),
+      'role_name'  => array('type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => '', 'description' => 'The name of the role, copied here for convenience.'),
+      'mand_groups'  => array('type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'A serialized array listing groups that are mandatory for the above {roles}.'),
+    ),
+    'primary key' => array('rid'),
+    'description' => 'Keeps track of which roles have mandatory groups.',
+  );
+  $schema['og_multi_mand_groups_role_groups'] = array(
+    'fields' => array(
+      'gid'  => array('type' => 'int', 'unsigned' => TRUE, 'length' => 11, 'not null' => TRUE, 'default' => 0, 'description' => 'The group id from the {og} table.'),
+      'group_name'  => array('type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => '', 'description' => 'The name of the group, copied here for convenience.'),
+    ),
+    'primary key' => array('gid'),
+    'description' => 'A list of groups ear-marked by the admin as possible groups to make mandatory.',
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function og_multiple_mandatory_groups_by_role_uninstall() {
+  $query_results = drupal_uninstall_schema('og_multiple_mandatory_groups_by_role');
+
+  if ($query_results[0]['success'] && $query_results[1]['success']) {
+    drupal_set_message('The OG Multiple Mandatory Groups by Role module was uninstalled successfully.');
+  }
+  else {
+    drupal_set_message('There was an error removing the OG Multiple Mandatory Groups by Role database table.', 'error');
+  }
+}

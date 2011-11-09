@@ -1,0 +1,415 @@
+# $Id: forum_access.pot,v 1.6 2009/12/04 21:49:08 salvis Exp $
+#
+# LANGUAGE translation of Drupal (forum_access)
+# Generated from files:
+#  forum_access.admin.inc,v 1.33 2009/12/03 23:40:19 salvis
+#  forum_access.info: n/a
+#  forum_access.node.inc,v 1.9 2009/11/29 18:21:49 salvis
+#  forum_access.module,v 1.53 2009/11/29 18:21:49 salvis
+#  forum_access.install,v 1.16 2009/12/03 23:40:19 salvis
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Forum Access 6.x\n"
+"POT-Creation-Date: 2009-12-04 04:22+0100\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: forum_access.admin.inc:39;429 forum_access.info:0
+msgid "Access control"
+msgstr ""
+
+#: forum_access.admin.inc:68
+msgid "Note that users need"
+msgstr ""
+
+#: forum_access.admin.inc:69
+msgid "the !access_content and !access_comments permissions <strong>AND <em>View</em></strong> to be able to see this forum and its content at all,"
+msgstr ""
+
+#: forum_access.admin.inc:70
+msgid "the !create_forum_topics (and similar) permissions <strong>AND <em>Post</em></strong> to be able to create forum content, and"
+msgstr ""
+
+#: forum_access.admin.inc:71
+msgid "the !post_comments and (probably) !post_comments_without_approval permission <!TAG>AND <em>Post</em></!TAG> to be able to post comments/replies;"
+msgstr ""
+
+#: forum_access.admin.inc:71;689
+msgid "Drupal 5 legacy mode"
+msgstr ""
+
+#: forum_access.admin.inc:72
+msgid "the !edit_own_forum_topics or !edit_any_forum_topics (and similar) permissions (<strong>OR <em>Edit</em></strong>) can be added if desired, <strong>plus</strong>"
+msgstr ""
+
+#: forum_access.admin.inc:73
+msgid "the !delete_own_forum_topics or !delete_any_forum_topics (and similar) permissions (<strong>OR <em>Delete</em></strong>) if desired;"
+msgstr ""
+
+#: forum_access.admin.inc:74
+msgid "the !administer_comments (global!) permission <strong>OR <em>Edit</em>/<em>Delete</em></strong> to be able to edit/delete comments;"
+msgstr ""
+
+#: forum_access.admin.inc:75
+msgid "the !administer_forums permission <strong>AND <em>View</em></strong> to be able to administer forums (and change access!)."
+msgstr ""
+
+#: forum_access.admin.inc:76
+msgid "Furthermore note that content which is not published is treated in a different way by Drupal: it can be viewed only by its author or by users with the !administer_nodes permission. Unpublished comments and replies are accessible to users with <strong><em>Edit</em> OR <em>Delete</em></strong>, <strong>OR</strong> with the !administer_comments permission, but they are never counted on the forum page."
+msgstr ""
+
+#: forum_access.admin.inc:89
+msgid "Select a forum and click !Load to retrieve that forum's settings as a starting point for this forum or container."
+msgstr ""
+
+#: forum_access.admin.inc:89;93
+msgid "Load"
+msgstr ""
+
+#: forum_access.admin.inc:102
+msgid "Remember this selection."
+msgstr ""
+
+#: forum_access.admin.inc:107
+msgid "Use the selected forum's settings as defaults for new forums and containers."
+msgstr ""
+
+#: forum_access.admin.inc:116
+msgid "View this container"
+msgstr ""
+
+#: forum_access.admin.inc:116
+msgid "View this forum"
+msgstr ""
+
+#: forum_access.admin.inc:123
+msgid "See this container in the %Forums selection list"
+msgstr ""
+
+#: forum_access.admin.inc:130
+msgid "Post in this forum"
+msgstr ""
+
+#: forum_access.admin.inc:136
+msgid "Edit posts"
+msgstr ""
+
+#: forum_access.admin.inc:142
+msgid "Delete posts"
+msgstr ""
+
+#: forum_access.admin.inc:189
+msgid "For explanations of special cases, hover your mouse over role names."
+msgstr ""
+
+#: forum_access.admin.inc:194
+msgid "Users who can see any forum or container within this one should get the <strong><em>View</em></strong> grant. <br /> Users who can post to a forum within this container should get the <strong><em>See</em></strong> grant, so that this forum appears in the proper context in the selection list."
+msgstr ""
+
+#: forum_access.admin.inc:212
+msgid "Moderators"
+msgstr ""
+
+#: forum_access.admin.inc:215
+msgid "Moderators receive all grants above."
+msgstr ""
+
+#: forum_access.admin.inc:220
+msgid "Note: Changes to moderators are not saved until you click [!Save] below."
+msgstr ""
+
+#: forum_access.admin.inc:235;316
+msgid "Module interference"
+msgstr ""
+
+#: forum_access.admin.inc:248
+msgid "Besides !Forum_Access (and !ACL) you have installed the following node access module(s): !module_list   The grants of every module are combined for each node. Access can only be granted, not removed &mdash; if a certain module grants a permission, the other(s) cannot deny it."
+msgstr ""
+
+#: forum_access.admin.inc:249
+msgid "Forums can contain other content types besides %content_type; !Forum_Access will contribute the grants defined above to every node in this forum, but other node access control modules may also contribute their grants, especially to nodes of types other than %content_type."
+msgstr ""
+
+#: forum_access.admin.inc:263
+msgid "@Content_Access configuration for the %content_type type"
+msgstr ""
+
+#: forum_access.admin.inc:266
+msgid "Specifically, any grants given by !Content_Access cannot be taken back by !Forum_Access."
+msgstr ""
+
+#: forum_access.admin.inc:275
+msgid "You have set the !Content_Access module to control access to content of type %content_type&mdash;this can interfere with proper operation of !Forum_Access!"
+msgstr ""
+
+#: forum_access.admin.inc:279
+msgid "Unless you really know what you're doing, we recommend that you go to the !link page and clear all checkboxes. This will instruct @Content_Access to leave the %content_type nodes alone. However, if you put nodes of other content types into forums as well, then these content types will continue to have this problem."
+msgstr ""
+
+#: forum_access.admin.inc:288
+msgid "Alternatively, you can give !Forum_Access priority over @Content_Access by either raising the priority of !Forum_Access in every forum above the priority of @Content_Access, or by lowering the priority of @Content_Access for the content types in question below the priority of !Forum_Access."
+msgstr ""
+
+#: forum_access.admin.inc:293
+msgid "Note: You have installed the !Content_Access module, which has the capability to grant access to content that would otherwise be protected by !Forum_Access. Be careful when configuring @Content_Access!"
+msgstr ""
+
+#: forum_access.admin.inc:300
+msgid "Advanced"
+msgstr ""
+
+#: forum_access.admin.inc:306
+msgid "Priority of !Forum_Access node grants in this forum"
+msgstr ""
+
+#: forum_access.admin.inc:308
+msgid "If you have no other node access control modules installed, you should leave this at the default 0. <br /> Otherwise you can raise or lower the priority of !Forum_Access' grants. Out of all the grants contributed to a node, only those with the highest priority are used, and all others are discarded."
+msgstr ""
+
+#: forum_access.admin.inc:331
+msgid "Trouble-shooting node access"
+msgstr ""
+
+#: forum_access.admin.inc:337
+msgid "In case of problems, follow these steps until you've got it worked out:"
+msgstr ""
+
+#: forum_access.admin.inc:338
+msgid "Update to the 'recommended' !Forum_Access and !ACL releases for your version of Drupal."
+msgstr ""
+
+#: forum_access.admin.inc:339
+msgid "Read %Module_interference above and update your other node access modules."
+msgstr ""
+
+#: forum_access.admin.inc:340
+msgid "Check the release notes of the development snapshots for issues that might have been fixed in !Forum_Access-dev or !ACL-dev since the latest release."
+msgstr ""
+
+#: forum_access.admin.inc:341
+msgid "Install the %devel_node_access module (!DNA, part of the !Devel module) and enable its !debug_mode: !DNA will show you all the grants that actually control your nodes in a footer block on each node's page."
+msgstr ""
+
+#: forum_access.admin.inc:342
+msgid "Additional insight can be gained from !dna_summary and by enabling the second !DNA block."
+msgstr ""
+
+#: forum_access.admin.inc:343
+msgid "Click !Rebuild_permissions on !Post_settings_link and check DNA for changes."
+msgstr ""
+
+#: forum_access.admin.inc:344
+msgid "Check the issues queues of !Forum_Access_ and !ACL_ for existing reports and possible solutions."
+msgstr ""
+
+#: forum_access.admin.inc:345
+msgid "If all of this hasn't helped, then pick ONE node that is misbehaving, look at it using an account that can see the node (and that should NOT have access if that's your problem!), create a new issue in the issues queue, describe the problem... <ul><li> what did you do? </li><li> what did you expect? </li><li> what happened instead? </li></ul> ... and <strong>attach a screenshot of all the DNA records</strong> for that one node. <br /> Be sure to indicate paths (URLs) for every page and module that you mention."
+msgstr ""
+
+#: forum_access.admin.inc:349
+msgid "Note: You should not keep the !Devel module enabled on a production site."
+msgstr ""
+
+#: forum_access.admin.inc:365
+msgid "<em>If</em> you make any node access changes, then each node in this forum needs to be updated. Hover over the radiobuttons for details."
+msgstr ""
+
+#: forum_access.admin.inc:369
+msgid "for all %count nodes immediately"
+msgstr ""
+
+#: forum_access.admin.inc:370
+msgid "This option is the fastest, but with many nodes it can still take considerable time and memory. If it fails, it will leave your !node_access table in an inconsistent state."
+msgstr ""
+
+#: forum_access.admin.inc:377
+msgid "in batches of !limit now"
+msgstr ""
+
+#: forum_access.admin.inc:378
+msgid "The batch option will always work reliably, but it takes longer to complete."
+msgstr ""
+
+#: forum_access.admin.inc:385
+msgid "rebuild <strong>all</strong> permissions later"
+msgstr ""
+
+#: forum_access.admin.inc:386
+msgid "This option will only set a flag to remind you to rebuild all permissions later; this is useful if you want to make multiple changes to your node access settings quickly and delay the updating until you're done."
+msgstr ""
+
+#: forum_access.admin.inc:419
+msgid "This is the (temporary) @Forum_Moderator role; it has the '@administer_nodes' and '@administer_comments' permissions and is only used temporarily by @Forum_Access &mdash; do NOT give this role to any user!"
+msgstr ""
+
+#: forum_access.admin.inc:419;440;870
+msgid "Forum Moderator"
+msgstr ""
+
+#: forum_access.admin.inc:429
+msgid "This role has the '@administer_forums' permission, and granting '@View' enables the role holders to change the settings on this page, including @Access_control!"
+msgstr ""
+
+#: forum_access.admin.inc:429
+msgid "View"
+msgstr ""
+
+#: forum_access.admin.inc:431
+msgid "Because the role also has the '@administer_nodes' permission, it has full access to all nodes either way."
+msgstr ""
+
+#: forum_access.admin.inc:439
+msgid "This role has the '@administer_nodes' permission and thus full access to all nodes."
+msgstr ""
+
+#: forum_access.admin.inc:440
+msgid "This is the @Forum_Moderator role; it has the '@administer_nodes' and '@administer_comments' permissions and thus full access to all nodes and comments."
+msgstr ""
+
+#: forum_access.admin.inc:515
+msgid "You must assign %View access to a role that you hold."
+msgstr ""
+
+#: forum_access.admin.inc:552
+msgid "The content access permissions are unchanged."
+msgstr ""
+
+#: forum_access.admin.inc:578
+msgid "edit"
+msgstr ""
+
+#: forum_access.admin.inc:607
+msgid "Updating content access permissions"
+msgstr ""
+
+#: forum_access.admin.inc:660
+msgid "The content access permissions have been updated."
+msgstr ""
+
+#: forum_access.admin.inc:664
+msgid "The content access permissions have not been properly updated."
+msgstr ""
+
+#: forum_access.admin.inc:685
+msgid "Note: All other !Forum_Access controls are on the administration pages of the individual forums."
+msgstr ""
+
+#: forum_access.admin.inc:691
+msgid "In Drupal 5, comment posting was not restricted by !Forum_Access; users with %View access (and the %post_comments permission) were always allowed to post forum comments. Starting with Drupal 6, posting comments is now restricted to users with %Post access. Turn this option on to revert to the old behavior. The default is OFF."
+msgstr ""
+
+#: forum_access.admin.inc:770
+msgid "The role you have just deleted is required by !Forum_Access; it will be recreated automatically."
+msgstr ""
+
+#: forum_access.admin.inc:790
+msgid "Note: In Drupal, access can only be granted, not taken away. Whatever access you grant here will not be reflected in the !Forum_Access_link settings, but !Forum_Access can only allow <i>more</i> access, not less."
+msgstr ""
+
+#: forum_access.admin.inc:791
+msgid "Specifically, any rights granted to the %anonymous_user and/or the %authenticated_user will <b>override</b> the settings of !Forum_Access!"
+msgstr ""
+
+#: forum_access.admin.inc:792
+msgid "To avoid conflicts with !Forum_Access settings, you may want to lower the priority of !Content_Access (under %Advanced below) below the priority of !Forum_Access for the content types that you want to be controlled by !Forum_Access."
+msgstr ""
+
+#: forum_access.admin.inc:799
+msgid "Note: Nodes of this content type can be put inside forums, where access to them will also be controlled by !Forum_Access.<br />In Drupal, access can only be granted, not taken away. Whatever access you grant here will not be reflected on the !Forum_Access_link settings, and vice versa, but any node access module can only allow <i>more</i> access, not less."
+msgstr ""
+
+#: forum_access.admin.inc:813
+msgid "The %role role is used internally by the @Forum_Access module and must not be changed!"
+msgstr ""
+
+#: forum_access.admin.inc:841
+msgid "Add a role to the selected users"
+msgstr ""
+
+#: forum_access.admin.inc:856
+msgid "reserved for internal use by the @Forum_Access module"
+msgstr ""
+
+#: forum_access.admin.inc:883
+msgid "!Forum_Access has created a new role named %role and given it the %administer_nodes and %administer_comments permissions. This role is used internally by !Forum_Access. You can change the name of the role as you like, but you must keep it unmodified otherwise."
+msgstr ""
+
+#: forum_access.admin.inc:891
+msgid "!Forum_Access cannot create the %role role!"
+msgstr ""
+
+#: forum_access.admin.inc:893
+msgid "Is it already in use?"
+msgstr ""
+
+#: forum_access.admin.inc:897
+msgid "!Forum_Access has given up and will not work correctly! Rename one of the roles listed above, so that !Forum_Access can use its name."
+msgstr ""
+
+#: forum_access.admin.inc:579
+msgid "access"
+msgstr ""
+
+#: forum_access.admin.inc:579
+msgid "Changed grants for %forum forum."
+msgstr ""
+
+#: forum_access.node.inc:200
+msgid "(!Forum_Access temporary role, does not need any grants.)"
+msgstr ""
+
+#: forum_access.module:449
+msgid "The %Role role is reserved for internal use by the @Forum_Access module! It was not assigned."
+msgstr ""
+
+#: forum_access.module:466
+msgid "Unexpected access specification for the %forum menu path; @Forum_Access cannot control its access."
+msgstr ""
+
+#: forum_access.install:29
+msgid "The base Forum Access Control table."
+msgstr ""
+
+#: forum_access.install:32
+msgid "The {term_data}.tid to which this {forum_access} entry applies."
+msgstr ""
+
+#: forum_access.install:37
+msgid "The {role}.rid to which this {forum_access} entry applies."
+msgstr ""
+
+#: forum_access.install:42
+msgid "Whether to grant \"view\" permission."
+msgstr ""
+
+#: forum_access.install:49
+msgid "Whether to grant \"update\" permission."
+msgstr ""
+
+#: forum_access.install:56
+msgid "Whether to grant \"delete\" permission."
+msgstr ""
+
+#: forum_access.install:63
+msgid "Whether to grant \"create\" permission."
+msgstr ""
+
+#: forum_access.install:70;113
+msgid "The priority of this grant."
+msgstr ""
+
+#: forum_access.info:0
+msgid "Forum Access"
+msgstr ""
+
+#: forum_access.info:0
+msgid "Allows forums to be set private and allows forums to be given moderators."
+msgstr ""
+

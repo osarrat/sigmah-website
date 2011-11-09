@@ -1,0 +1,154 @@
+<?php
+
+function sigmah_form_alter(&$form, &$form_state, $form_id){	
+	if ($form_id == 'search_block_form'){
+		$form['search_block_form']['#title']= t('Search');
+		$form['submit']['#value'] = 'Ok';
+		$form['submit']['#theme'] = 'sigmah_search_submit';
+		$form['search_block_form']['#theme'] = 'sigmah_search_input';
+		
+	}elseif(stripos($form_id, 'simplenews_block_form') !== false){	
+		
+		unset($form['display_mail']['#title']);
+		$form['submit']['#theme'] = 'sigmah_simplenews_submit';
+		if($form['submit']['#value'] == 'Save'){
+			$form['submit']['#value'] = 'Subscribe';			
+		}else{
+			$form['display_mail']['#type'] = 'hidden';
+		}
+		if(!isset($form['mail']['#value'])){
+			$form['mail']['#theme']= 'sigmah_simplenews_mail';
+		    $form['mail']['#title']= '';
+		}		
+		$form['action']['#type'] = 'hidden';
+		$form['action']['#value'] = 'subscribe';
+		$form['#redirect'] = 'home';
+		
+	}elseif ($form_id == 'user_confirm_delete') {
+		unset($form['user_delete_action']['#options']['user_delete_delete']);   
+	}elseif($form_id == 'contact_mail_page') {
+		$form['#redirect'] = FALSE;
+		$form['subject']['#weight'] = 1;
+		$form['message']['#weight'] = 2;
+		$form['name']['#prefix'] = '<h5>'.t('Would you like to receive a reply?').'</h5>'.
+	'<p class="if">'.t('If yes, please enter your email address here').' :</p>';
+		$form['name']['#weight'] = 4;
+		$form['name']['#title'] = t('Name');
+		$form['name']['#field_prefix'] = '<table class="login"><tr><td>'.$form['name']['#title'].'</td><td>';
+		$form['name']['#field_suffix'] = '</td></tr>';
+		unset($form['name']['#title']);
+		$form['mail']['#weight'] = 5;
+		$form['mail']['#title'] = t('Your e-mail');
+		$form['mail']['#field_prefix'] = '<tr><td>'.$form['mail']['#title'].'</td><td>';
+		$form['mail']['#field_suffix'] = '</td></tr></table>';
+		unset($form['mail']['#title']);
+		$form['mail']['#suffix'] = '<em class="baseline">'.t('(If you don\'t have one, a Sigmah.org account will be automatically set up)').'</em>';
+		$form['copy']['#weight'] = 6;
+		$form['cid']['#type'] = 'radios';
+		unset($form['cid']['#options'][0]);
+		unset($form['cid']['#title']);
+		$form['cid']['#prefix'] = '<h6>'.t('In order to deal with your request more effectively').'</h6><p>'.t('You can specify which forum you would like your posting to appear in (Don\'t worry, a moderator will put your posting in an appropriate forum if you are not sure)').' : '.'</p>';
+		$form['cid']['#weight'] = 7;
+		$form['submit']['#weight'] = 8;
+		$form['submit']['#prefix'] = '<hr />';
+		$form['submit']['#theme']= 'sigmah_contact_submit';	
+		$form['#submit']['#ahah']=array(
+		  'method' => 'close_window',
+		);
+		
+		//$form['#submit'][] = 'sigmah_contact_submit_handler';		
+  }
+}
+
+function sigmah_contact_submit_handler(&$form, &$form_state){
+	$form_state['redirect'] = contact;
+	//window.close()
+	kpr($form_state);
+}
+
+function sigmah_contact_mail_page_submit($form, $form_state){
+	drupal_set_message('Message OK');
+	
+}
+/**
+ * Implementation of hook_theme()
+ */
+function sigmah_theme() {
+  return array(
+    'sigmah_simplenews_submit' => array(
+      'arguments' => array('form' => NULL),
+    ),
+	'sigmah_simplenews_mail' => array(
+      'arguments' => array('form' => NULL),
+    ),
+	/*'sigmah_contact_form' => array(
+	  'template' => 'sigmah-contact-form',
+      'arguments' => array('form' => NULL),
+    ),*/	
+	'sigmah_contact_submit' => array(
+      'arguments' => array('form' => NULL),
+    ),
+	'sigmah_search_submit' => array(
+      'arguments' => array('form' => NULL),
+    ),
+	'sigmah_search_input' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+* $form here is the submit button only
+* theme for submit button in contact form
+*/
+function theme_sigmah_contact_submit($form){	
+	return '<input type="submit" name="'.$form['#name'].'" id="send" class="envoyer button" value="'.$form['#value'].'" type="'.$form['#type'].'" />';
+
+}
+/**
+* $form here is the submit button only
+* theme for submit button in simplenews block
+*/
+function theme_sigmah_simplenews_submit($form){	
+	return '<input type="'.$form['#button_type'].'" name="'.$form['#name'].'" id="'.$form['#id'].'" value="'.$form['#value'].'"  class="form-submit sinscrire" />';
+}
+/**
+* $form here is the submit button only
+* theme for your email in simplenews block
+*/
+function theme_sigmah_simplenews_mail($form){
+	return '<input type="'.$form['#type'].'" maxlength="'.$form['#maxlength'].'" name="'.$form['#name'].'" id="'.$form['#id'].'" size="'.$form['#size'].'" value="'.t('Your email').'" class="input"
+	onfocus="if(this.value==\''.t('Your email').'\')this.value=\'\';" onblur="if(this.value==\'\')this.value=\''.t('Your email').'\';" value="'.t('Your email').'"	/>';
+}
+/**
+* $form here is the submit button only
+* theme for submit button in simplenews block
+*/
+function theme_sigmah_search_submit($form){	
+	return '<input type="'.$form['#button_type'].'" name="'.$form['#name'].'" id="'.$form['#id'].'" value="'.$form['#value'].'"  class="form-submit ok" />';
+}
+/**
+* $form here is the submit button only
+* theme for submit button in simplenews block
+*/
+function theme_sigmah_search_input($form){	
+	return '<input type="'.$form['#type'].'" maxlength="'.$form['#maxlength'].'" name="'.$form['#name'].'" id="'.$form['#id'].'" size="'.$form['#size'].'" value="'.t('Search').'" class="input_rechercher form-text"
+	onfocus="if(this.value==\''.t('Search').'\')this.value=\'\';" onblur="if(this.value==\'\')this.value=\''.t('Search').'\';" 	/>';
+}
+/*
+function sigmah_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL){
+	if($node->type == 'book'){
+		if($op='view'){
+			$internal_link = array('#weight'=> -99,'#value'=>'<a name="node'.$node->nid.'"></a>',);
+			$node->content['internal_link'] = $internal_link;
+			$s_link = $node->field_sigmah_link;
+			$s_value = $s_link[0]['value'];
+			$sigmah_link = array('#weight'=> -100,'#value'=>'<a name="'.$s_value.'"></a>',);
+			$node->content['field_sigmah_link'] = $sigmah_link;
+			return;
+		}
+	}
+	
+}
+*/
+?>

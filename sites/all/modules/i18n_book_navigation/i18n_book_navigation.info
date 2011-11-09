@@ -1,0 +1,14 @@
+; $Id: i18n_book_navigation.info,v 1.1 2010/12/15 11:28:31 wadmiraal Exp $ 
+name = i18n Book Navigation
+description = Module for translating the Book Navigation (Block and Node links)
+core = 6.x
+package = Multilanguage
+dependencies[] = i18n
+dependencies[] = i18nblocks
+dependencies[] = book
+; Information added by drupal.org packaging script on January 1, 1970 - 00:00
+version = "6.x-1.1"
+core = "6.x"
+project = "i18n_book_navigation"
+datestamp = "1296570817"
+

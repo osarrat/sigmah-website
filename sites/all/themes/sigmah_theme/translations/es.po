@@ -1,0 +1,431 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  template.php: n/a
+#  theme-settings.php: n/a
+#  sigmah_theme.info: n/a
+#  templates/block-book.tpl.php: n/a
+#  templates/block-user.tpl.php: n/a
+#  templates/comment.tpl.php: n/a
+#  node-og-group-post.tpl.php,v 1.3 2008/11/09 17:17:54 weitzman
+#  templates/not used ancien forum php.php: n/a
+#  forum-list.tpl.php,v 1.4 2007/08/30 18:58:12 goba
+#  forum-topic-list.tpl.php,v 1.4.2.1 2008/10/22 18:22:51 dries
+#  templates/not used page-taxonomy-term-5.tpl.php: n/a
+#  views-view.tpl.php,v 1.13.2.2 2010/03/25 20:25:28 merlinofchaos
+#  node-og-group.tpl.php,v 1.3 2008/10/29 20:04:41 dww
+#  templates/not used oldpage-front.tpl.php: n/a
+#  templates/page-front.tpl.php: n/a
+#  templates/page-type-book.tpl.php: n/a
+#  templates/page.tpl.php: n/a
+#  templates/page-contact.tpl.php: n/a
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2011-05-31 11:00+0200\n"
+"PO-Revision-Date: 2011-05-31 11:14+0100\n"
+"Last-Translator: Nadia <nrebiai@urd.org>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Spanish\n"
+
+#: template.php:221
+msgid "edit block"
+msgstr ""
+
+#: template.php:224
+msgid "edit the content of this block"
+msgstr ""
+
+#: template.php:234
+msgid "configure"
+msgstr ""
+
+#: template.php:237
+msgid "configure this block"
+msgstr ""
+
+#: template.php:248;262
+msgid "edit menu"
+msgstr ""
+
+#: template.php:251;265
+msgid "edit the menu that defines this block"
+msgstr ""
+
+#: theme-settings.php:17
+msgid "Use Zen Tabs"
+msgstr ""
+
+#: theme-settings.php:19
+msgid "Replace the default tabs by the Zen Tabs."
+msgstr ""
+
+#: theme-settings.php:20
+msgid "Zen Tabs:"
+msgstr ""
+
+#: theme-settings.php:25
+msgid "Display borders around main layout elements"
+msgstr ""
+
+#: theme-settings.php:27
+msgid "<a href=\"!link\">Wireframes</a> are useful when prototyping a website."
+msgstr ""
+
+#: theme-settings.php:28
+msgid "Wireframes:"
+msgstr ""
+
+#: theme-settings.php:33
+msgid "Show block editing on hover"
+msgstr ""
+
+#: theme-settings.php:34
+msgid "When hovering over a block, privileged users will see block editing links."
+msgstr ""
+
+#: theme-settings.php:36
+msgid "Block Edit Links:"
+msgstr ""
+
+#: theme-settings.php:41
+msgid "Rebuild theme registry on every page."
+msgstr ""
+
+#: theme-settings.php:43
+msgid "During theme development, it can be very useful to continuously <a href=\"!link\">rebuild the theme registry</a>. WARNING: this is a huge performance penalty and must be turned off on production websites."
+msgstr ""
+
+#: theme-settings.php:44
+msgid "Theme registry:"
+msgstr ""
+
+#: theme-settings.php:79
+msgid "The theme registry has been rebuilt. <a href=\"!link\">Turn off</a> this feature on production websites."
+msgstr ""
+
+#: sigmah_theme.info:0
+msgid "sigmah_theme"
+msgstr "sigmah_theme"
+
+#: sigmah_theme.info:0
+msgid "sigmah_theme starter theme for Drupal 6"
+msgstr ""
+
+#: sigmah_theme.info:0
+msgid "Content top"
+msgstr ""
+
+#: sigmah_theme.info:0
+msgid "Header"
+msgstr ""
+
+#: sigmah_theme.info:0
+msgid "Right sidebar"
+msgstr ""
+
+#: sigmah_theme.info:0
+msgid "Footer"
+msgstr ""
+
+#: sigmah_theme.info:0
+msgid "Content bottom"
+msgstr ""
+
+#: sigmah_theme.info:0
+msgid "Front page test"
+msgstr "Inicio probar"
+
+#: sigmah_theme.info:0
+msgid "Front page actualities"
+msgstr "Inicio novedades"
+
+#: sigmah_theme.info:0
+msgid "Front page newsletter"
+msgstr "Inicio newsletter"
+
+#: sigmah_theme.info:0
+msgid "Front page discover"
+msgstr "Inicio descubrir"
+
+#: sigmah_theme.info:0
+msgid "Front page use"
+msgstr "Inicio usar"
+
+#: sigmah_theme.info:0
+msgid "Front page contribute"
+msgstr "Inicio contribuir"
+
+#: not used/not used ancien forum php.php:15;49
+#: forum-list.tpl.php:50
+#: page-taxonomy-term-5.tpl.php:177
+msgid "topics"
+msgstr ""
+
+#: not used/not used ancien forum php.php:18;52
+#: forum-list.tpl.php:54
+#: forum-topic-list.tpl.php:52
+#: page-taxonomy-term-5.tpl.php:180
+#: templates/node-forum.tpl.php:70
+#: templates/node-view-og_ghp_ron-default.tpl.php:70
+#: templates/views-view--og--page.tpl.php:44
+msgid "posts"
+msgstr ""
+
+#: not used/not used ancien forum php.php:18;52
+#: forum-list.tpl.php:54
+#: forum-topic-list.tpl.php:52
+#: page-taxonomy-term-5.tpl.php:180
+#: templates/node-forum.tpl.php:79
+#: templates/node-view-og_ghp_ron-default.tpl.php:79
+#: templates/views-view--og--page.tpl.php:51
+msgid "Last post by"
+msgstr ""
+
+#: not used/not used ancien forum php.php:22;56
+#: forum-list.tpl.php:57
+#: forum-topic-list.tpl.php:50;56
+#: page-taxonomy-term-5.tpl.php:184
+#: templates/comment.tpl.php:52
+#: templates/node-forum.tpl.php:63;84
+#: templates/node-view-og_ghp_ron-default.tpl.php:63;84
+#: templates/views-view--og--page.tpl.php:37;53
+msgid "at"
+msgstr ""
+
+#: not used/not used ancien forum php.php:24;57
+#: forum-list.tpl.php:58
+#: page-taxonomy-term-5.tpl.php:186
+msgid "forums"
+msgstr ""
+
+#: not used/not used ancien forum php.php:29;62
+#: forum-list.tpl.php:63
+#: forum-topic-list.tpl.php:61
+#: page-taxonomy-term-5.tpl.php:191
+#: templates/node-ong.tpl.php:59
+#: templates/views-view--og--page.tpl.php:105
+msgid "See all"
+msgstr ""
+
+#: not used/not used forum-topic-list.tpl.php:46
+msgid "Created By"
+msgstr ""
+
+#: not used/not used oldpage-front.tpl.php:21
+msgid "Skip to Content"
+msgstr ""
+
+#: not used/not used oldpage-front.tpl.php:21
+msgid "Skip to Navigation"
+msgstr ""
+
+#: not used/not used page-taxonomy-term-5.tpl.php:65;85
+#: used/oldheadofpage.php:48;68
+#: templates/entete.php:57;77
+msgid "Home"
+msgstr "Inicio"
+
+#: not used/not used page-taxonomy-term-5.tpl.php:124
+#: used/oldheadofpage.php:107
+#: templates/entete.php:120
+msgid "Search"
+msgstr "Buscar"
+
+#: templates/block-book.tpl.php:41
+msgid "Contents of"
+msgstr "Contenidos de"
+
+#: templates/block-user.tpl.php:34
+msgid "Skype me!"
+msgstr ""
+
+#: templates/block-user.tpl.php:41
+msgid "Connected members"
+msgstr "Miembros conectados"
+
+#: templates/block-user.tpl.php:46
+msgid "My account"
+msgstr "Mi cuenta"
+
+#: templates/block-user.tpl.php:49;67;78
+msgid "Log out"
+msgstr "Desconectarse"
+
+#: templates/block-views-News_block-block_1.tpl.php:5
+#: templates/pied.php:4
+msgid "News"
+msgstr "Novedades "
+
+#: templates/block-views-News_block-block_1.tpl.php:9
+msgid "All News"
+msgstr "Todas las novedades"
+
+#: templates/comment.tpl.php:39
+msgid "online"
+msgstr ""
+
+#: templates/comment.tpl.php:42
+msgid "Last log since"
+msgstr ""
+
+#: templates/comment.tpl.php:43
+msgid "days"
+msgstr "dias"
+
+#: templates/comment.tpl.php:47
+msgid "Post"
+msgstr ""
+
+#: templates/comment.tpl.php:49
+msgid "Joined"
+msgstr ""
+
+#: templates/comment.tpl.php:56
+msgid "Location"
+msgstr ""
+
+#: templates/node-forum.tpl.php:62
+#: templates/node-view-og_ghp_ron-default.tpl.php:62
+#: templates/views-view--og--page.tpl.php:36
+msgid "By"
+msgstr ""
+
+#: templates/node-forum.tpl.php:67
+#: templates/node-view-og_ghp_ron-default.tpl.php:67
+#: templates/views-view--og--page.tpl.php:41
+msgid "No posts"
+msgstr ""
+
+#: templates/page-contact.tpl.php:18
+msgid "Step"
+msgstr "Etapa"
+
+#: templates/page-contact.tpl.php:18
+msgid "questions, comments ?"
+msgstr "preguntas y observaciones"
+
+#: templates/page-front.tpl.php:13
+msgid "Test the demo"
+msgstr "¡Pruebe la demo "
+
+#: templates/page-front.tpl.php:14
+msgid "and discover the many solutions and functionalities imagined for you!"
+msgstr "y descubra las numerosas soluciones y funcionalidades concebidas para usted!"
+
+#: templates/page-front.tpl.php:15
+msgid "Test"
+msgstr "Probar"
+
+#: templates/page-front.tpl.php:34
+msgid "Discover"
+msgstr "Descubrir "
+
+#: templates/page-front.tpl.php:39
+msgid "What's Sigmah?"
+msgstr "Que es Sigmah ?"
+
+#: templates/page-front.tpl.php:40
+msgid "Sigmah video"
+msgstr "Sigmah video"
+
+#: templates/page-front.tpl.php:41
+msgid "Coming soon ..."
+msgstr ""
+
+#: templates/page-front.tpl.php:47
+msgid "Use"
+msgstr "Usar"
+
+#: templates/page-front.tpl.php:66
+msgid "Test the Sigmah demo"
+msgstr "Probar la demo de Sigmah"
+
+#: templates/page-front.tpl.php:67
+msgid "beta-testers"
+msgstr ""
+
+#: templates/page-front.tpl.php:68
+msgid "Use Sigmah Central"
+msgstr "Usar Sigmah Central"
+
+#: templates/page-front.tpl.php:69
+msgid "accounts"
+msgstr "cuentas"
+
+#: templates/page-front.tpl.php:70
+msgid "Download Sigmah"
+msgstr "Descargar Sigmah"
+
+#: templates/page-front.tpl.php:76
+msgid "Contribute to Sigmah"
+msgstr "Contribuir a Sigmah"
+
+#: templates/page-front.tpl.php:78
+msgid "Questions, comments"
+msgstr "Pregunta y observaciones "
+
+#: templates/page-front.tpl.php:80
+msgid "Write your question here..."
+msgstr "Escriba su pregunta..."
+
+#: templates/page-front.tpl.php:82
+msgid "Send"
+msgstr "Enviar"
+
+#: templates/page-front.tpl.php:87
+msgid "Question by e-mail :"
+msgstr "Consulta por e-mail"
+
+#: templates/page-front.tpl.php:88
+msgid "Contact local technical suport"
+msgstr "Ponerse en contacto con un asistente técnico local"
+
+#: templates/page-front.tpl.php:99
+msgid "No"
+msgstr "No"
+
+#: templates/page-type-book.tpl.php:31
+msgid "Guide contents"
+msgstr ""
+
+#: templates/page-type-book.tpl.php:33
+msgid "History"
+msgstr ""
+
+#: templates/page-type-book.tpl.php:35
+msgid "Edit"
+msgstr ""
+
+#: templates/page.tpl.php:30
+msgid "Revision of "
+msgstr ""
+
+#: templates/page.tpl.php:31
+msgid "Revisión de "
+msgstr ""
+
+#: templates/page.tpl.php:32
+msgid "Révision de "
+msgstr ""
+
+#: templates/pied.php:3
+msgid "Site map"
+msgstr "Mapa del sitio web"
+
+#: templates/pied.php:5
+msgid "Links"
+msgstr "Vínculos"
+
+#: templates/pied.php:6
+msgid "Contact"
+msgstr ""
+
+#~ msgid "Watch the above video"
+#~ msgstr "Ver el vídeo"

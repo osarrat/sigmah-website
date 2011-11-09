@@ -1,0 +1,17 @@
+; $Id: og_multiple_mandatory_groups_by_role.info,v 1.2.2.1 2008/07/19 16:31:25 rconstantine Exp $
+;/**
+; * @package OG_MMGBR
+; * @category NeighborForge
+; */
+name = Multiple mandatory groups by role
+description = Allows a site admin to make one or more groups mandatory to new site subscribers, to group owners, or by role.
+dependencies[] = og
+core = 6.x
+package = Organic groups
+project = "og_multiple_mandatory_groups_by_role"
+; Information added by drupal.org packaging script on 2010-08-04
+version = "6.x-1.4"
+core = "6.x"
+project = "og_multiple_mandatory_groups_by_role"
+datestamp = "1280954174"
+

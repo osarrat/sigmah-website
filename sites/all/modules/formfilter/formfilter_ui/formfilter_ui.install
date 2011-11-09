@@ -1,0 +1,21 @@
+<?php
+// $Id: formfilter_ui.install,v 1.2 2009/09/10 17:12:54 nedjo Exp $
+
+/** 
+ * Implementation of hook_install(). 
+ */
+function formfilter_ui_install() {  
+  // Set a high weight so the module is called after other modules that
+  // modify forms.
+  db_query("UPDATE {system} SET weight = 20 WHERE name = 'formfilter_ui'");
+}
+
+/** 
+  * Implementation of hook_uninstall(). 
+  */
+function formfilter_ui_uninstall() {  
+  $variables = array('formfilter_ui', 'formfilter_simplify_node', 'formfilter');
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+}

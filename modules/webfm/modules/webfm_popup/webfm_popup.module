@@ -1,0 +1,88 @@
+<?php
+// $Id: webfm_popup.module,v 1.5 2009/08/05 03:33:21 robmilne Exp $
+
+/**
+ * @file
+ * This module places the WebFM browser into a popup window for Rich Text Editors
+ */
+
+/**
+ * Implementation of hook_help()
+ */
+function webfm_popup_help($path, $arg) {
+  if ($path == 'admin/help#webfm_popup') {
+    $txt = "This module creates a popup for the webfm module. <br />
+    <h3>FCKEditor Usage</h3>
+    <ol>
+      <li>Go to admin/settings/fckeditor</li>
+      <li>Edit the profile you would like to use it.</li>
+      <li>Under Advanced options Enter the code below into the Custom javascript
+      configuration box.
+      <p>
+        <pre>
+          LinkBrowser= true;
+          ImageBrowser= true;
+          FlashBrowser= true;
+          LinkBrowserURL= getBasePath() + '?q=webfm_popup&webfmid=txtUrl';
+          ImageBrowserURL= getBasePath() + '?q=webfm_popup&webfmid=txtUrl';
+          FlashBrowserURL= getBasePath() + '?q=webfm_popup&webfmid=txtUrl';
+        </pre>
+      </p>
+      <p>
+        If you would like to use physical file paths (no file security or
+        location independence) then change 'webfmid=txtUrl' to 'url=txtUrl'.
+      </p>
+      </li>
+      <li>Click Save Configuration</li>
+    </ol>";
+    return '<p>'. t($txt) .'</p>';
+  }
+}
+
+/**
+ * Implementation of hook_webfm_extend_js()
+ */
+function webfm_popup_webfm_extend_js(){
+  if (arg(0) == 'webfm_popup') {
+    $modulepath = drupal_get_path('module', 'webfm_popup');
+    drupal_add_js($modulepath.'/webfm_popup.js');
+    if(($user->uid == 1) || user_access('administer webfm')) {
+      drupal_add_js(array('webfm_popup' => array('fileDirectory' => file_directory_path())), 'setting');
+    } else {
+      drupal_add_js(array('webfm_popup' => array('fileDirectory' => file_directory_path().webfm_get_root_path())), 'setting');
+    }
+  }
+}
+
+/**
+* Implementation of hook_wysiwyg_plugin().
+*/
+function webfm_popup_wysiwyg_plugin($editor) {
+  static $integrated;
+  switch ($editor) {
+    case 'tinymce':
+      if (!isset($integrated)) {
+        $integrated = TRUE;
+        $settings = array(
+          'webfm_popup' => array(
+            'url' => url('webfm'),
+            'appname' => t('editor'),
+            'wysiwyg_module' => true,
+          ),
+        );
+        drupal_add_js($settings, 'setting');
+        drupal_add_js(drupal_get_path('module', 'webfm_popup') .'/webfm_popup.js');
+      }
+      return array(
+        'webfm_popup' => array(
+          'extensions' => array('webfm_popup' => t('webfm_popup')),
+          'url' => 'http://drupal.org/project/webfm',
+          'options' => array(
+            'file_browser_callback' => 'webfmImageBrowser',
+            'inline_styles' => TRUE,
+          ),
+          'load' => FALSE,
+        ),
+      );
+  }
+}

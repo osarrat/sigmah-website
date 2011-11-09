@@ -1,0 +1,178 @@
+<?php
+// $Id: simplenews_roles.module,v 1.2.2.4 2009/07/28 22:49:39 joachim Exp $
+
+/**
+ * Implementation of hook_help().
+ */
+function simplenews_roles_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#simplenews_roles':
+      return t('Simplenews roles keeps subscriptions to particular newsletters synchronized with one or more roles. Enable roles in the options for <a href="@newsletters">each newsletter</a>.', array('@newsletters' => url('admin/content/simplenews/types')));
+  }
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function simplenews_roles_init() {
+  module_load_include('module', 'simplenews', 'simplenews');
+}
+
+/**
+ * Implementation of hook_cron().
+ */
+function simplenews_roles_cron() {
+  foreach(variable_get('simplenews_roles_tids_rids', array()) as $tid => $rids) {
+    simplenews_roles_update_subscriptions($tid, $rids);
+  }
+}
+
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ *
+ * Add our settings to the newsletter settings page.
+ */
+function simplenews_roles_form_simplenews_admin_types_form_alter(&$form, $form_state) {
+  if (!empty($form['tid']['#value'])) {
+    $form['#submit'][] = 'simplenews_roles_newsletter_submit';
+    $role_newsletters = variable_get('simplenews_roles_tids_rids', array());
+
+    $form['simplenews_roles'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Role synchronization'),
+      '#collapsible' => FALSE,
+      '#description' => t('This newsletter subscription list will consist of only users in the selected roles. This newsletter subscription is automatically syncronized so any users manually added to this list will be removed if they are not in any of the selected roles.'),
+    );
+    $form['simplenews_roles']['roles'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Automatically subscribe users in the following roles to this newsletter'),
+      '#options' => user_roles(TRUE),
+      '#default_value' => isset($role_newsletters[$form['tid']['#value']]) ? $role_newsletters[$form['tid']['#value']] : array(),
+      '#weight' => 10,
+    );
+  }
+}
+
+/**
+ * Forms API callback; additional submit handler for newsletter form.
+ */
+function simplenews_roles_newsletter_submit($form, &$form_state) {
+  $role_newsletters = variable_get('simplenews_roles_tids_rids', array());
+  
+  $tid = intval($form_state['values']['tid']);
+  $roles = $form_state['values']['roles'];
+  
+  $roleids = array();
+  foreach($roles as $roleid => $checked) {
+    if ($checked == $roleid) {
+      $roleids[] = $roleid;
+    }
+  }
+  
+  if (count($roleids) > 0) {
+    $role_newsletters[$tid] = $roleids;
+    simplenews_roles_update_subscriptions($tid, $roleids);
+  }
+  elseif (isset($role_newsletters[$tid])) {
+    unset($role_newsletters[$tid]);
+  }
+  
+  variable_set('simplenews_roles_tids_rids', $role_newsletters);
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function simplenews_roles_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  if ($node->type == 'simplenews') {
+    switch ($op) {
+      case 'insert':
+      case 'update':
+        // Strip out non-Simplenews terms from taxonomy for posterity.
+        $term = simplenews_validate_taxonomy($node->taxonomy);
+        $tid = is_array($term) ? array_shift(array_values($term)) : 0;
+
+        $role_newsletters = variable_get('simplenews_roles_tids_rids', array());
+        if (isset($role_newsletters[$tid])) {
+          simplenews_roles_update_subscriptions($tid, $role_newsletters[$tid]);
+        }
+        break;
+    }
+  }
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function simplenews_roles_theme() {
+	return array('simplenews_roles_newsletter_footer' => array('arguments' => array('format' => NULL, 'hash' => NULL, 'test' => NULL, 'langcode' => NULL)));
+}
+
+/**
+ * Implementation of hook_mail_alter().
+ * It is pointless to have an unsubscribe link for role-based emails.
+ */
+function simplenews_roles_mail_alter(&$message) {
+	$role_newsletters = variable_get('simplenews_roles_tids_rids', array());
+	
+	if ($message['id'] == 'simplenews_test' || $message['id'] == 'simplenews_node') {
+		$tid = $message['params']['context']['node']->simplenews['tid'];
+		if (!empty($role_newsletters[$tid])) {
+			$message['body']['footer'] = '';
+		}
+	}
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function simplenews_roles_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'after_update':
+    case 'insert':
+      $newroles = array();
+      // this array is not always set for all operations, hence the check
+      if ( is_array($edit['roles']) )
+        $newroles = array_keys($edit['roles']);
+      $oldroles = isset($account->roles) ? array_keys($account->roles) : array();
+      $roles = array_unique(array_merge($newroles, $oldroles, array(DRUPAL_AUTHENTICATED_RID)));
+     
+      foreach(variable_get('simplenews_roles_tids_rids', array()) as $tid => $rids) {
+      	if (count(array_intersect($rids, $roles)) > 0)
+          // if there are "new" roles for the user for this newsletter, then sync the user
+          simplenews_roles_update_subscriptions($tid, $rids);
+        else
+         // if the user has no role that matches the current subscription, unsubscribe
+         simplenews_unsubscribe_user($account->mail, $tid, FALSE);
+      }
+      break;
+  }
+}
+
+/**
+ * API function; clears subscription list for specified newsletter and replaces
+ * it with users from the specified roles.
+ */
+function simplenews_roles_update_subscriptions($tid, $rids = array()) {
+  if (is_array($rids) && $rids) {
+    // TODO: Don't delete then insert, find the diff and add/remove!
+
+    // Remove all subscriptions from this newsletter.
+    $result = db_query('DELETE FROM {simplenews_snid_tid} WHERE tid = %d', $tid);
+
+    // Subscribe all active users from selected roles, if special authenticated user
+    // is in selected roles, just pull all active users.
+    if (in_array(DRUPAL_AUTHENTICATED_RID, $rids)) {
+      $result = db_query('SELECT u.mail FROM {users} u WHERE u.status = 1 AND u.uid != 0');
+    }
+    else {
+      $result = db_query('SELECT u.mail FROM {users} u INNER JOIN {users_roles} r ON u.uid = r.uid WHERE u.status = 1 AND ('. implode(' OR ', array_fill(0, count($rids), 'r.rid = %d')) .')', $rids);
+    }
+
+    while ($account = db_fetch_object($result)) {
+      simplenews_subscribe_user($account->mail, $tid, FALSE);
+    }
+
+    watchdog('newsletter', t('Newsletter subscription list was automatically regenerated.'));
+  }
+}

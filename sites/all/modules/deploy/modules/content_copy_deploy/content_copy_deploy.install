@@ -1,0 +1,27 @@
+<?php
+// $Id
+/**
+ * @file
+ * Contains install and update functions for Content Copy Deploy.
+ */
+
+function content_copy_deploy_requirements($phase) {
+  // There is a bug in batch API up through Drupal 6.10 that causes batch API
+  // to fail when a callback runs drupal_execute(). content_copy_export() is
+  // one such function, thereore we return an error if running an older
+  // version. For more info on this issue see [#297972].
+  $requirements = array();
+  // Ensure translations don't break at install time
+  $t = get_t();
+  $version = explode('.', VERSION);
+  $minor_version = explode('-', $version[1]);
+  if ((int)$minor_version[0] < 11) {
+    $requirements['content_copy_deploy_drupal_version'] = array(
+      'title' => $t('Content Copy Deployment requires Drupal upgrade'),
+      'description' => $t("Deployment integration with the Content Copy module requires Drupal 6.11 or higher."),
+      'severity' => REQUIREMENT_ERROR,
+    );
+  }
+  return $requirements;
+}
+

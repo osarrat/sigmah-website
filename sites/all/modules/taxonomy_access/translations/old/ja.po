@@ -1,0 +1,238 @@
+# $Id: ja.po,v 1.1.2.1 2008/08/04 15:51:42 cpugeniusmv Exp $
+# -----------------------------------------------------------------------------
+# Japanese translation of Drupal (taxonomy_access.module)
+#
+# Copyright (c) 2006-2007  Drupal Japan  ( http://drupal.jp/ )  /
+#                          Drupal Nippon ( http://drupon.org/ ) /
+#                          Takafumi      ( jp.drupal@imagine **reverse order**)
+#
+# Generated from file:
+#  taxonomy_access.module,v 1.102.2.4 2007/02/17 11:56:34 keve
+#  taxonomy_access.info,v 1.4 2006/10/26 23:03:28 keve
+#  taxonomy_access.install,v 1.8 2006/11/05 13:31:57 keve
+#  taxonomy_access.info,v 1.4 2006/10/26 23:03:28 keve
+#  taxonomy_access_admin.inc,v 1.9.2.1 2007/02/03 15:42:06 keve
+#
+# -----------------------------------------------------------------------------
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2007-03-11 02:22+0900\n"
+"Last-Translator: Takafumi <jp.drupal@imagine **reverse order**>\n"
+"Language-Team: Drupal Japan / Drupal Nippon\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: taxonomy_access.module:25
+msgid "The Taxonomy Access Control module allows users to specify how each category can be used by various roles."
+msgstr "「タクソノミーアクセスコントロール」モジュールは、ユーザグループごとに、カテゴリごとのアクセス権を指定できるようにします。（※ 「<b>カテゴリ</b>」と「<b>分類用語</b>」は同義と考えてください。）"
+
+#: taxonomy_access.module:26
+msgid "Permissions can be set differently to each USER ROLES. When a USER is assigned to TWO OR MORE USER ROLES, then he receives permissions from ALL OF HIS USER ROLES."
+msgstr "アクセス権は、異なる各ユーザグループに設定することができます。 複数のユーザグループに所属するユーザは、所属する全ユーザグループのアクセス権を一括して受け取ることになります。"
+
+#: taxonomy_access.module:27
+msgid "On the category permissions page for each role, each category displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>:"
+msgstr "<a href=\"?q=admin/user/taxonomy_access\">「タクソノミーアクセス： 権限」ページ</a>には、このサイトで定義されている<b>ユーザグループ</b>がリストアップされています。 各ユーザグループの編集ページには、それぞれの<b>分類用語グループ</b>別に<b>分類用語</b>がリストアップされ、それぞれに5タイプ（「表示」「更新」「削除」「作成」「リスト」）の<b>権限</b>を設定できます。"
+
+#: taxonomy_access.module:29
+msgid "<strong>VIEW</strong> enables the user to access content (nodes) with given term."
+msgstr "<strong>表示</strong>： 特定カテゴリのコンテンツ（ノード）にアクセスできます。"
+
+#: taxonomy_access.module:30
+msgid "<strong>UPDATE, DELETE</strong> enables the user to Update/Delete <u>ALL</u> nodes with the given term. <br><em>(These two permissions are <u>administrator permissions</u>, that should be given ONLY to e.g. content administrators.)</em>"
+msgstr "<strong>更新・削除</strong>： 特定カテゴリの<b>すべて</b>のノードを更新・削除できます。 （これら2つの権限は<b>管理者権限</b>となりますので、例えば、「コンテンツ管理者」などだけに与えるようにします。）"
+
+#: taxonomy_access.module:31
+msgid "<strong>CREATE</strong> enables the user to set that term when adding a new node or when editing a node."
+msgstr "<strong>作成</strong>： 新しいノードの作成や編集の際に、分類用語を指定できます。"
+
+#: taxonomy_access.module:32
+msgid "<strong>LIST</strong> enables the user to view the name of the given term below the title of a node or in category lists.  It also controls whether a user can access the taxonomy page for the given term.  (e.g. \"taxonomy/term/*\")"
+msgstr "<strong>リスト</strong>： ノードのタイトルの下（表示位置はテーマによる）や、カテゴリリストの中で、特定のカテゴリ名を表示できます。 これは同時に、特定カテゴリのタクソノミーページ（例： taxonomy/term/5）へのアクセスもコントロールします。"
+
+#: taxonomy_access.module:34
+msgid "VIEW, UPDATE, and DELETE control the node access system.  LIST and CREATE control if a user can view and select a given term.  (Note: In previous versions of Taxonomy Access Control, there was no LIST permission; its functionality was controlled by the VIEW permission.)"
+msgstr "「表示」「更新」「削除」は、ノードへのアクセスをコントロールします。 「リスト」と「作成」は、ユーザが特定の分類用語を表示したり、選択するのをコントロールします。 （メモ： 以前のバージョンのタクソノミーアクセスコントロールでは、「リスト」権限は無く、「表示」権限がその役割を果たしていました。）"
+
+#: taxonomy_access.module:35
+msgid "<strong>VIEW, UPDATE and DELETE have three options for each term: <u>A</u>llow, <u>I</u>gnore, and <u>D</u>eny.</strong>  Indicate which rights each role should have for each term."
+msgstr "<strong>「表示」「更新」「削除」には、《<b>許可</b>》 《<b>無視</b>》 《<b>拒否</b>》 の3つのオプションがあり、</strong>それぞれの分類用語に対して、各ユーザグループに与える権限を指定します。"
+
+#: taxonomy_access.module:36
+msgid "<strong>CREATE and LIST have only two options for each term:  YES (selected) or NO (deselected).</strong>  Indicate what each role should be allowed to do with each term."
+msgstr "<strong>「作成」と「リスト」には、《<b>許可</b>》（選択） 《<b>拒否</b>》（未選択）の2つのオプションがあり、</strong>それぞれの分類用語に対して、各ユーザグループに許可を与えるかどうかを指定します。"
+
+#: taxonomy_access.module:37
+msgid "<strong>IMPORTANT NOTE:</strong><br><u>The DENY directives are processed after the ALLOW directives. (DENY overrides ALLOW.)</u>  So, if a multicategory node is in Categories \"A\" and \"B\" and a user has ALLOW permissions for VIEW in Category \"A\" and DENY permissions for VIEW in Category \"B\", then the user will NOT be permitted to VIEW the node. (DENY overrides ALLOW.)<br><u>Access is denied by default.</u> So, if a multicategory node is in Categories \"C\" and \"D\" and a user has IGNORE permissions for VIEW in both Category \"C\" and \"D\", then the user will NOT be permitted to VIEW the node.<br>(If you are familiar with Apache mod_access, this permission system works similar to directive: <em>ORDER ALLOW, DENY</em>)"
+msgstr "<strong>重要事項：</strong><br><b>《拒否》 は 《許可》 の後に処理されます。（つまり、《拒否》 は 《許可》 に優先します）</b><br />例えば、「A」と「B」の複数のカテゴリに属するノードがあり、ユーザが「A」に対しては表示を<b>許可</b>され、「B」に対しては表示を<b>拒否</b>されている場合、ユーザはこのノードの表示を<b>拒否</b>されることになります。<br /><b>アクセスはデフォルトで拒否されます。</b><br />例えば、「C」と「D」の複数のカテゴリに属するノードがあり、ユーザが「C」と「D」ともに表示権限を 《<b>無視</b>》 にされている場合、ユーザはこのノードの表示を<b>拒否</b>されることになります。<br>（もし、あなたが Apache の mod_access に精通しているなら、この権限システムは、ディレクティブの <b>ORDER ALLOW, DENY</b> とよく似た動作をすると考えてください。）"
+
+#: taxonomy_access.module:38
+msgid "<strong>Allow/Ignore/Deny All</strong> or <strong>Select/Deselect All:</strong><br>Beside each vocabulary title there are dropdowns containing the options that can be set for individual terms.  Selecting one of these options using the dropdown effectively <u>selects that option for ALL of the individual terms inside that vocabulary when the options are saved.</u><br>Selecting \"--\" does not make any automatic changes to the permission of the terms in that vocabulary; only manual changes that you make will be saved.<br>NOTE:  This does <u>not</u> change the \"Default\" option (described below)."
+msgstr "<strong>すべてを（許可・無視・拒否）する</strong>、または、<strong>すべてを（選択・未選択に）する：</strong><br>それぞれの分類用語グループ名の横に、個々の分類用語にセットできるオプションを含んだドロップダウンリストがあります。 このドロップダウンリストのオプションのうち、1つを選択してから保存をすると、その分類用語グループに含まれる、すべての分類用語に対して、一括してオプションを指定できます。 また、「--」が選択されている場合は、自動的な指定は行われず、手作業で指定したオプションだけが保存されます。<br />メモ： この一括指定によって、以下で説明している「デフォルト」オプションは変更されません。"
+
+#: taxonomy_access.module:39
+msgid "<strong>Default:</strong><br>This option, just underneath the vocabulary title, <u>sets the permission that will automatically be given</u> to the role, <u>for any new terms</u> that are added within the vocabulary.  This includes terms that are added via free tagging."
+msgstr "<strong>デフォルト：</strong><br>このオプションは分類用語グループ名のすぐ下にあり、分類用語が新たに追加された際に、ユーザグループに自動的に与える権限を指定できます。 これは、フリータギングによって追加された分類用語も含まれます。"
+
+#: taxonomy_access.module:40
+msgid "<strong>GOOD TO KNOW:</strong><br><strong>Input formats:</strong>  <u>Node editing/deleting is blocked</u>, even when user has <em>UPDATE/DELETE</em> permission to the node, <u>when user is not allowed to use a filter format</u> that the node was saved at."
+msgstr "<strong>豆知識：</strong><br><strong>【 入力書式とアクセス権 】</strong>  ユーザがノードの<b>更新・削除</b>の権限を持っている場合でも、そのユーザに利用が許可されていない<b>入力書式</b>を使用したノードは、編集・削除ができません。"
+
+#: taxonomy_access.module:48
+msgid "<p><strong>Vocabulary Settings:</strong> Each vocabulary displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>.</p><p>For a detailed description of these permissions and how to use them, see <a href=\"@taxonomy_access_help\">Taxonomy Access Control help</a>. If you are new to Taxonomy Access Control, it is very important that you read the help page.</p>"
+msgstr "<p><strong>分類用語グループの設定：</strong> それぞれの「分類用語グループ」には、そのグループに含まれる「分類用語」がリストアップされ、それぞれには5タイプ（「表示」「更新」「削除」「作成」「リスト」）の権限があります。</p><p>これらの権限の詳細な説明と使い方は、<a href=\"@taxonomy_access_help\">タクソノミーアクセスのヘルプ</a>を参照してください。 特に、初めてタクソノミーアクセスを使う場合には、必ずヘルプを読むようにしてください。"
+
+#: taxonomy_access.module:52
+msgid "In this area you will define the permissions that each <a href=\"@role\">user role</a> has for each category.  Each category can have <em>View, Update, Delete, Create</em> and <em>List</em> permissions set for each user role."
+msgstr "以下で、各<a href=\"@role\">ユーザグループ</a>のカテゴリごとの権限を定義できます。 各カテゴリでは、<b>表示、更新、削除、作成、リスト</b>の権限を設定できます。"
+
+#: taxonomy_access.module:161
+msgid "Taxonomy Access: Settings"
+msgstr "タクソノミーアクセス： 設定"
+
+#: taxonomy_access.module:169
+msgid "Taxonomy Access: Permissions"
+msgstr "タクソノミーアクセス： 権限"
+
+#: taxonomy_access.module:170
+msgid "Sophisticated access control for content items based on category"
+msgstr "カテゴリに基づいてコンテンツの精巧なアクセスコントロールを行います。"
+
+#: taxonomy_access.module:0 taxonomy_access.info:0
+msgid "taxonomy_access"
+msgstr "タクソノミーアクセス"
+
+#: taxonomy_access_admin.inc:23;26
+#msgid "Reset to defaults"
+#msgstr "デフォルトに戻す"
+
+#: taxonomy_access_admin.inc:27
+msgid "The configuration options of taxonomy access have been reset to their default values."
+msgstr "「タクソノミーアクセス」の設定オプションは、デフォルト値にリセットされました。"
+
+#: taxonomy_access_admin.inc:31
+msgid "The configuration options of taxonomy access have been saved."
+msgstr "「タクソノミーアクセス」の設定オプションは保存されました。"
+
+#: taxonomy_access_admin.inc:61
+msgid "Role"
+msgstr "ユーザグループ"
+
+#: taxonomy_access_admin.inc:64
+#msgid "edit"
+#msgstr "編集"
+
+#: taxonomy_access_admin.inc:92
+msgid "Allow all"
+msgstr "すべてを許可する"
+
+#: taxonomy_access_admin.inc:92
+msgid "Ignore all"
+msgstr "すべてを無視する"
+
+#: taxonomy_access_admin.inc:92
+msgid "Deny all"
+msgstr "すべてを拒否する"
+
+#: taxonomy_access_admin.inc:93
+msgid "Select all"
+msgstr "すべてを選択する"
+
+#: taxonomy_access_admin.inc:93
+msgid "Deselect all"
+msgstr "すべてを未選択にする"
+
+#: taxonomy_access_admin.inc:150
+msgid "Save category permissions"
+msgstr "カテゴリ権限の保存"
+
+#: taxonomy_access_admin.inc:168
+#msgid "Category"
+#msgstr "カテゴリ"
+
+#: taxonomy_access_admin.inc:169
+#msgid "View"
+#msgstr "表示"
+
+#: taxonomy_access_admin.inc:170
+#msgid "Update"
+#msgstr "更新"
+
+#: taxonomy_access_admin.inc:171
+#msgid "Delete"
+#msgstr "削除"
+
+#: taxonomy_access_admin.inc:172
+msgid "Create"
+msgstr "作成"
+
+#: taxonomy_access_admin.inc:173
+#msgid "List"
+#msgstr "リスト"
+
+#: taxonomy_access_admin.inc:175
+msgid "A"
+msgstr "<small>許可</small>"
+
+#: taxonomy_access_admin.inc:176
+msgid "I"
+msgstr "<small>無視</small>"
+
+#: taxonomy_access_admin.inc:177
+msgid "D"
+msgstr "<small>拒否</small>"
+
+#: taxonomy_access_admin.inc:180
+#msgid "Allow"
+#msgstr "許可"
+
+#: taxonomy_access_admin.inc:180
+msgid "Ignore"
+msgstr "無視"
+
+#: taxonomy_access_admin.inc:180
+#msgid "Deny"
+#msgstr "拒否"
+
+#: taxonomy_access_admin.inc:182
+msgid "Permissions for"
+msgstr "権限の設定対象："
+
+#: taxonomy_access_admin.inc:189
+msgid "Uncategorized nodes"
+msgstr "未分類のノード"
+
+#: taxonomy_access_admin.inc:223
+#msgid "Default"
+#msgstr "デフォルト"
+
+#: taxonomy_access_admin.inc:364
+msgid "Your permission settings for '%role' role have been saved."
+msgstr "ユーザグループ '%role' の権限設定が保存されました。"
+
+#: taxonomy_access.install:19;38
+msgid "Taxonomy Access - Update #2: No queries executed. Field 'grant_list' already exists in tables 'term_access'."
+msgstr "Taxonomy Access - アップデート #2： クエリは実行されませんでした。 'grant_list' フィールドは 'term_access' テーブルに、すでに存在しています。"
+
+#: taxonomy_access.install:151
+msgid "Taxonomy Access module installed tables successfully."
+msgstr "タクソノミーアクセスモジュールはテーブルを正常にインストールしました。"
+
+#: taxonomy_access.install:154
+msgid "The installation of Taxonomy Access module was unsuccessful."
+msgstr "タクソノミーアクセスモジュールのインストールに失敗しました。"
+
+#: taxonomy_access.install:162
+msgid "Taxonomy Access have been successfully uninstalled."
+msgstr "タクソノミーアクセスは正常にアンインストールされました。"
+
+#: taxonomy_access.info:0
+msgid "Taxonomy Access Control"
+msgstr "タクソノミーアクセスコントロール"
+
+#: taxonomy_access.info:0
+msgid "Access control for user roles based on taxonomy categories."
+msgstr "タクソノミーカテゴリに基づいてユーザグループのアクセスコントロールを行います。"
+

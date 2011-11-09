@@ -1,0 +1,16 @@
+; $Id:
+name = MultiLink
+description = Automatically generate language-dependent node links
+package = "Multilanguage"
+
+; --- Drupal 6.x ---
+dependencies[] = translation
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2010-04-19
+version = "6.x-2.1"
+core = "6.x"
+project = "multilink"
+datestamp = "1271677811"
+

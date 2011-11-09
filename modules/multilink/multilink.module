@@ -1,0 +1,527 @@
+<?php
+// $Id:
+// "MultiLanguage Links" (MultiLink) module for Drupal 6.
+// License: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+// Support: Commercial support and customization is available from www.netgenius.co.uk
+// Contact: www.netgenius.co.uk/contact or email drupal at netgenius.co.uk
+
+
+/*
+ * Implementation of hook_filter_tips()
+ */
+function multilink_filter_tips($delta, $format, $long = false) {
+
+  // Get $mod_name, and $mod_prefix;
+  extract(_multilink_get_ids($format));
+  if (_multilink_setting($mod_prefix, 'enable_MultiLink')) {
+    $tvars = array('%all' => t('all'), '%other' => t('other'));
+    $short_help = t(_multilink_setting($mod_prefix, 'short_help'), $tvars);
+    $long_help = $short_help;
+
+    return t($long? $long_help : $short_help, $tvars);
+  }
+}
+
+// Get $mod_id
+function _multilink_get_ids($format) {
+  $mod_name = 'MultiLink';
+  $mod_id = 'multilink';
+  // Define the prefix used for config values:
+  $mod_prefix = $mod_id.'_'.$format.'_';
+  // If set, use shared config.
+  if (_multilink_setting($mod_prefix, 'shared')) {
+    $mod_prefix = $mod_id.'_shared_';
+  }
+  $GLOBALS['multilink_prefix'] = $mod_prefix;
+  return compact('mod_name', 'mod_id', 'mod_prefix');
+}
+
+/*
+ * Build and return a url
+ */
+function multilink_url($path, $absolute = null) {
+  $options['absolute'] = ($absolute !== null)? $absolute : $GLOBALS['mulitlink_absolute'];
+  // If MultiLink SecurePages is installed, use it.
+  if (function_exists('multilink_securepages_url')) {
+    return multilink_securepages_url($path, $options);
+  }
+  else {
+    return url($path, $options);
+  }
+}
+
+/*
+ * Process MulitLink links.
+ */
+function _multilink_process($matches) {
+  // matches will be: Array ( [0] => [123:title-text] [1] => 123 [2] => title-text )
+  // Get link path and title.
+  $link = _multilink_getnode($matches[1]);
+  if ($matches[2] == '$')  $matches[2] = $link->title;
+  // Build target link.
+  $options = array('external' => 1, 'attributes' => array('title' => $link->title));
+  $result = l($matches[2], multilink_url('node/'.$link->nid), $options);
+  //drupal_set_message('multilink process: ' . (print_r($result, 1)), 'warning');
+  return $result;
+}
+
+/*
+ * Process other types of link.
+ */
+function _multilink_others_process($matches) {
+
+  // Are we processing a link?
+  if (count($matches) == 5) {
+    // URL-based - Markdown, HTML anchor tag, etc.
+    // matches: 0:full, 1:pre-path, 2:path-without-nid , 3:nid, 4:post-path.
+    // To keep things simple regexp is such that , $matches[2] will be 'node' or '/node'
+    $link = _multilink_getnode($matches[3]);
+    $path = trim($matches[2], '/') . '/' . $link->nid;
+    $result = $matches[1] . multilink_url($path) . $matches[4];
+  }
+  // Otherwise we're processing a tag.
+  elseif (count($matches) == 4) {
+    // Pathfilter, InsertNode, etc.
+    // matches: 0:full, 1:pre-nid, 2:nid, 3:post-nid.
+    $link = _multilink_getnode($matches[2]);
+    $result = $matches[1] . $link->nid . $matches[3];
+  }
+  else {
+    $result = $matches[0];
+  }
+  //drupal_set_message('others process: <br>' . htmlentities(print_r($matches, 1)), 'warning');
+  return $result;
+}
+
+/*
+ * Implementation of hook_filter()
+ */
+function multilink_filter($op, $delta = 0, $format = -1, $text = '', $cache_id = 0) {
+
+  // Get $mod_name, $mod_id and $mod_prefix;
+  extract(_multilink_get_ids($format));
+
+  switch ($op) {
+    case 'process':
+      $patterns = _multilink_enabled_patterns($format);
+      if (!empty($patterns)) {
+        // Need to set a global so that callbacks can use the correct value for 'absolute'.
+        $GLOBALS['mulitlink_absolute'] = _multilink_setting($mod_prefix, 'absolute');
+
+        if (isset($patterns['MultiLink'])) {
+          $pattern = $patterns['MultiLink'][1];
+          $text = preg_replace_callback($pattern, '_multilink_process', $text);
+          unset($patterns['MultiLink']);
+        }
+        foreach($patterns as $name => $test) {
+          //drupal_set_message($name . ' - check: ' . htmlspecialchars($test[0]) . ' regexp: ' . htmlspecialchars($test[1]), 'warning');
+          if (!$test[0] || strpos($text, $test[0]) !== FALSE) {
+            $text = preg_replace_callback($test[1], '_multilink_others_process', $text);
+          }
+        }
+      }
+      return $text;
+
+    case 'no cache':
+      $patched = defined('check_markup_language_patch_1');
+      $enabled = variable_get($mod_prefix . 'allow_cache', FALSE);
+      $no_cache = !($patched && $enabled);
+      return $no_cache;
+
+    case 'list':
+      return array(0 => t($mod_name));
+
+    case 'description':
+      return t('Creates links to nodes, selecting a translated version if available.');
+
+    case 'settings':
+      return _multilink_settings($format);
+
+    default:
+      return $text;
+  }
+}
+
+/*
+ * Define patterns to support other types of links (formats used by other input filters modules.)
+ */
+function _multilink_link_formats($format) {
+  // Get $mod_name, $mod_id and $mod_prefix;
+  extract(_multilink_get_ids($format));
+
+  // Add MultiLink formats
+  $formats['MultiLink'] = array(FALSE, _multilink_setting($mod_prefix, 'pattern'));
+
+  // This is a list of filter modules whose format we support.
+  // Uses: module_filename => array(Module_Name, test-string, regexp-pattern
+  // Regexp must define either 3 or 4 groups.
+  $modules = array(
+    // Linodef - http://drupal.org/project/linodef
+    'lindodef' => array('Linodef', '[#', '/(\[#)(\d+)(.*?\])/'),
+    // Path Filter - http://drupal.org/project/pathfilter
+    'pathfilter' => array('Path_Filter', '"internal:node', '/("internal:node\/)(\d+)(.*?")/'),
+    // Link node - http://drupal.org/project/link_node (format is identical to InsertNode.)
+    'link_node' => array('Link node', '[node:', '/(\[node:)(\d+)(.*?\])/'),
+    // InsertNode - http://drupal.org/project/InsertNode (format is identical to Link node.)
+    'InsertNode' => array('InsertNode', '[node:', '/(\[node:)(\d+)(.*?\])/'),
+    // Markdown - http://drupal.org/project/markdown
+    'markdown' => array('Markdown', '(/node/','/(\[.*?\]\()(\/?node\/)(\d+)(.*?\))/'),
+  );
+
+  // Build an array of allowed module-formats...
+  if (_multilink_setting($mod_prefix, 'format_test')) {
+    // Test-mode - allow all module-formats.
+    foreach ($modules as $module) {
+      $formats[$module[0]] = array($module[1], $module[2]);
+    }
+  }
+  else {
+    // Scan the filter to see which supported modules are enabled in the filter.
+    foreach(filter_list_format($format) as $filter) {
+      $module_id = $filter->module;
+      if (isset($modules[$module_id])) {
+        $module = $modules[$module_id];
+        $formats[$module[0]] = array($module[1], $module[2]);
+      }
+    }
+  }
+
+  // Add Generic HTML formats to the end.
+  // We only check for releative paths starting 'node' or '/node'.
+  $formats['Generic HTML'] = array('/node/', '/(<a .*?href=)(\/?node\/)(\d+)(.*?>.*<\/a>)/');
+  /*$formats['Generic HTML image'] = array('/node/', '/(<img .*?src=)(\/?node\/)(\d+)(.*?>)/');*/
+
+  return $formats;
+}
+
+/*
+ * Get patterns to support other types of links.
+ */
+function _multilink_enabled_patterns($format) {
+  static $patterns;
+
+  if(!isset($patterns[$format])) {
+    // Get $mod_name, $mod_id and $mod_prefix;
+    extract(_multilink_get_ids($format));
+
+    $patterns[$format] = array();
+    // Get available link formats.
+    $link_formats = _multilink_link_formats($format);
+    // Add each enabled link format to the result.
+    foreach($link_formats as $name => $settings) {
+      $key = 'enable_' . str_replace(' ', '_', $name);
+      if (_multilink_setting($mod_prefix, $key)) {
+        $patterns[$format][$name] = $settings;
+      }
+    }
+  }
+  //drupal_set_message($format . ': enabled formats: ' . htmlspecialchars(print_r($patterns[$format], 1)), 'error');
+  return $patterns[$format];
+}
+
+/*
+ * Get an array of preferred languages.
+ */
+function _multilink_preferred_languages() {
+  static $pref_languages;
+
+  if (!isset($pref_languages)) {
+    global $user;
+    global $language;
+
+    // Get array of possible languages in order of preference.
+    $user_language = user_preferred_language($user, $language);
+    $default_language = language_default();
+    $languages = array($user_language->language, $language->language, $default_language->language);
+    $pref_languages = array_unique($languages);
+  }
+  return $pref_languages;
+}
+
+/*
+ * Return a $node object containing (at least) nid, language, title for translated version of $node.
+ * Return original $node if no suitable translation is available.
+ */
+function _multilink_get_translation($node, $pref_languages) {
+  global $language;
+
+  // If the node is not 'language neutral'...
+  if ($node->language) {
+    // Get translations;
+    $translations = translation_node_get_translations($node->tnid);
+
+    foreach($pref_languages as $lang) {
+      if (isset($translations[$lang])) {
+        $node = $translations[$lang];
+        break;
+      }
+    }
+  }
+  /*
+  // @todo Else if Language Sections is in use...
+  elseif (function_exists('language_sections_format_check')) {
+    // If node uses Language Sections filtering...
+    if (language_sections_format_check($node->format)) {
+      // @todo: Get supported languages from LS.  Needs supporting updates in LS.
+    }
+  }
+  */
+  return $node;
+}
+
+function _multilink_cache($op, $nid, $pref_languages = array(), $data = null) {
+  // We are using our own cache table, so don't need to worry about key conflicts with other modules.
+  $table = 'cache_multilink';
+  $base_key = sprintf('nid:%d:', $nid);
+  $full_key = sprintf('%s%08x', $base_key, crc32(implode(':', $pref_languages)));
+
+  switch ($op) {
+    case 'get':
+      $cached = cache_get($full_key, $table);
+      return isset($cached->data)? $cached->data : FALSE;
+    case 'set':
+      cache_set($full_key, $data, $table);
+      break;
+    case 'clear':
+      cache_clear_all($base_key, $table, TRUE);
+      break;
+  }
+}
+
+function _multilink_getnode($nid) {
+  static $saved;
+
+  // Check static cache (useful if node is linked several times per page.)
+  if (isset($saved[$nid])) {
+    $result = $saved[$nid];
+  }
+  else {
+    // Load from cache if available.
+    $pref_languages = _multilink_preferred_languages();
+    $result = _multilink_cache('get', $nid, $pref_languages);
+    if (!$result) {
+      // Build from scratch and store in cache.
+      $result = _multilink_buildnode($nid, $pref_languages);
+      _multilink_cache('set', $nid, $pref_languages, $result);
+    }
+    $saved[$nid] = $result;
+  }
+  return $result;
+}
+
+function _multilink_buildnode($nid, $pref_languages) {
+  global $language;
+
+  // We need to load the node to get its language and tnid.
+  $node = node_load($nid);
+
+  // If the node has a language but it's not the first preferred language...
+  if ($node->language != $pref_languages[0]) {
+    // Try to find a suitable translation.
+    $node = _multilink_get_translation($node, $pref_languages);
+  }
+
+  // If node language is different from *current* language, show actual language in title.
+  if ($node->language && $node->language != $language->language) {
+    $result->title = sprintf('[%s] %s', locale_language_name($node->language), $node->title);
+  }
+  else {
+    $result->title = $node->title;
+  }
+
+  $result->nid = $node->nid;
+  //$result->path = 'node/'.$node->nid;
+  return $result;
+}
+
+/*
+ * Define default values for settings, get individual setting.
+ */
+function _multilink_setting($mod_prefix, $key) {
+  static $defaults;
+  if (!isset($defaults)) {
+    $defaults = array(
+      'pattern' => '/\[(\d+): ?(.+?)\]/',
+      'short_help' => 'Enter node links as <em>[1234:text]</em> '
+                    . 'where <em>1234</em> is a node number and <em>text</em> is what should be displayed '
+                    . 'or <em>$</em> to display the node\'s title.',
+      'enable_MultiLink' => TRUE,
+    );
+  }
+  return variable_get($mod_prefix.$key, $defaults[$key]);
+}
+
+/*
+ * Build and return the settings form.
+ */
+function _multilink_settings($format) {
+
+  // Get $mod_name, $mod_id and $mod_prefix;
+  extract(_multilink_get_ids($format));
+
+  //require_once(dirname(__FILE__) . '/help.html');
+  global $language;
+  $textsize = 30;
+
+  // Some settings should be reset to default if set blank in the form:
+  $keys = array('pattern', 'short_help');
+  foreach ($keys as $key) {
+    if (!($$key = _multilink_setting($mod_prefix, $key))) {
+      variable_del($mod_prefix.$key);
+      $$key = _multilink_setting($mod_prefix, $key);
+    }
+  }
+
+  // Create collapsible section for this module in the filters configuration form.
+  $section =& $form[$mod_id];
+  $fieldset =& $section;
+  $shared = _multilink_setting($mod_prefix, 'shared');
+  $section = array(
+    '#type' => 'fieldset',
+    '#title' => $shared? sprintf('%s (%s)', $mod_name, t('shared configuration')) : $mod_name,
+    '#collapsible' => TRUE,
+  );
+
+  $key = 'absolute';
+  $fieldset[$mod_prefix.$key] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Absolute urls'),
+    '#default_value' => _multilink_setting($mod_prefix, $key),
+    '#description' => t('If set, links will be generated with absolute urls, i.e: http://example.com/node/1'),
+  );
+
+  $key = 'short_help';
+  $fieldset[$mod_prefix.$key] = array(
+    '#type' => 'textarea',
+    '#title' => t('User help'),
+    '#rows' => 2,
+    '#default_value' => $short_help,
+    '#description' => t('Filter-help shown to the user. This text is passed through t().  Blank to reset to default value.'),
+  );
+
+  /*
+  $section['help'] = array(
+    '#type' => 'markup',
+    '#value' => '<p>Help goes here.</p>',
+  );
+  */
+
+
+  // --- Link formats ---
+  $link_formats = array_keys(_multilink_link_formats($format));
+  $fieldset =& $section['link_formats'];
+  $fieldset = array(
+    '#type' => 'fieldset',
+    '#title' => t('Link formats'),
+    '#description' => t('This section allows you to define what types of links/tags should be processed by MultiLink.'),
+    '#collapsible' => TRUE, '#collapsed' => TRUE,
+  );
+
+  foreach($link_formats as $name) {
+    $key = 'enable_' . str_replace(' ', '_', $name);
+    $fieldset[$mod_prefix.$key] = array(
+      '#type' => 'checkbox',
+      '#title' => $name,
+      '#default_value' => _multilink_setting($mod_prefix, $key),
+      '#description' => t('Process links/tags in %module format.', array('%module' => $name)),
+    );
+  }
+
+  // --- Other format options ---
+  $key = 'format_test';
+  $fieldset[$mod_prefix.$key] = array(
+    '#prefix' => '<hr />',
+    '#type' => 'checkbox',
+    '#title' => t('Test supported formats'),
+    '#default_value' => _multilink_setting($mod_prefix, $key),
+    '#description' => t('Allow all supported link-formats regardless of whether the corresponding filter modules are enabled. '
+                      . 'Enabling this option will activate additional settings above (after saving.)'
+                      ),
+  );
+
+/*
+  $key = 'use_alias';
+  $fieldset[$mod_prefix.$key] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Convert to alias'),
+    '#default_value' => _multilink_setting($mod_prefix, $key),
+    '#description' => t('Should multlink convert /node/1234 to its alias (if available)?'),
+  );
+*/
+  // --- Advanced settings ---
+  $fieldset =& $section['advanced'];
+  $fieldset = array(
+    '#type' => 'fieldset',
+    '#title' => t('Advanced'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $key = 'shared';
+  $fieldset[$mod_prefix.$key] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Shared configuration'),
+    '#default_value' => $shared,
+    '#description' => t('Use the same configuration for all filters. If you change this, save and then check all configuration values.'),
+  );
+
+  $key = 'pattern';
+  $fieldset[$mod_prefix.$key] = array(
+    '#type' => 'textfield',
+    '#title' => t('Pattern'),
+    '#size' => 40,
+    '#default_value' => $pattern,
+    '#description' => t('This pattern will be used to find %name links in the text.'
+                      . ' You should not change the number of parenthesised groups in the expression.'
+                      . ' Blank to reset default.', array('%name' => $mod_name)),
+  );
+
+  // Display caching options depending whether caching is possible (patch installed.)
+  $fieldset =& $fieldset['cache'];
+  $patched = defined('check_markup_language_patch_1');
+  $msg = array('Patch for $func is not installed - output cannot be cached. See included README.txt',
+               'Patch for $func is installed - output can be cached.',
+              );
+  $fieldset = array(
+    '#type' => 'fieldset',
+    '#title' => t('Output caching'),
+    '#value' => t($msg[$patched], array('$func' => 'check_markup()')),
+  );
+
+  if ($patched) {
+    $key = 'allow_cache';
+    $fieldset[$mod_prefix.$key] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Additional caching'),
+      '#default_value' => _multilink_setting($mod_prefix, $key),
+      '#description' => t('In addition to MultiLink\'s internal caching, allow Drupal to cache filtered output.'
+                        . ' This should improve performance but displayed links may be out of date.'
+                        . ' Even if this option is enabled, other filters may prevent caching.'
+                        . ' If you change this option you must re-save the !settings afterwards.'
+                        , array('!settings' => l(t('filter settings'), 'admin/settings/filters/' . $format))),
+    );
+  }
+
+  return $form;
+}
+
+/*
+ * Implement hook nodeapi.
+ * If a node is added, updated or deleted, clear any cached entries we may have for that node and its translations.
+ */
+function multilink_nodeapi($node, $op) {
+  // Trap node insert, update and delete
+  if (strpos(':insert:update:delete:', $op)) {
+    $tnid = ($op == 'insert')? $node->translation_source->tnid : $node->tnid;
+    $translations = translation_node_get_translations($tnid);
+    // If we have no translations, just work on the current node.
+    if (empty($translations)) {
+      $translations[] = $node;
+    }
+    foreach($translations as $translation) {
+      _multilink_cache('clear', $translation->nid);
+    }
+  }
+}
+
+// --- Drupal docs advise NOT closing PHP tags ---

@@ -1,0 +1,64 @@
+<?php
+
+/**
+ * @file
+ * Interface to deploy content types between servers
+ *
+ * NOTE: This only works with Drupal 6.11 or higher. Lower versions will
+ * cause deployments to fail once they reach the first content type.
+ */
+include_once ('./'. drupal_get_path('module', 'node') .'/content_types.inc');
+
+/**
+ * Implementation of hook menu().
+ */
+function content_copy_deploy_menu() {
+  $items = array();
+  $plans = deploy_get_plan_options();
+
+  if (!empty($plans)) {
+    $items['admin/content/types/deploy'] = array(
+      'title' => 'Deploy',
+      'description' => 'Add a content type to a deployment plan.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('content_copy_deploy_add_form', $plans),
+      'access arguments' => array('add items to deployment plan'),
+      'file' => './content_copy_deploy.pages.inc',
+      'type' => MENU_LOCAL_TASK
+    );
+  }
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_node_type().
+ */
+function content_copy_node_type($op, $info) {
+  // Remove the deleted content type from all plans.
+  if ($op == 'delete') {
+    deploy_plan_item_delete(array('module' => 'content_copy', 'data' => $info->type));
+  }
+}
+
+/**
+ * Deploy content deployment 'hook'.
+ */
+function content_copy_deploy($content_type) {
+  if (module_exists('fieldgroup')) {
+    $groups = array_keys(fieldgroup_groups($content_type));
+  }
+
+  $fields = array_values(content_copy_fields($content_type));
+
+  $values = array(
+    'type_name' => $content_type,
+    'groups' => $groups,
+    'fields' => $fields,
+  );
+
+  $export = content_copy_export($values);
+  
+  return deploy_send(array('content_copy.import'), array($content_type, $export));
+}
+

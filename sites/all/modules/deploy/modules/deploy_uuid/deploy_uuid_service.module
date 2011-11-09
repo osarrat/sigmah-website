@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * Implementation of hook_service().
+ */
+function deploy_uuid_service_service() {
+  return array(
+    // uuid.get_key
+    array(
+      '#method'           => 'deploy_uuid.get_key',
+      '#callback'         => 'deploy_uuid_service_get_key',
+      '#access callback'  => 'deploy_uuid_service_access',
+      '#file'             => array('file' => 'inc', 'module' => 'deploy_uuid_service'),
+      '#args'             => array(
+        array(
+          '#name'           => 'uuid',
+          '#type'           => 'string',
+          '#description'    => t('A UUID.')
+        ),
+        array(
+          '#name'           => 'module',
+          '#type'           => 'string',
+          '#description'    => t('The module whose matching key we\'re retrieving.')
+        ),
+      ),
+      '#return'           => 'array',
+      '#help'             => t('Return the primary key which matches a UUID.')
+    ),
+  );
+}

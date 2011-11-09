@@ -1,0 +1,178 @@
+@charset "UTF-8";
+/* CSS Document */
+
+/* typo 
+author : jeremy
+*/
+
+a { color: #3a3a3a; text-decoration: underline; border:none; outline:0;}
+a:link, a:visited, a:active{ color: #ff4e00; text-decoration:none; border:none; outline:0; }
+
+a:hover {
+	text-decoration:underline;
+}
+
+
+
+H1, H2, H3, H4, H5, H6 {
+	font-family:Tahoma, Geneva, sans-serif;
+	font-weight:bold;
+}
+
+h4, #content h1.title {
+	color:#855c41;
+	font-size:21px;
+	margin:5px 0 15px 10px;
+	font-weight:bold;
+	font-family:Tahoma, Geneva, sans-serif;
+	text-indent: 10px;
+}
+.col h4 {
+	color:#503227;
+	font-size:28px;
+	margin:5px 0 10px 10px;
+	font-weight:normal;
+	font-family:Tahoma, Geneva, sans-serif;
+
+}
+
+H6 {
+	font-size:14px;
+	font-weight:bold;
+}
+
+p {
+	line-height:21px;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:14px;
+	margin:8px 0 16px 0;
+	
+}
+
+.miseenavant { 
+	color: #89664E;
+	font-weight:bold;
+}
+
+.jaune, #content a, #content .baseRow {
+	color:#f4aB0B;
+}
+
+.jaune {
+	font-size:16px;
+	line-height:21px;
+}
+
+.commentaires .jaune {
+	font-size:14px;
+}
+
+
+
+#content a {
+	text-decoration:underline;
+}
+#content a:hover {
+	text-decoration:none;
+}
+#content {
+	color:#855C41;
+	line-height:normal;
+	font-size:0.9em;
+}
+
+
+
+#content ul li {
+	margin:5px 0 5px 5px;
+	list-style:inside;
+}
+
+#content H1, #content H2,#content H3, #content H4, #content H5, #content H6 
+{margin:13px 0 0 0;
+	font-size:18px;
+	font-weight:bold;}
+
+#content h5 {
+	color:#855c41;
+	font-size:1.1em;
+	margin-top:30px;
+}
+
+#content ul {margin:15px 0;}
+
+table {
+	width:100%;
+	margin:10px 0;
+}
+
+table th {
+	background:#f6b134;
+	padding:10px 5px;
+	border-left:solid 1px #FFF4D8;
+	font-weight:normal;
+	}
+	
+table th:hover, table th.selected {
+	background:url(../img/entete.png) repeat-x;
+}
+
+table th:hover a, table th.selected a {
+	background:url(../img/flechecolo.png) bottom center no-repeat;
+}
+
+#content table th a {
+	padding-bottom:5px;
+	font-weight:normal;
+	text-decoration:none;
+	color:#503227;
+	}
+table td {
+	padding:3px 5px;
+}
+
+.row1 {
+	background:#fff4d8;
+}
+
+.baseline {
+	font-size:12px;
+	}
+#content .baseline a {
+	color:#503227;
+}
+
+
+#content ul.liste_marron li {
+	list-style:none;
+	padding-left:13px;
+	background:url(../img/puce_marron.jpg) no-repeat left center;
+}
+
+#content ul li.baseline {
+	list-style:none;
+}
+#content ul.liste_jaune li {
+	list-style:none;
+	padding-left:13px;
+	background:url(../img/puceo.png) no-repeat left center;
+}
+
+#content .midlemise H5 {
+	margin-top:10px;
+}
+
+#content .commentaires .right_content .baseline {
+	font-size:11px;
+	padding:0px;
+	
+}
+
+#content h4 {
+	margin-bottom:15px;
+}
+
+
+
+
+

@@ -1,0 +1,923 @@
+<?php
+// $Id: taxonomy_access.module,v 1.107.2.25 2010/09/06 14:44:36 xjm Exp $
+// Based on original taxonomy_access.module made by pyromanfo
+
+/**
+ * @file
+ * Allows administrators to specify how each category (in the taxonomy) can be used by various roles.
+ */
+
+/**
+ * Maximum number of nodes for which to update node access within the module.
+ * If it's greater, then node_access_needs_rebuild() will be set instead.
+ */
+define('TAXONOMY_ACCESS_MAX_UPDATE', 500);
+
+/**
+ * Implements hook_help().
+ */
+function taxonomy_access_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#taxonomy_access':
+      $message = '';
+      $message .= ''
+        . '<p>'. t('The Taxonomy Access Control module allows users to specify how each category can be used by various roles.') .'</p>'
+        . '<p>'. t('Permissions can be set differently for each user role. Be aware that setting Taxonomy Access permissions works <em>only within one user role</em>.') . '</p>'
+        . '<p>' . t('(For users with multiple user roles, see section <a href="#good-to-know">Good to know</a> below.)') .'</p><hr /><br />'
+        . "<h3>" . t("On this page") . "</h3>"
+        . "<ol>"
+        . '<li><a href="#grant">' . t("Grant types") . '</a></li>'
+        . '<li><a href="#perm">' . t("Permission options") . '</a></li>'
+        . '<li><a href="#defaults">' . t("Global and vocabulary defaults") . '</a></li>'
+        . '<li><a href="#good-to-know">' . t("Good to know") . '</a></li>'
+        . "</ol><hr /><br />"
+        . '<h3 id="grant">' . t("Grant types") . '</h3>'
+        . '<p>'. t('On the category permissions page for each role, administrators can configure five types of permission for each term: <em>View, Update, Delete, Create</em> and <em>List</em>:') .'</p>'
+        . _taxonomy_access_grant_help_table()
+        . '<p>'. t('<em>View</em>, <em>Update</em>, and <em>Delete</em> control the node access system.  <em>List</em> and <em>Create</em> control the terms themselves.  (Note: In previous versions of Taxonomy Access Control, there was no <em>List</em> permission its functionality was controlled by the <em>View</em> permission.)') .'</p><hr /><br />'
+        . '<h3 id="perm">' . t("Permission options") . "</h3>"
+        . '<p>'. t('<strong><em>View</em>, <em>Update</em>, and <em>Delete</em> have three options for each term:</strong> <em>Allow</em> (<acronym title="Allow">A</acronym>), <em>Ignore</em> (<acronym title="Ignore">I</acronym>), and <em>Deny</em> (<acronym title="Deny">D</acronym>).  Indicate which rights each role should have for each term.  If a node is tagged with multiple terms:') .'</p>'
+        . "<ul>\n"
+        . "<li>"
+        . t('<em>Deny</em> (<acronym title="Deny">D</acronym>) overrides <em>Allow</em> (<acronym title="Allow">A</acronym>) within a role.')
+        . "</li>"
+        . "<li>"
+        . t('Both <em>Allow</em> (<acronym title="Allow">A</acronym>) and <em>Deny</em> (<acronym title="Deny">D</acronym>) override <em>Ignore</em> (<acronym title="Ignore">I</acronym>) within a role.')
+    . "</li>"
+        . "<li>"
+        . t('If a user has <strong>multiple roles</strong>, an <em>Allow</em> (<acronym title="Allow">A</acronym>) from one role <strong>will</strong> override a <em>Deny</em> (<acronym title="Deny">D</acronym>) in another.  (For more information, see section <a href="#good-to-know">Good to know</a> below.)')
+        . "</li>"
+        . "</ul>\n\n"
+        . '<p>'. t('<strong><em>Create</em> and <em>List</em> have only two options for each term:</strong>  <em>Yes</em> (selected) or <em>No</em> (deselected).  Indicate what each role should be allowed to do with each term.') .'</p>'
+        . "<h4>" . t("Important notes") . "</h4>"
+        . "<ol>"
+        . "<li>"
+        . t('Custom roles <strong>will</strong> inherit permissions from the <em>authenticated user</em> role.  Be sure to <a href="@url">configure
+the authenticated user</a> properly.',
+          array("@url" => url("admin/user/taxonomy_access/edit/2")))
+        . "</li>\n"
+        . '<li>'
+        . "<p>" . t('The <em>Deny</em> directives are processed after the <em>Allow</em> directives. (<strong><em>Deny</em> overrides <em>Allow</em></strong>.)</em>  So, if a multicategory node is in Categories "A" and "B" and a user has <em>Allow</em> permissions for <em>View</em> in Category "A" and <em>Deny</em> permissions for <em>View</em> in Category "B", then the user will NOT be permitted to <em>View</em> the node.') . '</p>'
+        . '<p>' . t('<em>Access is denied by default.</em> So, if a multicategory node is in Categories "C" and "D" and a user has <em>Ignore</em> permissions for <em>View</em> in both Category "C" and "D", then the user will <strong>not</strong> be permitted to view the node.') . '</p>'
+        . '<p>' . t('(If you are familiar with Apache mod_access, this permission system works similar to directive: <em>ORDER ALLOW, DENY</em>)') .'</p>'
+        . "</li>"
+        . "</ol>"
+        . "<hr /><br />"
+        . '<h3 id="defaults">' . t("Global and vocabulary defaults") . "</h3>"
+        . '<p>'. t('This option, just underneath the vocabulary title, <em>sets the permission that will automatically be given</em> to the role, <em>for any new terms</em> that are added within the vocabulary.  This includes terms that are added via free tagging.') .'</p><hr /><br />'
+        . '<h3 id="good-to-know">'. t('Good to know') .'</h3>'
+        . '<ol>'
+        . '<li>'
+        . '<p>'. t('<strong>Users with multiple user roles:</strong> Allow/Ignore/Deny options are interpreted <em>only within one user role</em>. When a user belongs to multiple user roles, then <strong>the user gets access if <em>any</em> of his/her user roles have the access granted.</strong>') . '</p>'
+        . '<p>' . t('In this case, permissions for the given user are calculated so that the <em>permissions of ALL of his user roles are "OR-ed" together</em>, which means that <em>Allow</em> in one role will take precedence over <em>Deny</em> in the other. This is different from how node access permissions (for multi-category nodes) are handled <em>within one user role</em>, as noted above.') .'</p>'
+        . '</li>'
+        . '<li>'
+        . '<p>'. t('<strong>Input formats:</strong>  <em>Node editing/deleting is blocked</em>, even when the user has <em>Update</em> or <em>Delete</em> permission to the node, <em>when the user is not allowed to use a filter format</em> that the node was saved at.') .'</p>'
+        . '</li>'
+        . '</ol>'
+        .'<hr /><br />'
+        ;
+      return $message;
+      break;
+  }
+}
+
+/**
+ * Implements hook_enable().
+ *
+ * Housekeeping: while we were away, did you delete any terms/vocabs/roles?
+ * 1: delete ta rows for missing terms
+ * 2: delete tad rows for missing vocabs
+ * 3: delete ta, tad rows for missing roles
+ * 4: rebuild node_access
+ */
+function taxonomy_access_enable() {
+  global $db_type;
+  switch ($db_type) {
+    case 'mysql':
+    case 'mysqli':
+      /**
+       * @todo
+       *     Test our PostgreSQL code with MySQL and replace this DB-specific
+       *     code with it, if it works.
+       */
+      db_query('DELETE ta FROM {term_access} ta LEFT JOIN {term_data} td ON ta.tid = td.tid WHERE ta.tid <> 0 AND ISNULL(td.tid)');
+      db_query('DELETE tad FROM {term_access_defaults} tad LEFT JOIN {vocabulary} v ON tad.vid = v.vid WHERE tad.vid <> 0 AND ISNULL(v.vid)');
+      db_query('DELETE ta FROM {term_access} ta LEFT JOIN {role} r ON ta.rid = r.rid WHERE ISNULL(r.rid)');
+      db_query('DELETE tad FROM {term_access_defaults} tad LEFT JOIN {role} r ON tad.rid = r.rid WHERE ISNULL(r.rid)');
+      break;
+    case 'pgsql':
+      $queries = array(
+        'tax' => "SELECT ta.tid,ta.rid FROM {term_access} ta LEFT JOIN {term_data} td ON ta.tid = td.tid WHERE ta.tid <> 0 AND td.tid IS NULL",
+        'tadx' => "SELECT tad.vid,tad.rid FROM {term_access_defaults} tad LEFT JOIN {vocabulary} v ON tad.vid = v.vid WHERE tad.vid <> 0 AND v.vid IS NULL",
+        'tar' => "SELECT ta.tid,ta.rid FROM {term_access} ta LEFT JOIN {role} r ON ta.rid = r.rid WHERE r.rid IS NULL",
+        'tadr' => "SELECT tad.vid,tad.rid FROM {term_access_defaults} tad LEFT JOIN {role} r ON tad.rid = r.rid WHERE r.rid IS NULL"
+      );
+      foreach ($queries as $type => $sql) {
+        $result = db_query($sql);
+        while ($args = db_fetch_array($result)) {
+          if ($args) {
+            if ($type == 'tax' || $type == 'tar') {
+              db_query("DELETE FROM {term_access} WHERE tid = %d AND rid = %d", $args);
+            }
+            else {
+              db_query("DELETE FROM {term_access_defaults} WHERE vid = %d AND rid = %d", $args);
+            }
+          }
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_node_grants().
+ * Gives access to taxonomies based on the taxonomy_access table.
+ */
+function taxonomy_access_node_grants($user, $op) {
+  return array('term_access' => array_keys(is_array($user->roles) ? $user->roles : array(1 => 'anonymous user')));
+}
+
+/**
+ * Implements hook_node_access_records().
+ *
+ * @todo
+ *    Get 1st query to behave properly when no term or vocab record is present.
+ */
+function taxonomy_access_node_access_records($node) {
+  $grants = array();
+
+  $result = db_query(
+    'SELECT tadg.rid,
+     BIT_OR(COALESCE( ta.grant_view, tad.grant_view, tadg.grant_view )) AS grant_view,
+     BIT_OR(COALESCE( ta.grant_update, tad.grant_update, tadg.grant_update )) AS grant_update,
+     BIT_OR(COALESCE( ta.grant_delete, tad.grant_delete, tadg.grant_delete )) AS grant_delete
+     FROM {term_node} tn
+     INNER JOIN {term_data} t ON t.tid = tn.tid
+     INNER JOIN {term_access_defaults} tadg ON tadg.vid = 0
+     LEFT JOIN {term_access_defaults} tad ON tad.vid = t.vid AND tad.rid = tadg.rid
+     LEFT JOIN {term_access} ta ON ta.tid = t.tid AND ta.rid = tadg.rid
+     WHERE tn.vid = %d
+     GROUP BY tadg.rid', $node->vid);
+
+  // First query returns no rows if there is no {term_node} data for the node.
+  // In that scenario, use the global default.
+  if (!db_affected_rows($result)) {
+    // Use the default for nodes with no category
+    $result = db_query(
+      'SELECT n.nid, tadg.rid AS rid, tadg.grant_view AS grant_view, tadg.grant_update AS grant_update, tadg.grant_delete AS grant_delete
+       FROM {node} n INNER JOIN {term_access_defaults} tadg ON tadg.vid = 0
+       WHERE n.nid = %d', $node->nid);
+  }
+
+  // Ignore => 0, Allow => 1, Deny => 2 ('10' in binary).
+  // Only a value of 1 is considered an 'Allow';
+  // with an 'Allow' and no 'Deny', the value from the BIT_OR will be 1.
+  // If a 'Deny' is present, the value will then be 3 ('11' in binary).
+  while ($row = db_fetch_array($result)) {
+    $grants[] = array(
+      'realm' => 'term_access',
+       'gid' => $row['rid'],
+       'grant_view' => ($row['grant_view'] == 1) ? 1 : 0,
+       'grant_update' => ($row['grant_update'] == 1) ? 1 : 0,
+       'grant_delete' => ($row['grant_delete'] == 1) ? 1 : 0,
+      'priority' => 0,
+    );
+  }
+
+  return $grants;
+}
+
+/**
+ * Implements hook_init().
+ */
+function taxonomy_access_init() {
+  if (arg(0) == 'admin') {
+    // Only include administrative callbacks and css if we are viewing an admin page.
+    $path = drupal_get_path('module', 'taxonomy_access');
+    include_once($path .'/taxonomy_access_admin.inc');
+    drupal_add_css($path .'/admin.css');
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function taxonomy_access_theme() {
+  return array(
+    'taxonomy_access_admin_form' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function taxonomy_access_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'taxonomy_access') . '/includes',
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function taxonomy_access_menu() {
+  $items = array();
+
+  $items['admin/user/taxonomy_access'] = array(
+      'title' => 'Taxonomy access permissions',
+      'description' => 'Taxonomy-based access control for content',
+      'page callback' => 'taxonomy_access_admin',
+      'access arguments' => array('administer permissions'),
+    );
+  $items['admin/user/taxonomy_access/delete'] = array(
+      'type' => MENU_CALLBACK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('taxonomy_access_admin_delete_role'),
+      'access arguments' => array('administer permissions'),
+    );
+  $items['admin/user/taxonomy_access/edit'] = array(
+      'type' => MENU_CALLBACK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('taxonomy_access_admin_form'),
+      'access arguments' => array('administer permissions'),
+    );
+
+  return $items;
+}
+
+
+
+/**
+ * Implements hook_form_alter().
+ *
+ * @todo
+ *     Move control of "create" op here
+ * @todo
+ *     Look at feasability to eliminate _restore_terms and _preserve_terms
+ *     by simply setting the '#access' attribute for those terms.
+ */
+function taxonomy_access_form_alter(&$form, $form_state, $form_id) {
+  if ($form['#id'] == 'node-form' && is_numeric($form['nid']['#value'])) {
+    $form['tac_protected_terms'] = array(
+      '#type' => 'value',
+      '#value' => taxonomy_access_preserve_terms($form['#node'])
+    );
+  }
+}
+
+
+/**
+ * Implements hook_form_FORM_ID_alter() for taxonomy-form-term.
+ * Overriding the term deletion form's submit handler allows us to determine
+ * which {node_access} entries must be updated before the {term_data} and
+ * {term_node} records are deleted from the database.
+ */
+function taxonomy_access_form_taxonomy_form_term_alter(&$form, &$form_state) {
+  $form['#submit'] = array('taxonomy_access_term_submit');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for taxonomy-vocabulary-confirm-delete.
+ * Overriding the vocabulary deletion form's submit handler allows us to
+ * determine which {node_access} entries must be updated before the
+ * {term_data} and {term_node} records are deleted from the database.
+ */
+function taxonomy_access_form_taxonomy_vocabulary_confirm_delete_alter(&$form, &$form_state) {
+  $form['#submit'] = array('taxonomy_access_vocabulary_delete_submit');
+}
+
+
+/**
+ * Submit handler for term deletions.
+ * Overrides term deletion handling to determine what node access to update.
+ *
+ * @return
+ *     Confirmation form, or nothing, as appropriate.
+ */
+function taxonomy_access_term_submit(&$form, &$form_state) {
+  // If we are deleting a term, override the default behavior.
+  if ($form_state['clicked_button']['#value'] == t('Delete')) {
+
+    // If the user has already confirmed deletion, proceed.
+    if ($form_state['values']['delete'] === TRUE) {
+
+      $tid = $form_state['values']['tid'];
+      _taxonomy_access_del_term($tid);
+
+      // Determine which nodes belong to this term and its children and cache.
+      $affected_nodes = _taxonomy_access_get_nodes_for_term($tid, TRUE);
+      _taxonomy_access_cache_affected_nodes($affected_nodes);
+
+      // Proceed with term deletion.
+      return taxonomy_term_confirm_delete_submit($form, $form_state);
+    }
+
+    // Otherwise, rebuild the form to confirm deletion as in default handler.
+    $form_state['rebuild'] = TRUE;
+    $form_state['confirm_delete'] = TRUE;
+    return;
+  }
+
+  // If we are not deleting, follow the default behavior.
+  else {
+    taxonomy_form_term_submit($form, $form_state);
+  }
+}
+
+/**
+ * Submit handler for vocabulary deletions.
+ * Overrides vocab deletion handling to determine what node access to update.
+ */
+function taxonomy_access_vocabulary_delete_submit(&$form, &$form_state) {
+  $vid = $form_state['values']['vid'];
+  _taxonomy_access_del_vocabulary($vid);
+
+  // Determine which nodes belong to this vocabulary and cache.
+  $affected_nodes = _taxonomy_access_get_nodes_for_vocabulary($vid);
+  _taxonomy_access_cache_affected_nodes($affected_nodes);
+
+  // Proceed with vocabulary deletion.
+  return taxonomy_vocabulary_confirm_delete_submit($form, $form_state);
+}
+
+/**
+ * Implements hook_nodeapi().
+ */
+function taxonomy_access_nodeapi(&$node, $op, $arg = 0) {
+  switch ($op) {
+    case 'presave':
+      break;
+
+    case 'update':
+      // restore terms that the user shouldn't have access to delete
+      taxonomy_access_restore_terms($node->nid, $node->vid, $node->tac_protected_terms);
+      break;
+
+    case 'delete':
+      // Remove our entries for this node from table {node_access}.
+      //INFO: node_access_write_grants($node, $grants, $realm = NULL, $delete = TRUE)
+      node_access_write_grants($node, array(), 'term_access');
+      break;
+  }
+}
+
+/**
+ * Implements hook_taxonomy().
+ */
+function taxonomy_access_taxonomy($op, $type, $array = NULL) {
+  switch ($op) {
+    case 'delete':
+      // See taxonomy_access_form_taxonomy_form_term_alter()
+      // and taxonomy_access_form_taxonomy_vocabulary_confirm_delete_alter().
+
+      // Use static variables so they are available when children use the hook.
+      static $del_vocab;
+      static $del_term;
+      static $affected_nodes;
+      static $descendants;
+
+      // Check for flags & node list from our admin form submit overrides.
+      if (!isset($del_vocab)) {
+        $del_vocab = _taxonomy_access_del_vocabulary();
+      }
+      if (!isset($del_term)) {
+        $del_term = _taxonomy_access_del_term();
+      }
+      if (!isset($affected_nodes)) {
+        $affected_nodes = _taxonomy_access_cache_affected_nodes();
+      }
+      if (!isset($descendants) && $del_term) {
+        $descendants = _taxonomy_access_get_descendants($del_term);
+      }
+
+      // Clean our data for the term or vocab.
+      if ($type == 'term') {
+        db_query("DELETE FROM {term_access} WHERE tid = '%d'",
+          $array['tid']);
+      }
+      if ($type == 'vocabulary') {
+        db_query("DELETE FROM {term_access_defaults} WHERE vid = '%d'",
+          $array['vid']);
+      }
+
+      // Determine if and how to update node access.
+
+      // If the user deleted a vocabulary on the admin form, use cached data.
+      if ($del_vocab) {
+
+        // Only trigger node access update on the vocab deletion itself,
+        // after all the terms have been deleted.
+        if ($type == 'vocabulary') {
+          _taxonomy_access_node_access_update($affected_nodes);
+        }
+      }
+
+      // If the user deleted a term on the admin form, use cached data.
+      elseif ($del_term) {
+
+        // Main term is first one to invoke the hook.
+        // To ensure that update runs only once after all descendants have
+        // been processed, unset each when it invokes the hook.
+
+        $key = array_search($array['tid'], $descendants);
+        if (!($key === FALSE)) { // Might be zero.
+          unset($descendants[$key]);
+        }
+
+        // If there are no descendants left, process updates.
+        if (sizeof($descendants) == 0) {
+          _taxonomy_access_node_access_update($affected_nodes);
+        }
+      }
+
+      // Otherwise, we don't know which nodes are affected,
+      // so indicate that node access needs to be rebuilt.
+      else {
+        node_access_needs_rebuild(TRUE);
+      }
+
+      break;
+  }
+
+  return;
+}
+
+/**
+ * Implements hook_db_rewrite_sql().
+ */
+function taxonomy_access_db_rewrite_sql($query, $table, $field) {
+  if (!user_access('administer taxonomy') && ($field =='vid' || $field =='tid')) {
+
+    // Table {node_revisions} also has a vid (revision, not vocabulary)
+    if ($table == 'node_revisions') {
+      return array();
+    }
+
+    global $user;
+
+    if (arg(0) == "admin") {
+      $op = (arg(1) == 'node' && (arg(2) == 'add' || arg(3) == 'edit')) ? 'create' : 'list';
+    }
+    else {
+      $op = (arg(0) == 'node' && (arg(1) == 'add' || arg(2) == 'edit')) ? 'create' : 'list';
+    }
+
+    // let's cache
+    static $taxonomy_access_sql_clause;
+    $clause = array();
+
+    if (!isset($taxonomy_access_sql_clause)) {
+      $taxonomy_access_sql_clause = array();
+    }
+    if (!isset($taxonomy_access_sql_clause[$op][$field]))  {
+      if (isset($user) && is_array($user->roles)) {
+        $rids = array_keys($user->roles);
+      }
+      else {
+        $rids[] = 1;
+      }
+
+      $sql = db_query(
+        'SELECT t.tid AS tid, t.vid AS vid FROM {term_data} t
+         INNER JOIN {term_access_defaults} tdg ON tdg.vid=0
+         LEFT JOIN {term_access_defaults} td ON td.vid=t.vid AND td.rid=tdg.rid
+         LEFT JOIN {term_access} ta ON ta.tid=t.tid AND ta.rid=tdg.rid
+         WHERE tdg.rid IN (' . db_placeholders($rids, 'int') .')
+         GROUP BY t.tid, t.vid
+         HAVING BIT_OR(COALESCE(
+                                ta.' . db_escape_table("grant_$op") . ',
+                                td.' . db_escape_table("grant_$op") . ',
+                                tdg.' . db_escape_table("grant_$op") . '
+                               )) > 0', $rids);
+
+      $tids = array();
+      $vids = array();
+
+      while ($result = db_fetch_object($sql)) {
+        $tids[]= $result->tid;
+        $vids[$result->vid]= $result->vid;
+      }
+
+      // Insert required vocabularies to avoid skipping of validation at node submission
+      if ($op == 'create') {
+        $sql = db_query('SELECT vid FROM {vocabulary} WHERE required = 1 OR tags = 1');
+        while ($row = db_fetch_array($sql)) {
+          $vids[$row['vid']] = $row['vid'];
+        }
+      }
+
+      // Typecast $tids and $vids as ints to sanitize.
+      foreach ($tids as $key => $tid) {
+        $tids[$key] = (int) $tid;
+      }
+      foreach ($vids as $key => $vid) {
+        $vids[$key] = (int) $vid;
+      }
+
+      $clause[$op]['tid'] = isset($tids) ? implode("','", $tids) : '';
+      $clause[$op]['vid'] = isset($vids) ? implode("','", $vids) : '';
+      $taxonomy_access_sql_clause = $clause;
+    }
+    else {
+      $clause[$op][$field] = $taxonomy_access_sql_clause[$op][$field];
+    }
+
+    $return = array();
+    if ($clause[$op][$field]) {
+      $return['where'] =
+        db_escape_table($table) . "." . db_escape_table($field)
+        . " IN ('". $clause[$op][$field] ."')";
+    }
+    else {
+      $return['where'] =
+        db_escape_table($table) . "." . db_escape_table($field)
+        . " IS NULL";
+    }
+    return $return;
+  }
+  else {
+    return array();
+  }
+}
+
+/**
+ * Used to preserve terms deleted by taxonomy_node_delete()
+ * that the user shouldn't have access to delete.
+ * See http://drupal.org/node/92355 and http://drupal.org/node/93086
+ *
+ * @todo
+ *     Should be possible to replace this with #access per term-field.
+ */
+function taxonomy_access_preserve_terms($node) {
+  $nid = $node->nid;
+
+  // prepare/cache return value
+  static $tids = array();
+
+  // a valid numeric nid is required
+  if (!is_numeric($nid)) {
+    return array();
+  }
+
+  // use cached values if possible
+  if (isset($tids[$nid])) {
+    return $tids[$nid];
+  }
+
+  // get a list of terms this user has access to/over
+  // (invokes hook_db_rewrite_sql() to limit access)
+  $user_terms = taxonomy_node_get_terms($node);
+
+  // get a list of all terms this node is in regardless of user's
+  // access settings. Don't use db_rewrite_sql() api call here (or
+  // any other API call, the taxonomy API functions all use
+  // db_rewrite_sql() so we must query the database tables directly)
+  $result = db_query('SELECT tid FROM {term_node} WHERE vid = %d', $node->vid);
+  $tids[$nid] = array();
+  while ($row = db_fetch_array($result)) {
+    // only include those terms the current user does not have access to
+    if (!isset($user_terms[$row['tid']])) {
+      $tids[$nid][$row['tid']] = $row['tid'];
+    }
+  }
+
+  // return only terms current user does not have access
+  // to and therefore need restoring after edit/update
+  return $tids[$nid];
+}
+
+/**
+ * Used to restore terms deleted by taxonomy_node_delete()
+ * that the user shouldn't have access to delete.
+ * See http://drupal.org/node/92355 and http://drupal.org/node/93086
+ */
+function taxonomy_access_restore_terms($nid, $vid, $protected_terms) {
+  if (isset($protected_terms)) {
+    $terms = $protected_terms;
+    if (count($terms)) {
+      $args = array($nid, $vid);
+      $args = array_merge($args, $terms);
+      db_query('DELETE FROM {term_node} WHERE nid = %d AND vid = %d
+                  AND tid IN ('. db_placeholders($terms, 'int') .')',
+        $args);
+      foreach ($terms as $tid) {
+        // Create row for Schema API.
+        $row = new stdClass();
+        $row->nid = $nid;
+        $row->vid = $vid;
+        $row->tid = $tid;
+        drupal_write_record('term_node', $row);
+      }
+    }
+  }
+}
+
+/**
+ * Gets permissions for a given role.
+ *
+ * @param $rid
+ *   The role id to retrieve the permissions for.
+ *
+ * @return
+ *   A two dimensional hash of the form $grants[tid][grant] where
+ *   tid is the term id and grant is the permission
+ *   ('view','delete', etc.).
+ *   This entry in the hash is true if permission is granted, false otherwise.
+ */
+function taxonomy_access_get_grants($rid) {
+  if (!isset($rid)) {
+    return FALSE;
+  }
+  if (isset($rid) && !is_numeric($rid)) {
+    $rid = db_result(db_query("SELECT rid FROM {role} WHERE name='%s'", $rid));
+  }
+  $result = db_query("SELECT * FROM {term_access} WHERE rid=%d", $rid);
+  $grants = array();
+  while ($grant = db_fetch_array($result)) {
+    $tid = $grant['tid'];
+    foreach ($grant as $key => $grant_val) {
+      if (strpos($key, 'grant_') !== FALSE) {
+        $grant_name = '';
+        $grant_name = str_replace('grant_', '', $key);
+        if (!isset($grants[$tid][$grant_name]) || !($grants[$tid][$grant_name])) {
+          // If there's conflicting DB rules, take the most lenient
+          $grants[$tid][$grant_name] = $grant_val;
+        }
+      }
+    }
+  }
+  return $grants;
+}
+/**
+ * Gets default permissions for a given role.
+ *
+ * @param $rid
+ *   The role id to retrieve the permissions for.
+ *
+ * @return
+ *   A two dimensional hash of the form $grants[vid][grant] where
+ *   vid is the vocab id and
+ *   grant is the permission (i.e. 'view','delete',ect.)
+ *   this entry in the hash is true if permission is granted, false otherwise
+ */
+function taxonomy_access_get_default_grants($rid) {
+  if (!is_numeric($rid)) {
+    return FALSE;
+  }
+  $result = db_query("SELECT * FROM {term_access_defaults} WHERE rid=%d", $rid);
+  $grants = array();
+  while ($grant = db_fetch_array($result)) {
+    $vid = $grant['vid'];
+    foreach ($grant as $key => $grant_val) {
+      if (strpos($key, 'grant_') !== FALSE) {
+        $grant_name = '';
+        $grant_name = str_replace('grant_', '', $key);
+        if (!isset($grants[$vid][$grant_name]) || !($grants[$vid][$grant_name])) {
+          // If there's conflicting DB rules, take the most lenient
+          $grants[$vid][$grant_name] = $grant_val;
+        }
+      }
+    }
+  }
+  return $grants;
+}
+
+
+/**
+ * Get term IDs for all descendants of the given term.
+ * @param $tid
+ *    The term ID for which to fetch children
+ * @return
+ *    An array of the IDs of the term's descendants.
+ */
+function _taxonomy_access_get_descendants($tid) {
+  static $descendants = array();
+
+  if (!isset($descendants[$tid])) {
+    $descendants[$tid] = array();
+    $term = taxonomy_get_term($tid);
+    $tree = taxonomy_get_tree($term->vid, $tid);
+
+    foreach ($tree as $term) {
+      $descendants[$tid][] = $term->tid;
+    }
+  }
+  return $descendants[$tid];
+}
+
+/**
+ * Gets node ids associated with a given term.
+ *
+ * @param $tid
+ *    The term id for which to retrieve associated nodes.
+ * @param $get_children
+ *    Whether to recursively get nodes tagged with the term's children as well.
+ *
+ * @return
+ *    An array of node ids associated with the given term.
+ */
+function _taxonomy_access_get_nodes_for_term($tid, $get_children = FALSE) {
+  $nids = array();
+
+  $result = db_query("SELECT nid FROM {term_node} WHERE tid = %d", $tid);
+  while ($node = db_fetch_object($result)) {
+    $nids[] = $node->nid;
+  }
+
+  // If requested, get nodes tagged with all children as well.
+  if ($get_children) {
+    $child_tids = _taxonomy_access_get_descendants($tid);
+    if (sizeof($child_tids) > 0) {
+      $child_r = db_query(
+        'SELECT nid FROM {term_node} WHERE tid IN '
+        .'(' . db_placeholders($child_tids, 'int') . ')',
+        $child_tids
+      );
+      while ($node = db_fetch_object($child_r)) {
+        $nids[] = $node->nid;
+      }
+    }
+  }
+  return $nids;
+}
+
+/**
+ * Gets node ids associated with a given vocabulary.
+ *
+ * @param $vid
+ *    The vocabulary id for which to retrieve associated node ids.
+ * @param $rid
+ *    The role id for which to retrieve node ids, if any.
+ *    This argument has the effect of filtering out nodes in terms that
+ *    are already controlled invidually for the role.
+ *
+ * @return
+ *    An array of node ids associated with the given vocabulary.
+ */
+function _taxonomy_access_get_nodes_for_vocabulary($vid, $rid = NULL) {
+  $nids = array();
+
+  $query =
+    "SELECT n.nid FROM {term_node} n
+      LEFT JOIN {term_data} d ON n.tid = d.tid
+      WHERE d.vid = %d ";
+  $args = array($vid);
+
+  if (!is_null($rid)) {
+    // Get terms in the vocabulary that are controlled for this role.
+    $r = db_query(
+      "SELECT a.tid FROM {term_access} a
+       INNER JOIN {term_data} d ON d.tid = a.tid
+       WHERE a.rid = %d AND d.vid = %d", $rid, $vid);
+
+    $tids = array();
+    while ($row = db_fetch_object($r)) {
+      $tids[] = $row->tid;
+    }
+
+    if (!empty($tids)) {
+      // Exclude nodes with those terms from the results.
+      $query .=
+        " AND n.tid NOT IN (" . db_placeholders($tids, 'int') . ")";
+      $args = array_merge($args, $tids);
+    }
+  }
+  $result = db_query($query, $args);
+
+  while ($node = db_fetch_object($result)) {
+    $nids[] = $node->nid;
+  }
+  return $nids;
+}
+
+/**
+ * Gets node ids associated with the given role.
+ *
+ * @param $rid
+ *    The role id.
+ *
+ * @return
+ *    An array of node ids associated with terms or vocabularies that are
+ *    controlled for the role.
+ */
+function _taxonomy_access_get_nodes_for_role($rid) {
+  $nids = array();
+  $result = db_query(
+    'SELECT n.nid
+     FROM {term_node} n
+     LEFT JOIN {term_data} d ON n.tid = d.tid
+     LEFT JOIN {term_access} a ON n.tid = a.tid
+     LEFT JOIN {term_access_defaults} ad on ad.vid = d.vid
+     WHERE a.rid = %d OR ad.rid = %d', $rid, $rid);
+
+  while ($node = db_fetch_object($result)) {
+    $nids[] = $node->nid;
+  }
+  return $nids;
+}
+
+/**
+ * Updates node access grants for a set of nodes.
+ *
+ * @param $nids
+ *    An array of node ids for which to acquire access permissions.
+ */
+function _taxonomy_access_node_access_update($nids) {
+
+  // Proceed only if node_access_needs_rebuild() is not already flagged.
+  if (!node_access_needs_rebuild()) {
+
+    // Set node_access_needs_rebuild() until we succeed below.
+    node_access_needs_rebuild(TRUE);
+
+    // Remove any duplicate nids from the array.
+    $nids = array_unique($nids);
+
+    // If the number of nodes is small enough, update node access for each.
+    if (sizeof($nids) < TAXONOMY_ACCESS_MAX_UPDATE) {
+      foreach ($nids as $node) {
+        $loaded_node = node_load($node, NULL, TRUE);
+        if (!empty($loaded_node)) {
+          node_access_acquire_grants($loaded_node);
+        }
+      }
+
+      // If we make it here our update was successful; unflag rebuild.
+      node_access_needs_rebuild(FALSE);
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * Cache and retrieve nodes affected by a taxonomy change.
+ *
+ * @param $affected_nodes
+ *    If we are caching, the list of nids to cache.
+ *
+ * @return
+ *    The cached list of nodes.
+ */
+function _taxonomy_access_cache_affected_nodes($affected_nodes = NULL) {
+  static $nodes = array();
+
+  // If we were passed a list of nodes, cache.
+  if (isset($affected_nodes)) {
+    $nodes = array_merge($nodes, $affected_nodes);
+  }
+
+  // Otherwise, return the cached data.
+  else {
+    return $nodes;
+  }
+}
+
+/**
+ * Flag indicating whether we are processing a vocab deletion via admin form.
+ *
+ * @param $vid
+ *    The vid being deleted.
+ *
+ * @return
+ *    The cached vid, or false if none is cached.
+ */
+function _taxonomy_access_del_vocabulary($vid = NULL) {
+  static $deleted_vid = FALSE;
+
+  // If the vid was passed, cache.
+  if (isset($vid)) {
+    $deleted_vid = $vid;
+  }
+
+  // Otherwise, return the cached value.
+  else {
+    return $deleted_vid;
+  }
+}
+
+/**
+ * Flag indicating whether we are processing a term deletion via admin form.
+ *
+ * @param $tid
+ *    The tid being deleted.
+ *
+ * @return
+ *    The cached tid, or false if none is cached.
+ */
+function _taxonomy_access_del_term($tid = NULL) {
+  static $deleted_tid = FALSE;
+
+  // If the tid was passed, cache.
+  if (isset($tid)) {
+    $deleted_tid = $tid;
+  }
+
+  // Otherwise, return the cached value.
+  else {
+    return $deleted_tid;
+  }
+}

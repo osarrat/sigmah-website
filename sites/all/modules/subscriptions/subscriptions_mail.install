@@ -1,0 +1,24 @@
+<?php
+// $Id: subscriptions_mail.install,v 1.1 2009/04/14 02:26:21 salvis Exp $
+
+/**
+ * @file
+ * Subscriptions Mail module installation.
+ */
+
+/**
+ * Implementation of hook_install().
+ */
+function subscriptions_mail_install() {
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function subscriptions_mail_uninstall() {
+  variable_del('subscriptions_number_of_mails');
+  variable_del('subscriptions_site_mail_name');
+  variable_del('subscriptions_site_mail');
+  variable_del('subscriptions_watchgood');
+  variable_del('subscriptions_watchstats');
+}

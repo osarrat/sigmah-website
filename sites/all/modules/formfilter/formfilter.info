@@ -1,0 +1,13 @@
+; $Id: formfilter.info,v 1.5 2008/05/07 17:17:30 nedjo Exp $
+name = Formfilter
+description = Provides developer methods for filtering forms.
+core = 6.x
+
+
+
+; Information added by drupal.org packaging script on 2010-01-26
+version = "6.x-1.0"
+core = "6.x"
+project = "formfilter"
+datestamp = "1264468208"
+

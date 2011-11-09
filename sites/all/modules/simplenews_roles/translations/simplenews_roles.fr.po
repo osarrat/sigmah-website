@@ -1,0 +1,53 @@
+# $Id: simplenews_roles.fr.po,v 1.1.4.2 2009/08/12 21:42:37 joachim Exp $
+#
+# French translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  simplenews_roles.module,v 1.1.2.3 2007/10/18 04:40:31 robroy
+#  simplenews_roles.info,v 1.1.2.1 2007/06/18 23:07:03 dww
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2008-04-18 22:14-0400\n"
+"PO-Revision-Date: 2008-04-18 22:14-0400\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: French <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: simplenews_roles.module:29
+msgid "Automatically subscribe users in the following roles to this newsletter"
+msgstr "Inscrire automatiquement les utilisateurs titulaires des rôles suivants à ce bulletin."
+
+#: simplenews_roles.module:32
+msgid "This newsletter subscription list will consist of only users in the selected roles. This newsletter subscription is automatically syncronized so any users manually added to this list will be removed if they are not in any of the selected roles."
+msgstr "La liste d'inscription de ce bulletin sera constituée uniquement des utilisateurs ayant les rôles sélectionnés. La liste d'inscription est synchronisée automatiquement; les utilisateurs ajoutés manuellement à cette liste seront enlevés s'ils n'ont pas un des rôles sélectionnés."
+
+#: simplenews_roles.module:98
+msgid "Newsletter subscription list was automatically regenerated."
+msgstr "La liste d'inscription au bulletin a été regénérée automatiquement."
+
+#: simplenews_roles.module:98
+msgid "newsletter"
+msgstr "bulletin"
+
+#: simplenews_roles.module:0
+msgid "simplenews_roles"
+msgstr "simplenews_roles"
+
+#: simplenews_roles.info:0
+msgid "Simplenews Roles"
+msgstr "Simplenews Roles"
+
+#: simplenews_roles.info:0
+msgid "Automatically subscribe users in designated roles to a newsletter list."
+msgstr "Inscrit automatiquement les utilisateurs titulaires de certains rôles à un bulletin."
+
+#: simplenews_roles.info:0
+msgid "Mail"
+msgstr ""
+

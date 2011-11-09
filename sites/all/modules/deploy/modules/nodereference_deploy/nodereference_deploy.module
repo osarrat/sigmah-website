@@ -1,0 +1,127 @@
+<?php
+/**
+ * @file
+ * Deployment module for nodereferences
+ */
+
+/**
+ * Implementation of hook_node_deploy(),
+ *
+ * @param $nid
+ *   Unique identifier for the node we're deploying.
+ * @return
+ *   The results of our xmlrpc call.
+ *
+ * @todo does this work with select lists as well? or just with
+ *   autocomplete lists?
+ */
+function nodereference_node_deploy(&$node) {
+  $nodereference_fields = nodereference_deploy_get_nodereference_fields();
+  foreach ($nodereference_fields as $field_name) {
+    if (property_exists($node, $field_name)) {
+      $field = array();
+      foreach ($node->{$field_name} as $key => $nodereference) {
+        if (!empty($nodereference['nid']['nid'])) {
+          // The nid is actually stored as follows sent to us as
+          // <node title> [nid:<nid>] 
+          // The following regex comes from nodereference.module to parse the nid out
+          // of that string. We then put it back together when we get our remote nid.
+          preg_match('/^(?:\s*|(.*) )?\[\s*nid\s*:\s*(\d+)\s*\]$/', $nodereference['nid']['nid'], $matches);
+          if (!empty($matches)) {
+            $uuid = deploy_uuid_get_node_uuid($matches[2]);
+            $remote_data = deploy_get_remote_key(deploy_uuid_get_node_uuid($matches[2]), 'node');
+            if ($remote_data) {
+              $field[$key]['nid'] = array('nid' => '[nid:'. $remote_data['nid'] .']');
+            }          
+          }
+          elseif(is_numeric($key)) {
+            // Then this is a select list so we get the data in a different format.
+            $uuid = deploy_uuid_get_node_uuid($nodereference['nid']);
+            $remote_data = deploy_get_remote_key(deploy_uuid_get_node_uuid($nodereference['nid']), 'node');
+            if ($remote_data) {
+              $field[$key]['nid'] = $remote_data['nid'];
+            }  
+          }
+        }
+      }
+      $node->{$field_name} = $field;
+    }
+  }
+}
+
+/**
+ * Implementation of hook_node_deploy_check().
+ *
+ * Used to manage deployment dependencies
+ *
+ * @param $nid
+ *   Unique identifier of the nodereference we're trying to deploy
+ */
+function nodereference_node_deploy_check($node) {
+  // pid of the plan we're deploying
+  $pid = variable_get('deploy_pid', 0);
+
+  // Get an array of all the nodereference fields in the system
+  $nodereference_fields = nodereference_deploy_get_nodereference_fields();
+
+  // This will be an array of the nids of all fields our node
+  // references
+  $nids = array();
+
+  // Roll through all the possible nodereference fields. If it exists
+  // in the node, then roll through its values and add them to $nids
+  // (unless they were already added previously and are not the node
+  // whose dependencies are currently being checked).
+  foreach ($nodereference_fields as $field) {
+    if (property_exists($node, $field)) {
+      foreach ($node->{$field} as $nodereference) {
+        if (!empty($nodereference['nid']) && !in_array($nodereference['nid'], $nids) && $nodereference['nid'] != $node->nid) {
+          $nids[] = $nodereference['nid'];
+        }
+      }
+    }
+  }
+
+  // For each of these nodes, if they're not already in the plan,
+  // add them and dependency check them.
+  foreach ($nids as $nid) {
+    // If this node is already in the deployment plan then either
+    // a) it was added by the user and will get checked down the line or
+    // b) it was added through dependency checks and its already been
+    // dealt with. So we just move on in this case.
+    if (!deploy_item_is_in_plan($pid, 'node', $nid)) {
+      // Does this node exist on the remote server?
+      $remote_key = deploy_get_remote_key(deploy_uuid_get_node_uuid($nid), 'node');
+
+      // If it doesn't exist or the local version is newer, add it to the deployment plan, 
+      // with a weight of min(weight) - 1, and then run dependency checking on it
+      $plan_node = node_load($nid);
+      if ($plan_node && (!$remote_key || $remote_key['changed'] < $plan_node->changed)) {
+        deploy_add_to_plan($pid, 'node', $plan_node->type .': '. $plan_node->title, $plan_node->nid, deploy_get_min_weight($pid)-1, DEPLOY_NODE_GROUP_WEIGHT);
+        module_invoke_all('node_deploy_check', $plan_node);
+      }
+    }
+  }
+}
+
+/**
+ * Get an array listing the names of all nodereference fields.
+ *
+ * @return
+ *   Array of all created nodereference fields
+ **/
+function nodereference_deploy_get_nodereference_fields() {
+  // This isn't changing much, so cache it to save some queries
+  static $nodereference_fields = array();
+
+  if (empty($nodereference_fields)) {
+    $fields = content_fields();
+    foreach ($fields as $name => $field) {
+      if ($field['type'] == 'nodereference') {
+        $nodereference_fields[$name] = $name;
+      }
+    }
+  }
+
+  return $nodereference_fields;
+}

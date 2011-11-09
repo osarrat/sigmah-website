@@ -1,0 +1,79 @@
+<?php
+// $Id:
+// "MultiLanguage Links" (MultiLink) module for Drupal 6.
+// License: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+// Support: Commercial support and customization is available from www.netgenius.co.uk
+// Contact: www.netgenius.co.uk/contact or email drupal at netgenius.co.uk
+
+function multilink_redirect_node($path) {
+  // Check if path is node/nid and return nid or FALSE.
+  $pattern = '!^node/([1-9]\d*)/?$!';
+  $ret = (preg_match($pattern, $path, $matches) != 0)? $matches[1] : FALSE;
+  //drupal_set_message('matches: ' . print_r($matches, 1));
+  return $ret;
+}
+
+/*
+ * Return the path actually requested, including protocol.
+ */
+function multilink_redirect_qpath() {
+  //See: http://php.net/manual/en/reserved.variables.server.php
+  $http = (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] == 'off')? 'http' : 'https';
+  return sprintf('%s://%s/%s', $http, $_SERVER['HTTP_HOST'], $_REQUEST['q']);
+}
+
+function multilink_redirect_init() {
+  $test = 0;
+
+  // Get requested internal system path (without language prefix).
+  $path = $_GET['q'];
+  // Get actual requested path with requested protocol.
+  $qpath = multilink_redirect_qpath();
+
+  if ($nid = multilink_redirect_node($path)) {
+    $link = _multilink_getnode($nid);
+    $rpath = 'node/' . $link->nid;
+    //if ($nid != $link->nid)  drupal_set_message(sprintf('Node redirect %s to %s', $nid, $link->nid), 'error');
+    // Is $rpath the front page?  See: http://api.drupal.org/api/function/drupal_is_front_page/6
+    if ($rpath == drupal_get_normal_path(variable_get('site_frontpage', 'node'))) $rpath = '';
+  }
+  else {
+    // Is this the front page?  See: http://api.drupal.org/api/function/drupal_is_front_page/6
+    $rpath = ($path && drupal_is_front_page())? '' : $path;
+  }
+
+  // Get final target url for any redirect.
+  // Note: url() gets the most recently added alias (if more than one.)
+  $rpath = multilink_url($rpath, TRUE);
+  // If requested and target urls are different we need to redirect.
+  // Note use rawurldecode to double-check, in case of any weird characters in request.
+  if ($rpath != $qpath && rawurldecode($rpath) != $qpath) {
+    // Fix some compatibility issues when SecurePages is active.
+    if (function_exists('multilink_securepages_redirect_fix')) {
+      multilink_securepages_redirect_fix($rpath);
+    }
+
+    // Get the Query String (minus the 'q'). If none, set to NULL
+    $qstring = rawurldecode(drupal_query_string_encode($_GET, array('q')));
+
+    if ($test) {
+      $msg = sprintf('Redirect: %d, Path: %s, rPath: %s, qPath: %s, Pattern: %s - Matches: %s - GET: %s, REQ: %s',
+            $rpath != $qpath, $path, $rpath, $qpath, $pattern, print_r($matches, 1),
+            print_r($_GET, 1), print_r($_REQUEST, 1));
+      drupal_set_message(htmlspecialchars($msg), 'warning');
+
+      $url = $rpath . ($qstring? '?'.$qstring : '');
+      $link = sprintf('<a href=%s>%s</a>', $url, $url);
+      drupal_set_message(sprintf('MR redirect: %s to %s', $qpath, $link), 'error');
+    }
+    else {
+      // Only redirect if $_POST is empty and processing main index.php.
+      if (empty($_POST) && $_SERVER['SCRIPT_NAME'] == '/index.php') {
+        //drupal_set_message(sprintf('MR redirect: %s to %s [%s%s]', $qpath, $rpath, $qstring? '?':'',$qstring), 'error');
+        drupal_goto($rpath, $qstring, null, 301);
+      }
+    }
+  }
+}
+
+// --- Drupal docs advise NOT closing PHP tags ---

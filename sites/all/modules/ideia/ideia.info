@@ -1,0 +1,4 @@
+name = Ideia
+description = Module de test.
+core = 6.x
+package = Ideia

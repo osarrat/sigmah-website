@@ -1,0 +1,249 @@
+<?php
+
+// L'ID du rôle chargé du support prioritaire.
+define('RID_SUPPORT', 9);
+
+/**
+ * Implémentation du hook_mailhandler_post_save().
+ *
+ * Le fonctionnement de base de Mailhandler est le suivant :
+ *   - le module récupère les e-mails depuis l'adresse définie dans l'interface d'administration ;
+ *   - le module publie les e-mails sous forme de noeuds en utilisant les paramètres renseignés dans la zone "Default commands" ;
+ *   - après avoir publié un noeud, le module lance le hook_mailhandler_post_save() ;
+ *   - nous utilisons ce hook pour décider (à partir de l'adresse e-mail de l'expéditeur) si le noeud doit être publié dans le forum d'une ONG ;
+ *   - on envoie aussi un e-mail d'alerte aux membres du support prioritaire concernés par l'ONG.
+ *
+ * @param <object> $nid
+ *   Le noeud qui a été publié par Mailhandler.
+ */
+function ideia_mailhandler_post_save($nid, $type, $header) {
+  // On essaye de regarder si l'adresse e-mail appartient à une ONG.
+  $nid_ong = db_result(db_query_range("SELECT nid FROM {content_field_member} WHERE field_member_value  = '%s'", $header->from[0]->mailbox . '@' . $header->from[0]->host, 0, 1));
+
+  // Sinon, on regarde si le nom de domaine de l'adresse e-mail appartient à une ONG.
+  if (!$nid_ong) {
+    $nid_ong = db_result(db_query_range("SELECT nid FROM {content_field_member} WHERE field_member_value = '%s'", $header->from[0]->host, 0, 1));
+  }
+
+  // Si l'e-mail nécessite un support prioritaire.
+  if ($nid_ong) {
+   // On récupère le titre du groupe.
+		$ong_name = db_result(db_query_range("SELECT title FROM {node} WHERE nid = '%d'", $nid_ong, 0, 1));
+    $node->og_groups_both = array($nid_ong => $ong_name);
+
+    // On change la destination du post et son statut.
+    $node = node_load($nid->nid);
+    $node->type = 'forum';
+    $node->status = 0;
+    $node->promote = 0;
+    $node->og_groups = array($nid_ong => $nid_ong);
+
+    // On met à jour le noeud.
+    node_save($node);
+
+    // On envoie un e-mail d'alerte à tous les membres destinés au support prioritaire de la demande.
+    // (on cherche les membres de l'ONG ayant le rôle de support prioritaire).
+    $membres_support = db_query("SELECT ou.uid FROM {og_uid} ou LEFT JOIN {users_roles} ur ON ou.uid = ur.uid WHERE ur.rid = '%d' AND ou.nid = '%d'", RID_SUPPORT, $nid_ong);
+    while ($membre_support = db_result($membres_support)) {
+      // On charge l'utilisateur correspondant à l'uid du membre.
+      $account = user_load(array('uid' => $membre_support));
+
+      $params['nid'] = $node->nid;
+
+      // On envoie un e-mail.
+      drupal_mail('ideia', 'new-email-support', $account->mail, user_preferred_language($account), $params);
+    }
+  }
+  // On retourne le noeud pour que d'autres modules puissent l'utiliser.
+  return $node;
+}
+
+/**
+ * Implémentation de hook_mail().
+ */
+function ideia_mail($key, &$message, $params) {
+  $language = $message['language'];
+
+  switch ($key) {
+    case 'new-email-support':
+      $message['headers'] = array(
+        'MIME-Version' => '1.0',
+        'Content-Type' => 'text/html;charset=utf-8',);
+      $message['subject'] = t('[Sigmah - support prioritaire] Nouvelle demande', array(), $language->language);
+      $message['body'][] = t('Une <a href="!demande">nouvelle demande</a> a été effectuée.', array('!demande' => url('node/' . $params['nid'], array('absolute' => TRUE))), $language->language);
+      break;
+  }
+}
+
+/**
+ * Implémentation de hook_form_alter().
+ */
+/*function ideia_form_alter(&$form, &$form_state, $form_id) {
+  // On remplace le champ texte de connexion d'OpenID par un select list.
+  if ($form_id == 'user_login_block') {
+    $form['openid_identifier']['#size'] = 1;
+    $form['openid_identifier']['#type'] = 'select';
+    $form['openid_identifier']['#options'] = array(
+      'https://www.google.com/accounts/o8/id' => 'Google',
+      'http://open.login.yahooapis.com/openid20/www.yahoo.com/xrds' => 'Yahoo',
+      'http://openid.orange.fr/' => 'Orange',
+      'http://openid.aol.com' => 'AOL',
+      'http://www.myspace.com/' => 'MySpace',
+      'https://login.ubuntu.com/' => 'Ubuntu',
+      'https://pip.verisignlabs.com/' => 'Verisign'
+    );
+  }
+}*/
+
+/**
+ * Implémentation de hook_theme().
+ */
+function ideia_theme() {
+  return array(
+    'manuel-couverture' => array(
+      'template' => 'manuel-couverture'
+    ),
+    'manuel-page' => array(
+      'template' => 'manuel-page',
+      'arguments' => array('data' => NULL)
+    )
+  );
+}
+
+/**
+ * Implémentation de hook_menu().
+ */
+function ideia_menu() {
+  $items['export-pdf/%node'] = array(
+    'page callback' => 'ideia_export_pdf',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK
+  );
+
+  return $items;
+}
+
+function ideia_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+/* OSA20110701 Remove export to PDF until it consumes less memory and CPU
+  switch ($op) {
+    case 'alter':
+      if ($node->type == 'book') {
+        $node->links['pdf'] = array(
+          'title' => 'PDF',
+          'href' => 'export-pdf/' . $node->nid,
+          'attributes' => array('title' => 'PDF')
+        );
+      }
+
+      break;
+  }
+  */
+}
+
+function ideia_export_pdf($node) {
+  if (isset($node->book)) {
+    require_once(drupal_get_path('module', 'ideia') . '/tcpdf/config/lang/eng.php');
+    require_once(drupal_get_path('module', 'ideia') . '/tcpdf/tcpdf.php');
+
+    class MYPDF extends TCPDF {
+
+      // Header.
+      public function Header() {
+        if ($this->page != 1) {
+          // Logo.
+          $image_file = K_PATH_IMAGES . 'logo-small.png';
+          $this->Image($image_file, PDF_MARGIN_LEFT, PDF_MARGIN_HEADER + 10, 0, 0, 'PNG');
+          // Police.
+          $this->SetFont('helvetica', '', 11);
+          // Titre.
+          $this->Write(PDF_MARGIN_HEADER + 25, t('User Manual'), '', false, 'C');
+        }
+      }
+
+      // Footer.
+      public function Footer() {
+        if ($this->page != 1) {
+          // Position (mm).
+          $this->SetY(-15);
+          // Police.
+          $this->SetFont('helvetica', '', 11);
+          // Numéro de page.
+          $this->Cell(0, 10, $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
+        }
+      }
+
+    }
+
+    $pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+    // Titre du PDF.
+    $pdf->SetTitle(t('User Manual'));
+
+    // Marges.
+    $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP + 10, PDF_MARGIN_RIGHT);
+    $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+    $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+
+    // Page de couverture.
+    $pdf->AddPage();
+    $pdf->writeHTML(theme('manuel-couverture'));
+
+    $node = node_load($node->nid);
+
+    // On charge la table des matières du livre.
+    $toc = book_toc($node->book['bid'], array(), 1000);
+
+    // Pour chaque page du livre.
+    $depth = array();
+    foreach ($toc as $mlid => $title) {
+      // On charge le noeud de la page.
+      $nid = db_result(db_query_range("SELECT nid FROM {book} WHERE mlid = '%d'", $mlid, 0, 1));
+      $node = node_load($nid);
+
+      // On génère la numérotation des titres.
+      if (isset($depth[$node->book['depth']])) {
+        $depth[$node->book['depth']] += 1;
+      } else {
+        $depth[$node->book['depth']] = 1;
+      }
+      $hierarchie = '';
+      for ($i = 1; $i <= $node->book['depth']; $i++) {
+        if ($hierarchie != '')
+          $hierarchie .= '.';
+        $hierarchie .= $depth[$i];
+      }
+
+      if (isset($depth[$node->book['depth'] + 1])) {
+        for ($i = $node->book['depth'] + 1; $i <= count($depth); $i++) {
+          unset($depth[$i]);
+        }
+      }
+
+      // On ajoute une nouvelle page et une nouvelle entrée dans la table des matières.
+      $pdf->AddPage();
+      $pdf->Bookmark($hierarchie . ' ' . $node->title, $node->book['depth'] - 1);
+      $pdf->writeHTML(theme('manuel-page', array('title' => $hierarchie . ' ' . $node->title, 'body' => $node->body, 'depth' => $node->book['depth'])));
+    }
+
+    // On ajoute une page pour la table des matières.
+    $pdf->addTOCPage();
+
+    // Police et titre de la table des matières.
+    $pdf->SetFont('helvetica', 'B', 16);
+    $pdf->SetTextColor(64, 39, 26);
+    $pdf->MultiCell(0, 0, t('Table Of Content'), 0, 'L', 0, 1, '', '', true, 0);
+    $pdf->Ln();
+    $pdf->SetTextColor();
+
+    // Police et place de la table des matières (deuxième page).
+    $pdf->SetFont('dejavusans', '', 12);
+    $pdf->addTOC(2, 'courier', '.', 'INDEX');
+    $pdf->endTOCPage();
+
+    // Force le téléchargement du PDF.
+    $pdf->Output(str_replace(' ', '-', drupal_strtolower(t('User Manual'))) . '.pdf', 'D');
+  } else {
+    drupal_not_found();
+  }
+}

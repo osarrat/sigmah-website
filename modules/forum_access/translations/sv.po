@@ -1,0 +1,418 @@
+# $Id: sv.po,v 1.5 2009/12/04 21:49:08 salvis Exp $
+#
+# Swedish translation of Drupal (forum_access)
+# Generated from files:
+#  forum_access.admin.inc,v 1.33 2009/12/03 23:40:19 salvis
+#  forum_access.info: n/a
+#  forum_access.node.inc,v 1.9 2009/11/29 18:21:49 salvis
+#  forum_access.module,v 1.53 2009/11/29 18:21:49 salvis
+#  forum_access.install,v 1.16 2009/12/03 23:40:19 salvis
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Forum Access 6.x\n"
+"POT-Creation-Date: 2009-12-04 04:22+0100\n"
+"PO-Revision-Date: 2009-12-04 05:48+0100\n"
+"Last-Translator: Magnus Gunnarsson <seals@passagen.se>\n"
+"Language-Team: drupalsverige.se\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"X-Poedit-Language: Swedish\n"
+"X-Poedit-Country: SWEDEN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: forum_access.admin.inc:39;429
+#: forum_access.info:0
+msgid "Access control"
+msgstr "Behörighet"
+
+#: forum_access.admin.inc:68
+msgid "Note that users need"
+msgstr "Observera att användare behöver"
+
+#: forum_access.admin.inc:69
+msgid "the !access_content and !access_comments permissions <strong>AND <em>View</em></strong> to be able to see this forum and its content at all,"
+msgstr "rättigheterna !access_content och !access_comments <strong>OCH <em>Visa</em></strong> för att över huvud taget kunna se forum och dess innehåll,"
+
+#: forum_access.admin.inc:70
+msgid "the !create_forum_topics (and similar) permissions <strong>AND <em>Post</em></strong> to be able to create forum content, and"
+msgstr "rättigheterna !create_forum_topics (och liknande) <strong>OCH <em>Skicka</em></strong> för att kunna skapa innehåll i forum, och"
+
+#: forum_access.admin.inc:71
+msgid "the !post_comments and (probably) !post_comments_without_approval permission <!TAG>AND <em>Post</em></!TAG> to be able to post comments/replies;"
+msgstr "Rättigheten !post_comments och (förmodligen) !post_comments_without_approval <!TAG>OCH <em>Lägg in</em></!TAG> för att kunna lägga in kommentarer/svar;"
+
+#: forum_access.admin.inc:71;689
+msgid "Drupal 5 legacy mode"
+msgstr "Drupal 5 arvsläge"
+
+#: forum_access.admin.inc:72
+msgid "the !edit_own_forum_topics or !edit_any_forum_topics (and similar) permissions (<strong>OR <em>Edit</em></strong>) can be added if desired, <strong>plus</strong>"
+msgstr "rättigheterna !edit_own_forum_topics eller !edit_any_forum_topics (och liknande) (<strong>ELLER <em>Redigera</em></strong>) kan läggas till om så önskas, <strong>plus</strong>"
+
+#: forum_access.admin.inc:73
+msgid "the !delete_own_forum_topics or !delete_any_forum_topics (and similar) permissions (<strong>OR <em>Delete</em></strong>) if desired;"
+msgstr "rättigheterna !delete_own_forum_topics eller !delete_any_forum_topics (och liknande) (<strong>ELLER <em>Radera</em></strong>) om så önskas;"
+
+#: forum_access.admin.inc:74
+msgid "the !administer_comments (global!) permission <strong>OR <em>Edit</em>/<em>Delete</em></strong> to be able to edit/delete comments;"
+msgstr "rättigheten !administer_comments (globalt!) <strong>Eller <em>Redigera</em>/<em>Radera</em></strong> för att kunna redigera/radera kommentarer;"
+
+#: forum_access.admin.inc:75
+msgid "the !administer_forums permission <strong>AND <em>View</em></strong> to be able to administer forums (and change access!)."
+msgstr "rättigheten !administer_forums permission <strong>OCH <em>Visa</em></strong> för att kunna administrera forum (och ändra åtkomst!)."
+
+#: forum_access.admin.inc:76
+msgid "Furthermore note that content which is not published is treated in a different way by Drupal: it can be viewed only by its author or by users with the !administer_nodes permission. Unpublished comments and replies are accessible to users with <strong><em>Edit</em> OR <em>Delete</em></strong>, <strong>OR</strong> with the !administer_comments permission, but they are never counted on the forum page."
+msgstr "Observera dessutom att innehåll som inte är publicerat behandlas på ett annat sätt av Drupal. Enbart dess författare kan visa innehållet, eller av användare med rättigheten !administer_nodes. Ej publicerade kommentarer och svar kan visas av användare med rättigheten <strong><em>Redigera</em> ELLER <em>Radera</em></strong>, <strong>ELLER</strong> med !administer_comments, men de räknas inte med på forumsidan."
+
+#: forum_access.admin.inc:89
+msgid "Select a forum and click !Load to retrieve that forum's settings as a starting point for this forum or container."
+msgstr "Välj ett forum och klicka på !Load för att erhålla det forumets inställningar som grund för detta forum eller dess forumgrupp."
+
+#: forum_access.admin.inc:89;93
+msgid "Load"
+msgstr "Ladda"
+
+#: forum_access.admin.inc:102
+msgid "Remember this selection."
+msgstr "Kom ihåg detta val."
+
+#: forum_access.admin.inc:107
+msgid "Use the selected forum's settings as defaults for new forums and containers."
+msgstr "Använd det valda forumets inställningar som förvalt för nya forum och forumgrupper."
+
+#: forum_access.admin.inc:116
+msgid "View this container"
+msgstr "Visa denna forumgrupp"
+
+#: forum_access.admin.inc:116
+msgid "View this forum"
+msgstr "Visa detta forum"
+
+#: forum_access.admin.inc:123
+msgid "See this container in the %Forums selection list"
+msgstr "Visa denna forumgrupp i %Forums urvalslista"
+
+#: forum_access.admin.inc:130
+msgid "Post in this forum"
+msgstr "Göra inlägg i detta forum"
+
+#: forum_access.admin.inc:136
+msgid "Edit posts"
+msgstr "Redigera inlägg"
+
+#: forum_access.admin.inc:142
+msgid "Delete posts"
+msgstr "Radera inlägg"
+
+#: forum_access.admin.inc:189
+msgid "For explanations of special cases, hover your mouse over role names."
+msgstr "För förklaring av särskilda fall, håll muspekaren över rollnamnen."
+
+#: forum_access.admin.inc:194
+msgid "Users who can see any forum or container within this one should get the <strong><em>View</em></strong> grant. <br /> Users who can post to a forum within this container should get the <strong><em>See</em></strong> grant, so that this forum appears in the proper context in the selection list."
+msgstr "Användare som kan se forum eller forumgrupper inom denna skall ges beviljandet <strong><em>Visa</em></strong>. <br /> Användare som kan skicka inlägg till ett forum inom denna forumgrupp skall ges beviljandet <strong><em>Visa</em></strong>, så att detta forum visas i dess rätta sammanhang i urvalslistan."
+
+#: forum_access.admin.inc:212
+msgid "Moderators"
+msgstr "Moderatorer"
+
+#: forum_access.admin.inc:215
+msgid "Moderators receive all grants above."
+msgstr "Moderatorer ges alla beviljanden ovan."
+
+#: forum_access.admin.inc:220
+msgid "Note: Changes to moderators are not saved until you click [!Save] below."
+msgstr "Observera: Ändringar till moderatorer sparas inte förrän du klickar på [!Save] nedan."
+
+#: forum_access.admin.inc:235;316
+msgid "Module interference"
+msgstr "Gränssnitt för modul"
+
+#: forum_access.admin.inc:248
+msgid "Besides !Forum_Access (and !ACL) you have installed the following node access module(s): !module_list   The grants of every module are combined for each node. Access can only be granted, not removed &mdash; if a certain module grants a permission, the other(s) cannot deny it."
+msgstr "Förutom !Forum_Access (och !ACL) har du också installerat följande modul(er) för nodåtkomst: !module_list   Beviljandena för varje modul kombineras för varje nod. Åtkomst kan enbart ges, inte tas bort &mdash; om en given modul medger en rättighet kan inte de andra neka den."
+
+#: forum_access.admin.inc:249
+msgid "Forums can contain other content types besides %content_type; !Forum_Access will contribute the grants defined above to every node in this forum, but other node access control modules may also contribute their grants, especially to nodes of types other than %content_type."
+msgstr "Forum kan innehålla andra innehållstyper förutom %content_type. !Forum_Access kommer att lägga till de beviljanden som är definierade ovan till varje nod i detta forum, men andra moduler för behörighet till noder kan också lägga till deras beviljanden, speciellt till andra typer av noder än %content_type."
+
+#: forum_access.admin.inc:263
+msgid "@Content_Access configuration for the %content_type type"
+msgstr "Konfiguration av @Content_Access för typen %content_type"
+
+#: forum_access.admin.inc:266
+msgid "Specifically, any grants given by !Content_Access cannot be taken back by !Forum_Access."
+msgstr "Speciellt medgivanden givna av !Content_Access kan inte tas tillbaka av !Forum_Access."
+
+#: forum_access.admin.inc:275
+msgid "You have set the !Content_Access module to control access to content of type %content_type&mdash;this can interfere with proper operation of !Forum_Access!"
+msgstr "Du har angett att modulen !Content_Access skall styra åtkomst till innehåll av typen %content_type&mdash. Detta kan störa korrekt operation av !Forum_Access!"
+
+#: forum_access.admin.inc:279
+msgid "Unless you really know what you're doing, we recommend that you go to the !link page and clear all checkboxes. This will instruct @Content_Access to leave the %content_type nodes alone. However, if you put nodes of other content types into forums as well, then these content types will continue to have this problem."
+msgstr "Såvida du inte med säkerhet vet vad du gör rekommenderer vi att du går till sidan !link och rensar alla kryssrutor. Detta kommer att instruera @Content_Access att lämna noder av typen %content_type ifred. Men, om du även flyttar noder av andra innehållstyper in i forum så kommer dessa innehållstyper fortsätta ha detta problem."
+
+#: forum_access.admin.inc:288
+msgid "Alternatively, you can give !Forum_Access priority over @Content_Access by either raising the priority of !Forum_Access in every forum above the priority of @Content_Access, or by lowering the priority of @Content_Access for the content types in question below the priority of !Forum_Access."
+msgstr "Alternativt så kan du ge !Forum_Access prioritet över @Content_Access genom att antingen höja prioriteten för !Forum_Access i varje forum över prioriteten för @Content_Access, eller genom att sänka prioriteten för @Content_Access för innehållstypen i frågan nedanför prioriteten för !Forum_Access."
+
+#: forum_access.admin.inc:293
+msgid "Note: You have installed the !Content_Access module, which has the capability to grant access to content that would otherwise be protected by !Forum_Access. Be careful when configuring @Content_Access!"
+msgstr "Observera: Du har installerat modulen !Content_Access som har möjligheten att medge åtkomst till innehåll som annars skulle skyddas av !Forum_Access. Var försiktig när du konfigurerar @Content_Access!"
+
+#: forum_access.admin.inc:300
+msgid "Advanced"
+msgstr "Avancerat"
+
+#: forum_access.admin.inc:306
+msgid "Priority of !Forum_Access node grants in this forum"
+msgstr "Prioritet för medgivande av noder för !Forum_Access i detta forum."
+
+#: forum_access.admin.inc:308
+msgid "If you have no other node access control modules installed, you should leave this at the default 0. <br /> Otherwise you can raise or lower the priority of !Forum_Access' grants. Out of all the grants contributed to a node, only those with the highest priority are used, and all others are discarded."
+msgstr "Om du inte har några andra installerade moduler för behörighet till noder skall du lämna detta till dess förval, 0. <br /> Annars kan du höja och sänka prioriteten av medgivanden för !Forum_Access. För alla medgivanden givna till en nod så kommer enbart de med högst prioritet att användas, och alla andra att förkastas."
+
+#: forum_access.admin.inc:331
+msgid "Trouble-shooting node access"
+msgstr "Problemlösning av nodåtkomst"
+
+#: forum_access.admin.inc:337
+msgid "In case of problems, follow these steps until you've got it worked out:"
+msgstr "Om problem uppstår, följ dessa steg tills du har löst dem:"
+
+#: forum_access.admin.inc:338
+msgid "Update to the 'recommended' !Forum_Access and !ACL releases for your version of Drupal."
+msgstr "Uppdatera till den \"rekommenderade\" utgåvan av !Forum_Access och !ACL för din version av Drupal."
+
+#: forum_access.admin.inc:339
+msgid "Read %Module_interference above and update your other node access modules."
+msgstr "Läs %Module_interference ovan och uppdatera dina andra moduler för nodåtkomst."
+
+#: forum_access.admin.inc:340
+msgid "Check the release notes of the development snapshots for issues that might have been fixed in !Forum_Access-dev or !ACL-dev since the latest release."
+msgstr "Kontrollera noteringarna för utgåvorna av utvecklingsutgåvor som kan ha åtgärdats i !Forum_Access-dev eller !ACL-dev sedan den senaste utgåvan."
+
+#: forum_access.admin.inc:341
+msgid "Install the %devel_node_access module (!DNA, part of the !Devel module) and enable its !debug_mode: !DNA will show you all the grants that actually control your nodes in a footer block on each node's page."
+msgstr "Installera modulen %devel_node_access (!DNA, en del av modulen !Devel) och aktivera dess !debug_mode: !DNA kommer att visa alla medgivanden som faktiskt kontrollerar dina noder i ett sidfotsblock på varje nods sida."
+
+#: forum_access.admin.inc:342
+msgid "Additional insight can be gained from !dna_summary and by enabling the second !DNA block."
+msgstr "Ytterligare insikt kan fås från !dna_summary och genom att aktivera det andra blocket för !DNA."
+
+#: forum_access.admin.inc:343
+msgid "Click !Rebuild_permissions on !Post_settings_link and check DNA for changes."
+msgstr "Klicka !Rebuild_permissions på !Post_settings_link och kontrollera Devel Node Access för ändringar."
+
+#: forum_access.admin.inc:344
+msgid "Check the issues queues of !Forum_Access_ and !ACL_ for existing reports and possible solutions."
+msgstr "Kontrollera frågeköerna för !Forum_Access_ och !ACL_ för existerande rapporter och möjliga lösningar."
+
+#: forum_access.admin.inc:345
+msgid "If all of this hasn't helped, then pick ONE node that is misbehaving, look at it using an account that can see the node (and that should NOT have access if that's your problem!), create a new issue in the issues queue, describe the problem... <ul><li> what did you do? </li><li> what did you expect? </li><li> what happened instead? </li></ul> ... and <strong>attach a screenshot of all the DNA records</strong> for that one node. <br /> Be sure to indicate paths (URLs) for every page and module that you mention."
+msgstr "Om inget av detta har hjälp, välj då EN nod som strular, titta på den genom att använda ett annat konto som kan se noden (och som INTE skall ha åtkomst till den om det är detta som är ditt problem!), skapa en nyfråga i frågekön, beskriv ditt problem... <ul><li> vad gjorde du? </li><li> vad förväntade du dig? </li><li> vad hände istället? </li></ul> ... och <strong>bifoga en skärmdump för alla registreringar för Devil Node Access</strong> för denna nod. <br /> Se till att indikera sökvägar (URL:er) för varje sida och modul som du nu nämner."
+
+#: forum_access.admin.inc:349
+msgid "Note: You should not keep the !Devel module enabled on a production site."
+msgstr "Observera: Du skall inte ha kvar modulen !Devel aktiverad på en produktiv webbplats."
+
+#: forum_access.admin.inc:365
+msgid "<em>If</em> you make any node access changes, then each node in this forum needs to be updated. Hover over the radiobuttons for details."
+msgstr "<em>Om</em> du gör några ändringar för nodåtkomst så kommer varje nod i detta forum att behöva uppdateras. Håll muspekaren över radioknapparna för detaljer."
+
+#: forum_access.admin.inc:369
+msgid "for all %count nodes immediately"
+msgstr "omedelbart för alla %count noder"
+
+#: forum_access.admin.inc:370
+msgid "This option is the fastest, but with many nodes it can still take considerable time and memory. If it fails, it will leave your !node_access table in an inconsistent state."
+msgstr "Detta alternativ är det snabbaste, men med många noder kan det ta åtskillig tid och minne. Om det misslyckas kommer det att lämna din tabell !node_access i ett ofullständigt läge."
+
+#: forum_access.admin.inc:377
+msgid "in batches of !limit now"
+msgstr "satsvis om !limit åt gången"
+
+#: forum_access.admin.inc:378
+msgid "The batch option will always work reliably, but it takes longer to complete."
+msgstr "Alternativet för satsvis bearbetning fungerar alltid utan problem, men det tar längre tid att bli klar."
+
+#: forum_access.admin.inc:385
+msgid "rebuild <strong>all</strong> permissions later"
+msgstr "bygg om <strong>alla</strong> rättigheter senare"
+
+#: forum_access.admin.inc:386
+msgid "This option will only set a flag to remind you to rebuild all permissions later; this is useful if you want to make multiple changes to your node access settings quickly and delay the updating until you're done."
+msgstr "Detta alternativ anger bara en märkning för att påminna dig om att senare bygga om rättigheterna. Detta är användbart om du snabbt vill göra flera ändringar till inställningarna för nodåtkomsten och vänta med uppdateringen tills du är klar."
+
+#: forum_access.admin.inc:419
+msgid "This is the (temporary) @Forum_Moderator role; it has the '@administer_nodes' and '@administer_comments' permissions and is only used temporarily by @Forum_Access &mdash; do NOT give this role to any user!"
+msgstr "Detta är den (temporära) rollen !Forum_Moderator. Den har rättigheterna '@administer_nodes' och '@administer_comments' och används enbart temporärt av @Forum_Access &mdash. Ge INTE denna roll till någon användare!"
+
+#: forum_access.admin.inc:419;440;870
+msgid "Forum Moderator"
+msgstr "Moderator för forum"
+
+#: forum_access.admin.inc:429
+msgid "This role has the '@administer_forums' permission, and granting '@View' enables the role holders to change the settings on this page, including @Access_control!"
+msgstr "Denna roll har rättigheten '@administer_forums' . Beviljas '@View' till rollen så kan de ändra inställningarna på denna sida, inklusive @Access_control!"
+
+#: forum_access.admin.inc:429
+msgid "View"
+msgstr "Visa"
+
+#: forum_access.admin.inc:431
+msgid "Because the role also has the '@administer_nodes' permission, it has full access to all nodes either way."
+msgstr "Eftersom rollen har rättigheten '@administer_nodes' har den fullständig rättighet till alla noder i alla fall."
+
+#: forum_access.admin.inc:439
+msgid "This role has the '@administer_nodes' permission and thus full access to all nodes."
+msgstr "Denna roll har rättigheten '@administer_nodes' och har därför fullständig åtkomst till alla noder."
+
+#: forum_access.admin.inc:440
+msgid "This is the @Forum_Moderator role; it has the '@administer_nodes' and '@administer_comments' permissions and thus full access to all nodes and comments."
+msgstr "Detta är rollen !Forum_Moderator. Den har rättigheterna '@administer_nodes' och '@administer_comments' permissions och har därför fullständig åtkomst till alla noder och kommentarer."
+
+#: forum_access.admin.inc:515
+msgid "You must assign %View access to a role that you hold."
+msgstr "Du måste tilldela åtkomsten %View till en roll som du innehar."
+
+#: forum_access.admin.inc:552
+msgid "The content access permissions are unchanged."
+msgstr "Rättigheterna för åtkomst av innehåll är oförändrade."
+
+#: forum_access.admin.inc:578
+msgid "edit"
+msgstr "redigera"
+
+#: forum_access.admin.inc:607
+msgid "Updating content access permissions"
+msgstr "Uppdaterar rättigheterna för åtkomst av innehåll."
+
+#: forum_access.admin.inc:660
+msgid "The content access permissions have been updated."
+msgstr "Rättigheterna för åtkomst av innehåll har uppdaterats."
+
+#: forum_access.admin.inc:664
+msgid "The content access permissions have not been properly updated."
+msgstr "Rättigheterna för åtkomst av innehåll har inte uppdaterats ordentligt."
+
+#: forum_access.admin.inc:685
+msgid "Note: All other !Forum_Access controls are on the administration pages of the individual forums."
+msgstr "Observera: Alla andra styrningar av !Forum_Access finns på administrationssidan för de individuella forumen."
+
+#: forum_access.admin.inc:691
+msgid "In Drupal 5, comment posting was not restricted by !Forum_Access; users with %View access (and the %post_comments permission) were always allowed to post forum comments. Starting with Drupal 6, posting comments is now restricted to users with %Post access. Turn this option on to revert to the old behavior. The default is OFF."
+msgstr "I Drupal 5 så var inte inläggning av kommentarer begränsat av !Forum_Access. Användare med åtkomsten !View (och rättigheten %post_comments) tilläts alltid att lägga in kommentarer i forum. Från och med Drupal 6 så är inlägg av kommentarer numera begränsat till användare med åtkomsten %Post. Aktivera detta alternativ för att återgå till det gamla beteendet. Förvalt är AV."
+
+#: forum_access.admin.inc:770
+msgid "The role you have just deleted is required by !Forum_Access; it will be recreated automatically."
+msgstr "Rollen som du just har raderat krävs av !Forum_Access. Den kommer att återskapas automatiskt."
+
+#: forum_access.admin.inc:790
+msgid "Note: In Drupal, access can only be granted, not taken away. Whatever access you grant here will not be reflected in the !Forum_Access_link settings, but !Forum_Access can only allow <i>more</i> access, not less."
+msgstr "I Drupal kan åtkomst enbart ges, inte tas ifrån. Vilken åtkomst du än beviljar här kommer inte påverka inställningarna för !Forum_Access och även omvänt, men vilken som helst modul för nodåtkomst kan enbart tillåta <em>mer</em> åtkomst, inte mindre."
+
+#: forum_access.admin.inc:791
+msgid "Specifically, any rights granted to the %anonymous_user and/or the %authenticated_user will <b>override</b> the settings of !Forum_Access!"
+msgstr "Speciellt eventuella rättigheter medgivna till %anonymous_user och/eller %authenticated_user kommer <b>åsidosätta</b> inställningarna för !Forum_Access!"
+
+#: forum_access.admin.inc:792
+msgid "To avoid conflicts with !Forum_Access settings, you may want to lower the priority of !Content_Access (under %Advanced below) below the priority of !Forum_Access for the content types that you want to be controlled by !Forum_Access."
+msgstr "För att undivika konflikter med inställningarna för !Forum_Access så kan du behöva sänka prioriteringen för !Content_Access (under %Advanced nedan) nedanför prioriteringen av !Forum_Access för innehållstypen som du vill skall styras av !Forum_Access."
+
+#: forum_access.admin.inc:799
+msgid "Note: Nodes of this content type can be put inside forums, where access to them will also be controlled by !Forum_Access.<br />In Drupal, access can only be granted, not taken away. Whatever access you grant here will not be reflected on the !Forum_Access_link settings, and vice versa, but any node access module can only allow <i>more</i> access, not less."
+msgstr "Observera: Noder av denna innehållstyp kan flyttas till forum, där åtkomst till dem också kommer att kontrolleras av !Forum_Access.<br />I Drupal kan åtkomst enbart ges, inte tas ifrån. Vilken åtkomst du än beviljar här kommer inte påverka inställningarna för !Forum_Access och även omvänt, men vilken som helst modul för nodåtkomst kan enbart tillåta <em>mer</em> åtkomst, inte mindre."
+
+#: forum_access.admin.inc:813
+msgid "The %role role is used internally by the @Forum_Access module and must not be changed!"
+msgstr "Rollen %role används internt av modulen @Forum_Access och får inte ändras!"
+
+#: forum_access.admin.inc:841
+msgid "Add a role to the selected users"
+msgstr "Lägg till en roll för de markerade användarna"
+
+#: forum_access.admin.inc:856
+msgid "reserved for internal use by the @Forum_Access module"
+msgstr "reserverad för internt bruk av modulen @Forum_Access"
+
+#: forum_access.admin.inc:883
+msgid "!Forum_Access has created a new role named %role and given it the %administer_nodes and %administer_comments permissions. This role is used internally by !Forum_Access. You can change the name of the role as you like, but you must keep it unmodified otherwise."
+msgstr "!Forum_Access  har skapat den nya rollen %role och gett den rättigheterna %administer_nodes och %administer_comments. Denna roll används internt av !Forum_Access. Du kan ändra namnet på rollen som du vill, men inga andra ändringar får göras."
+
+#: forum_access.admin.inc:891
+msgid "!Forum_Access cannot create the %role role!"
+msgstr "!Forum_Access kan inte skapa rollen %role!"
+
+#: forum_access.admin.inc:893
+msgid "Is it already in use?"
+msgstr "Används den redan?"
+
+#: forum_access.admin.inc:897
+msgid "!Forum_Access has given up and will not work correctly! Rename one of the roles listed above, so that !Forum_Access can use its name."
+msgstr "!Forum_Acces har gett upp och kommer inte att fungera på rätt sätt! Döp om en av rollerna ovan så att !Forum_Access kan använda dess namn."
+
+#: forum_access.admin.inc:579
+msgid "access"
+msgstr "åtkomst"
+
+#: forum_access.admin.inc:579
+msgid "Changed grants for %forum forum."
+msgstr "Ändrade beviljanden för forumet %forum."
+
+#: forum_access.node.inc:200
+msgid "(!Forum_Access temporary role, does not need any grants.)"
+msgstr "(temporär roll för !Forum_Access, behöver inga beviljanden.)"
+
+#: forum_access.module:449
+msgid "The %Role role is reserved for internal use by the @Forum_Access module! It was not assigned."
+msgstr "Rollen %Role är reserverad för internt bruk av modulen @Forum_Access! Det tilldelades inte."
+
+#: forum_access.module:466
+msgid "Unexpected access specification for the %forum menu path; @Forum_Access cannot control its access."
+msgstr "Oväntad specifikation av åtkomst för menysökvägen till %forum. @Forum_Access kan inte styra sin åtkomst."
+
+#: forum_access.install:29
+msgid "The base Forum Access Control table."
+msgstr "Huvudtabellen för åtkomst till forum."
+
+#: forum_access.install:32
+msgid "The {term_data}.tid to which this {forum_access} entry applies."
+msgstr "Det {term_date} för noteringen till denna {forum_access} det gäller."
+
+#: forum_access.install:37
+msgid "The {role}.rid to which this {forum_access} entry applies."
+msgstr "Det {role}.rid för noteringen till denna {forum_access} det gäller."
+
+#: forum_access.install:42
+msgid "Whether to grant \"view\" permission."
+msgstr "Huruvida att ge rättighet av typen \"visa\"."
+
+#: forum_access.install:49
+msgid "Whether to grant \"update\" permission."
+msgstr "Huruvida att ge rättighet av typen \"uppdatera\"."
+
+#: forum_access.install:56
+msgid "Whether to grant \"delete\" permission."
+msgstr "Huruvida att ge rättighet av typen \"radera\"."
+
+#: forum_access.install:63
+msgid "Whether to grant \"create\" permission."
+msgstr "Huruvida att ge rättighet av typen \"skapa\"."
+
+#: forum_access.install:70;113
+msgid "The priority of this grant."
+msgstr "Prioriteringen av detta beviljande."
+
+#: forum_access.info:0
+msgid "Forum Access"
+msgstr "Åtkomst till forum"
+
+#: forum_access.info:0
+msgid "Allows forums to be set private and allows forums to be given moderators."
+msgstr "Tillåter att forum kan vara privata och att kunna tilldela moderatorer till forum."
+

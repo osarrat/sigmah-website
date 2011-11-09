@@ -1,0 +1,61 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  sigmah.module: n/a
+#  sigmah.info,v 1.0 2011/05/17 12:09:00 nrebiai
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2011-05-31 10:31+0200\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: sigmah.module:27
+msgid "Would you like to receive a reply?"
+msgstr ""
+
+#: sigmah.module:28
+msgid "If yes, please enter your email address here"
+msgstr ""
+
+#: sigmah.module:30
+msgid "Name"
+msgstr ""
+
+#: sigmah.module:35
+msgid "Your e-mail"
+msgstr ""
+
+#: sigmah.module:39
+msgid "(If you don't have one, a Sigmah.org account will be automatically set up)"
+msgstr ""
+
+#: sigmah.module:43
+msgid "In order to deal with your request more effectively"
+msgstr ""
+
+#: sigmah.module:43
+msgid "You can specify which forum you would like your posting to appear in (Don't worry, a moderator will put your posting in an appropriate forum if you are not sure)"
+msgstr ""
+
+#: sigmah.module:107;108;108;108
+msgid "Your email"
+msgstr ""
+
+#: sigmah.info:0;0
+msgid "Sigmah"
+msgstr ""
+
+#: sigmah.info:0
+msgid "Sigmah custom theme."
+msgstr ""
+

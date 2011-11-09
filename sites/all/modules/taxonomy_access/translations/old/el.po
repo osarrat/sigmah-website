@@ -1,0 +1,241 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Drupal 4.7 - taxonomy_access module - Greek\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2006-05-20 21:35+0200\n"
+"Last-Translator: Cog <cog@cogville.com>\n"
+"Language-Team: Project Cogville <cog@cogville.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2;plural=(n!=1);\n"
+"X-Poedit-Language: Greek\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: taxonomy_access.module:12
+msgid "Allows users to specify how each category can be used by various roles."
+msgstr "Επιτρέπει στους χρήστες να καθορίζουν το πώς κάθε κατηγορία μπορεί να χρησιμοποιείται από τις διάφορες μονάδες."
+
+#: taxonomy_access.module:23
+msgid "The module is currently <u>ACTIVATED</u> properly."
+msgstr "Η μονάδα είναι τώρα <u>ΕΝΕΡΓΟΠΟΙΗΜΕΝΗ</u> κανονικά."
+
+#: taxonomy_access.module:24
+msgid "To disable the module properly: <ol><li><u>Deactivate</u> here. <em>(Save this configuration.)</em></li><li><u>Disable/Uninstall</u> it in the 'Modules Administration Page'.</li></ol>"
+msgstr "Για να θέσετε εκτός λειτουργίας αυτή τη μονάδα σωστά: <ol><li><u>Απενεργοποιήστε</u> την εδώ. <em>(Αποθηκεύστε αυτή τη ρύθμιση.)</em></li><li><u>Θέστε την εκτός λειτουργίας/απεγκαταστήστε την</u> και από τη σελίδα 'διαχείρισης μονάδων'.</li></ol>"
+
+#: taxonomy_access.module:29
+msgid "The module is currently <u>DEACTIVATED</u>, but must also be disabled/uninstalled in the %module_page_link in order to be properly disabled."
+msgstr "Η μονάδα είναι τώρα <u>ΑΠΕΝΕΡΓΟΠΟΙΗΜΕΝΗ</u>, αλλά πρέπει να τη θέσετε εκτός λειτουργίας/απεγκαταστήσετε και από τη %module_page_link για να είναι σωστά απενεργοποιημένη."
+
+#: taxonomy_access.module:29
+msgid "modules admin page"
+msgstr "σελίδα διαχείρισης μονάδων"
+
+#: taxonomy_access.module:30
+msgid "For controlling the Taxonomy Access System, the module has to be <u>Activated</u> on this page."
+msgstr "Για να ελέγχετε το σύστημα πρόσβασης ταξονομίας, η μονάδα πρέπει να είναι <u>ενεργοποιημένη</u> από αυτή τη σελίδα."
+
+#: taxonomy_access.module:35
+msgid "The Taxonomy Access Control module allows users to specify how each category can be used by various roles."
+msgstr "Η μονάδα Taxonomy Access Control (έλεγχος πρόσβασης ταξονομίας) επιτρέπει στους χρήστες να καθορίζουν το πώς μπορεί να χρησιμοποιείται κάθε κατηγορία από τους διάφορους ρόλους."
+
+#: taxonomy_access.module:36
+msgid "On the category permissions page for each role, each category displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>:"
+msgstr "Στη σελίδα για τις άδειες κατηγοριών του κάθε ρόλου, για κάθε κατηγορία παρουσιάζεται μια λίστα των όρων που περιέχει, όπου κάθε όρος έχει πέντε τύπους αδειών: <em>Προβολή</em>, <em>Ενημέρωση</em>, <em>Διαγραφή</em>, <em>Δημιουργία</em> και <em>Λίστα</em>:"
+
+#: taxonomy_access.module:38
+msgid "<strong>VIEW</strong> enables the user to access content (nodes) with given term."
+msgstr "Η άδεια <strong>ΠΡΟΒΟΛΗ</strong> επιτρέπει στο χρήστη την πρόσβαση σε ύλη (κόμβους) που έχει το δεδομένο όρο."
+
+#: taxonomy_access.module:39
+msgid "<strong>UPDATE, DELETE</strong> enables the user to Update/Delete <u>ALL</u> nodes with the given term. <br><em>(These two permissions are <u>administrator permissions</u>, that should be given ONLY to e.g. content administrators.)</em>"
+msgstr "Οι άδειες <strong>ΕΝΗΜΕΡΩΣΗ</strong> και <strong>ΔΙΑΓΡΑΦΗ</strong> επιτρέπουν στο χρήστη να ενημερώνει ή να διαγράφει <u>ΟΛΟΥΣ</u> τους κόμβους με το δεδομένο όρο. <br><em>(Αυτές οι δύο άδειες είναι <u>διαχειριστικές άδειες</u>, που πρέπει να δίνονται ΜΟΝΟ σε διαχειριστές ύλης.)</em>"
+
+#: taxonomy_access.module:40
+msgid "<strong>CREATE</strong> enables the user to set that term when adding a new node or when editing a node."
+msgstr "Η άδεια <strong>ΔΗΜΙΟΥΡΓΙΑ</strong> επιτρέπει στο χρήστη να θέτει το συγκεκριμένο όρο όταν δημιουργεί ένα νέο κόμβο ή όταν τροποποιεί έναν κόμβο."
+
+#: taxonomy_access.module:41
+msgid "<strong>LIST</strong> enables the user to view the name of the given term below the title of a node or in category lists.  It also controls whether a user can access the taxonomy page for the given term.  (e.g. \"taxonomy/term/*\")"
+msgstr "Η άδεια <strong>ΛΙΣΤΑ</strong> επιτρέπει στο χρήστη να βλέπει το όνομα του δεδομένου όρου κάτω από τον τίτλο ενός κόμβου ή στις λίστες κατηγοριών. Ελέγχει επίσης το αν ο χρήστης θα έχει πρόσβαση στη σελίδα ταξονομίας του δεδομένου όρου.  (π.χ. \"taxonomy/term/*\")"
+
+#: taxonomy_access.module:43
+msgid "VIEW, UPDATE, and DELETE control the node access system.  LIST and CREATE control if a user can view and select a given term.  (Note: In previous versions of Taxonomy Access Control, there was no LIST permission; its functionality was controlled by the VIEW permission.)"
+msgstr "Οι άδειες ΠΡΟΒΟΛΗ, ΕΝΗΜΕΡΩΣΗ και ΔΙΑΓΡΑΦΗ ελέγχουν το σύστημα πρόσβασης κόμβων. Οι άδειες ΛΙΣΤΑ και ΔΗΜΙΟΥΡΓΙΑ ελέγχουν το αν ο χρήστης μπορεί να βλέπει και να επιλέγει ένα δεδομένο όρο.  (Σημείωση: Σε προηγούμενες εκδόσεις της μονάδας Taxonomy Access Control δεν υπήρχε άδεια ΛΙΣΤΑ, και οι λειτουργίες της ελέγχονταν από την άδεια ΠΡΟΒΟΛΗ.)"
+
+#: taxonomy_access.module:44
+msgid "<strong>VIEW, UPDATE and DELETE have three options for each term: <u>A</u>llow, <u>I</u>gnore, and <u>D</u>eny.</strong>  Indicate which rights each role should have for each term."
+msgstr "Οι άδειες <strong>ΠΡΟΒΟΛΗ, ΕΝΗΜΕΡΩΣΗ και ΔΙΑΓΡΑΦΗ έχουν τρεις επιλογές για κάθε όρο: <u>A</u>llow (Επιτρέπεται), <u>I</u>gnore (Αγνοείται) και <u>D</u>eny (Απαγορεύεται).</strong>  Ορίστε ποια δικαιώματα θα έχει κάθε ρόλος για τον κάθε όρο."
+
+#: taxonomy_access.module:45
+msgid "<strong>CREATE and LIST have only two options for each term:  YES (selected) or NO (deselected).</strong>  Indicate what each role should be allowed to do with each term."
+msgstr "Οι άδειες <strong>ΔΗΜΙΟΥΡΓΙΑ και ΛΙΣΤΑ έχουν μόνο δύο επιλογές για τον κάθε όρο:  ΝΑΙ (επιλεγμένο) ή ΟΧΙ (μη επιλεγμένο).</strong>  Ορίστε τι θα επιτρέπεται να κάνει κάθε ρόλος με τον κάθε όρο."
+
+#: taxonomy_access.module:46
+msgid "<strong>IMPORTANT NOTE:</strong><br><u>The DENY directives are processed after the ALLOW directives. (DENY overrides ALLOW.)</u>  So, if a multicategory node is in Categories \"A\" and \"B\" and a user has ALLOW permissions for VIEW in Category \"A\" and DENY permissions for VIEW in Category \"B\", then the user will NOT be permitted to VIEW the node. (DENY overrides ALLOW.)<br><u>Access is denied by default.</u> So, if a multicategory node is in Categories \"C\" and \"D\" and a user has IGNORE permissions for VIEW in both Category \"C\" and \"D\", then the user will NOT be permitted to VIEW the node.<br>(If you are familiar with Apache mod_access, this permission system works similar to directive: <em>ORDER ALLOW, DENY</em>)"
+msgstr "<strong>ΣΗΜΑΝΤΙΚΗ ΠΑΡΑΤΗΡΗΣΗ:</strong><br><u>Οι οδηγίες ΑΠΑΓΟΡΕΥΕΤΑΙ διεκπεραιώνονται μετά τις οδηγίες ΕΠΙΤΡΕΠΕΤΑΙ. (Το ΑΠΑΓΟΡΕΥΕΤΑΙ παραμερίζει το ΕΠΙΤΡΕΠΕΤΑΙ.)</u>  Αν λοιπόν ένας κόμβος με πολλές κατηγορίες είναι στις κατηγορίες \"A\" και \"B\", και ένας χρήστης έχει στην κατηγορία \"A\" άδεια ΕΠΙΤΡΕΠΕΤΑΙ για την ΠΡΟΒΟΛΗ  και στην κατηγορία \"B\" άδεια ΑΠΑΓΟΡΕΥΕΤΑΙ για την ΠΡΟΒΟΛΗ, τότε ο χρήστης ΔΕΝ θα επιτρέπεται να δει τον κόμβο. (Το ΑΠΑΓΟΡΕΥΕΤΑΙ παραμερίζει το ΕΠΙΤΡΕΠΕΤΑΙ.)<br><u>Η προεπιλογή είναι να μην επιτρέπεται η πρόσβαση.</u> Αν λοιπόν ένας κόμβος με πολλές κατηγορίες είναι στις κατηγορίες \"C\" και \"D\", και ένας χρήστης έχει και στις δύο κατηγορίες άδεια ΔΕΝ ΟΡΙΖΕΤΑΙ για την ΠΡΟΒΟΛΗ, τότε ο χρήστης ΔΕΝ θα επιτρέπεται να δει τον κόμβο.<br>(Αν σας είναι γνωστό το mod_access του Apache, αυτό το σύστημα αδειών λειτουργεί παρόμοια με την οδηγία <em>ORDER ALLOW, DENY</em>)"
+
+#: taxonomy_access.module:47
+msgid "<strong>Allow/Ignore/Deny All</strong> or <strong>Select/Deselect All:</strong><br>Beside each vocabulary title there are dropdowns containing the options that can be set for individual terms.  Selecting one of these options using the dropdown effectively <u>selects that option for ALL of the individual terms inside that vocabulary when the options are saved.</u><br>Selecting \"--\" does not make any automatic changes to the permission of the terms in that vocabulary; only manual changes that you make will be saved.<br>NOTE:  This does <u>not</u> change the \"Default\" option (described below)."
+msgstr "<strong>Επιτρέπεται/Δεν ορίζεται/Απαγορεύεται σε όλα</strong> και <strong>Επιλογή/Αποεπιλογή όλων:</strong><br>Δίπλα σε κάθε τίτλο λεξιλογίου υπάρχουν πτυσσόμενες λίστες επιλογής που περιέχουν τις ίδιες ρυθμίσεις που μπορούν να οριστούν για τους μεμονωμένους όρους.  Με την επιλογή μίας από αυτές τις ρυθμίσεις από την πτυσσόμενη λίστα, ουσιαστικά <u>επιλέγεται αυτή η ρύθμιση για ΟΛΟΥΣ τους μεμονωμένους όρους που περιέχονται στο συγκεκριμένο λεξιλόγιο, όταν αποθηκευτούν οι ρυθμίσεις.</u><br>Η επιλογή \"--\" δεν κάνει καμία αυτόματη αλλαγή στις άδειες των όρων του λεξιλογίου -- αποθηκεύονται μόνο οι αλλαγές που κάνατε με το χέρι.<br>ΣΗΜΕΙΩΣΗ:  Αυτό <u>δεν</u> αλλάζει τη ρύθμιση της \"Προεπιλογής\" (που περιγράφεται παρακάτω)."
+
+#: taxonomy_access.module:48
+msgid "<strong>Default:</strong><br>This option, just underneath the vocabulary title, <u>sets the permission that will automatically be given</u> to the role, <u>for any new terms</u> that are added within the vocabulary.  This includes terms that are added via free tagging."
+msgstr "<strong>Προεπιλογή:</strong><br>Η ρύθμιση αυτή, που βρίσκεται ακριβώς κάτω από τον τίτλο του λεξιλογίου, <u>ορίζει τις άδειες που θα δίνονται αυτόματα</u> στο συγκεκριμένο ρόλο <u>για οποιουσδήποτε νέους όρους</u> που προστίθενται στο συγκεκριμένο λεξιλόγιο.  Αυτό περιλαμβάνει τους όρους που προστίθενται με ελεύθερες ετικέτες (free tagging)."
+
+#: taxonomy_access.module:49
+msgid "<strong>GOOD TO KNOW:</strong><br><strong>Input formats:</strong>  <u>Node editing/deleting is blocked</u>, even when user has <em>UPDATE/DELETE</em> permission to the node, <u>when user is not allowed to use a filter format</u> that the node was saved at."
+msgstr "<strong>ΧΡΗΣΙΜΗ ΠΑΡΑΤΗΡΗΣΗ:</strong><br><strong>Μορφές εισόδου κειμένου:</strong>  <u>Η τροποποίηση και η διαγραφή κόμβων είναι απαγορευμένη</u> ακόμα και αν ο χρήστης έχει άδειες <em>ΕΝΗΜΕΡΩΣΗ/ΔΙΑΓΡΑΦΗ</em> γι' αυτόν τον κόμβο, <u>αν ο χρήστης δεν επιτρέπεται να χρησιμοποιεί μια μορφή φίλτρου</u> με την οποία αποθηκεύτηκε ο κόμβος."
+
+#: taxonomy_access.module:56
+msgid "Taxonomy Access Control has to be <u>activated</u> on %settings_page, before configuring 'category permissions'."
+msgstr "Η μονάδα Taxonomy Access Control πρέπει να έχει <u>ενεργοποιηθεί</u> από τη %settings_page, προτού διευθετήσετε τις 'άδειες κατηγοριών'."
+
+#: taxonomy_access.module:56
+#: ;379
+msgid "settings page"
+msgstr "σελίδα ρυθμίσεων"
+
+#: taxonomy_access.module:60
+msgid "<p><strong>Vocabulary Settings:</strong> Each vocabulary displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>.</p><p>For a detailed description of these permissions and how to use them, see <a href=\"%taxonomy_access_help\">Taxonomy Access Control help</a>. If you are new to Taxonomy Access Control, it is very important that you read the help page.</p>"
+msgstr "<p><strong>Ρυθμίσεις λεξιλογίων:</strong> Κάθε λεξιλόγιο παρουσιάζει μια λίστα των όρων που περιέχει, με πέντε τύπου αδειών για τον κάθε όρο: <em>Προβολή, Ενημέρωση, Διαγραφή, Δημιουργία</em> και <em>Λίστα</em>.</p><p>Για λεπτομερή περιγραφή αυτών των αδειών και του πώς χρησιμοποιούνται, δείτε στις <a href=\"%taxonomy_access_help\">οδηγίες της μονάδας Taxonomy Access Control</a>. Αν δεν έχετε εξοικείωση με τη μονάδα αυτή, είναι πολύ σημαντικό να διαβάσετε τη σελίδα των οδηγιών.</p>"
+
+#: taxonomy_access.module:64
+msgid "In this area you will define the permissions that each <a href=\"%role\">user role</a> has for each category.  Each category can have <em>View, Update, Delete, Create</em> and <em>List</em> permissions set for each user role."
+msgstr "Σε αυτή τη περιοχή θα ορίσετε τις άδειες που έχει κάθε <a href=\"%role\">ρόλος χρήστη</a> για κάθε κατηγορία.  Για κάθε κατηγορία μπορείτε να ορίσετε άδεις <em>Προβολής, Ενημέρωσης, Διαγραφής, Δημιουργίας</em> και <em>Λίστας</em> για κάθε ρόλο χρήστη."
+
+#: taxonomy_access.module:87
+msgid "category permissions"
+msgstr "άδειες κατηγοριών"
+
+#: taxonomy_access.module:109
+msgid "Role"
+msgstr "Ρόλος"
+
+#: taxonomy_access.module:111
+msgid "edit"
+msgstr "τροποποίηση"
+
+#: taxonomy_access.module:130
+#: ;150
+msgid "Uncategorized nodes"
+msgstr "Κόμβοι χωρίς κατηγορία"
+
+#: taxonomy_access.module:137
+msgid "Category"
+msgstr "Κατηγορία"
+
+#: taxonomy_access.module:139
+msgid "View"
+msgstr "Προβολή"
+
+#: taxonomy_access.module:141
+msgid "Update"
+msgstr "Ενημέρωση"
+
+#: taxonomy_access.module:143
+msgid "Delete"
+msgstr "Διαγραφή"
+
+#: taxonomy_access.module:145
+msgid "Create"
+msgstr "Δημιουργία"
+
+#: taxonomy_access.module:147
+msgid "List"
+msgstr "Λίστα"
+
+#: taxonomy_access.module:163
+msgid "Allow all"
+msgstr "Επιτρέπεται σε όλα"
+
+#: taxonomy_access.module:163
+msgid "Ignore all"
+msgstr "Δεν ορίζεται σε όλα"
+
+#: taxonomy_access.module:163
+msgid "Deny all"
+msgstr "Απαγορεύεται σε όλα"
+
+#: taxonomy_access.module:164
+msgid "Select all"
+msgstr "Επιλογή όλων"
+
+#: taxonomy_access.module:164
+msgid "Deselect all"
+msgstr "Αποεπιλογή όλων"
+
+#: taxonomy_access.module:165
+msgid "Allow"
+msgstr "Επιτρέπεται"
+
+#: taxonomy_access.module:165
+msgid "Ignore"
+msgstr "Δεν ορίζεται"
+
+#: taxonomy_access.module:165
+msgid "Deny"
+msgstr "Απαγορεύεται"
+
+#: taxonomy_access.module:175
+msgid "A"
+msgstr "Ε"
+
+#: taxonomy_access.module:175
+msgid "I"
+msgstr "Δ"
+
+#: taxonomy_access.module:175
+msgid "D"
+msgstr "Α"
+
+#: taxonomy_access.module:181
+msgid "Default"
+msgstr "Προεπιλογή"
+
+#: taxonomy_access.module:255
+msgid "Save category permissions"
+msgstr "Αποθήκευση αδειών κατηγοριών"
+
+#: taxonomy_access.module:259
+msgid "Permissions for"
+msgstr "Άδειες για"
+
+#: taxonomy_access.module:368
+msgid "Your permission settings for"
+msgstr "Οι ρυθμίσεις σας των αδειών για"
+
+#: taxonomy_access.module:378
+msgid "active"
+msgstr "ενεργό"
+
+#: taxonomy_access.module:379
+msgid "<strong>Cannot be disabled!</strong> First, <u>deactivate</u> on %settings_page"
+msgstr "<strong>Δεν μπορεί να τεθεί εκτός λειτουργίας!</strong> Πρώτα <u>επενεργοποιήστε την</u> από τη %settings_page"
+
+#: taxonomy_access.module:612
+msgid "Activate"
+msgstr "Ενεργοποίηση"
+
+#: taxonomy_access.module:612
+msgid "Deactivate"
+msgstr "Απενεργοποίηση"
+
+#: taxonomy_access.module:622
+#: ;629;633
+msgid "Reset to defaults"
+msgstr "Επαναφορά αρχικών ρυθμίσεων"
+
+#: taxonomy_access.module:634
+msgid "The configuration options of taxonomy access have been reset to their default values."
+msgstr "Οι ρυθμίσεις της μονάδας πρόσβασης ταξονομίας επανήλθαν στις αρχικές τους τιμές."
+
+#: taxonomy_access.module:638
+msgid "The configuration options of taxonomy access have been saved."
+msgstr "Οι ρυθμίσεις της μονάδας πρόσβασης ταξονομίας αποθηκεύτηκαν."
+
+#: taxonomy_access.module:0
+msgid "taxonomy_access"
+msgstr "taxonomy_access"
+

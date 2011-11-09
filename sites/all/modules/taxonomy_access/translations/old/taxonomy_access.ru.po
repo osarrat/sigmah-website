@@ -1,0 +1,230 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Drupal 5.1\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2007-03-07 12:23+0300\n"
+"Last-Translator: SadhooKlay <sadhoo@mail.ru>\n"
+"Language-Team: SadhooKlay <sadhoo@mail.ru>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: Plural-Forms: nplurals=3; plural=((((n%10)==1)&&((n%100)!=11))?(0):(((((n%10)>=2)&&((n%10)<=4))&&(((n%100)<10)||((n%100)>=20)))?(1):2));\\n\n"
+"X-Poedit-Language: Russian\n"
+"X-Poedit-Country: RUSSIAN FEDERATION\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: taxonomy_access.install:19
+#: ;38
+msgid "Taxonomy Access - Update #2: No queries executed. Field 'grant_list' already exists in tables 'term_access'."
+msgstr "Taxonomy Access - Обновление #2: Запросы не выполнены. Поле 'grant_list' уже существует в таблицах 'term_access'."
+
+#: taxonomy_access.install:151
+msgid "Taxonomy Access module installed tables successfully."
+msgstr "Создание таблиц в базе данных модуля Taxonomy Access закончилось успешно."
+
+#: taxonomy_access.install:154
+msgid "The installation of Taxonomy Access module was unsuccessful."
+msgstr "Установка модуля Taxonomy Access закончилась неуспешно."
+
+#: taxonomy_access.install:162
+msgid "Taxonomy Access have been successfully uninstalled."
+msgstr "Модуль Taxonomy Access успешно деинсталлирован."
+
+#: taxonomy_access.info:0
+msgid "Taxonomy Access Control"
+msgstr "Taxonomy Access Control"
+
+#: taxonomy_access.info:0
+msgid "Access control for user roles based on taxonomy categories."
+msgstr "Контроль доступа к категориям таксономии для пользовательских ролей."
+
+#: taxonomy_access_admin.inc:23
+#: ;26
+msgid "Reset to defaults"
+msgstr "Вернуть настройки по умолчанию"
+
+#: taxonomy_access_admin.inc:27
+msgid "The configuration options of taxonomy access have been reset to their default values."
+msgstr "Конфигурация настроек доступа таксономии успешно сброшена на значения по умолчанию."
+
+#: taxonomy_access_admin.inc:31
+msgid "The configuration options of taxonomy access have been saved."
+msgstr "Конфигурация настроек доступа таксономии успешно сохранена."
+
+#: taxonomy_access_admin.inc:61
+msgid "Role"
+msgstr "Роль"
+
+#: taxonomy_access_admin.inc:64
+msgid "edit"
+msgstr "изменить"
+
+#: taxonomy_access_admin.inc:92
+msgid "Allow all"
+msgstr "Разрешить все"
+
+#: taxonomy_access_admin.inc:92
+msgid "Ignore all"
+msgstr "Игнорировать все"
+
+#: taxonomy_access_admin.inc:92
+msgid "Deny all"
+msgstr "Запретить все"
+
+#: taxonomy_access_admin.inc:93
+msgid "Select all"
+msgstr "Выделить все"
+
+#: taxonomy_access_admin.inc:93
+msgid "Deselect all"
+msgstr "Снять выделение со всего"
+
+#: taxonomy_access_admin.inc:150
+msgid "Save category permissions"
+msgstr "Сохранить категорию полномочий"
+
+#: taxonomy_access_admin.inc:168
+msgid "Category"
+msgstr "Категория"
+
+#: taxonomy_access_admin.inc:169
+msgid "View"
+msgstr "Просмотреть"
+
+#: taxonomy_access_admin.inc:170
+msgid "Update"
+msgstr "Обновить"
+
+#: taxonomy_access_admin.inc:171
+msgid "Delete"
+msgstr "Удалить"
+
+#: taxonomy_access_admin.inc:172
+msgid "Create"
+msgstr "Создать"
+
+#: taxonomy_access_admin.inc:173
+msgid "List"
+msgstr "Показать список"
+
+#: taxonomy_access_admin.inc:175
+msgid "A"
+msgstr "A"
+
+#: taxonomy_access_admin.inc:176
+msgid "I"
+msgstr "I"
+
+#: taxonomy_access_admin.inc:177
+msgid "D"
+msgstr "D"
+
+#: taxonomy_access_admin.inc:180
+msgid "Allow"
+msgstr "Разрешить"
+
+#: taxonomy_access_admin.inc:180
+msgid "Ignore"
+msgstr "Игнорировать"
+
+#: taxonomy_access_admin.inc:180
+msgid "Deny"
+msgstr "Запретить"
+
+#: taxonomy_access_admin.inc:182
+msgid "Permissions for"
+msgstr "Права для"
+
+#: taxonomy_access_admin.inc:189
+msgid "Uncategorized nodes"
+msgstr "Некатегоризированные материалы"
+
+#: taxonomy_access_admin.inc:223
+msgid "Default"
+msgstr "По умолчанию"
+
+#: taxonomy_access_admin.inc:364
+msgid "Your permission settings for '%role' role have been saved."
+msgstr "Ваши настройки прав для роли '%role' успешно сохранены."
+
+#: taxonomy_access.module:25
+msgid "The Taxonomy Access Control module allows users to specify how each category can be used by various roles."
+msgstr "Модуль Taxonomy Access позволяет определить, насколько каждая категория материалов может быть использована в различных пользовательских ролях."
+
+#: taxonomy_access.module:26
+msgid "Permissions can be set differently to each USER ROLES. When a USER is assigned to TWO OR MORE USER ROLES, then he receives permissions from ALL OF HIS USER ROLES."
+msgstr "Права доступа можно задавать для каждой пользовательской роли по-разному. Если пользователь имеет две или более ролей, он получает все разрешения этих ролей."
+
+#: taxonomy_access.module:27
+msgid "On the category permissions page for each role, each category displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>:"
+msgstr "На странице прв доступа каждой роли, отображаются все категории с входящими в них терминами и доступными типами полномочий: <em>Просмотр, Обновление, Удаление, Создание, Вывод списка </em>. Ниже приведено их краткое описание:"
+
+#: taxonomy_access.module:29
+msgid "<strong>VIEW</strong> enables the user to access content (nodes) with given term."
+msgstr "<strong>Просмотр</strong> позволяет пользователю получить доступ к содержанию (материалам), связаному с данным термином."
+
+#: taxonomy_access.module:30
+msgid "<strong>UPDATE, DELETE</strong> enables the user to Update/Delete <u>ALL</u> nodes with the given term. <br /><em>(These two permissions are <u>administrator permissions</u>, that should be given ONLY to e.g. content administrators.)</em>"
+msgstr "<strong>Обновление, Удаление</strong> позволяет пользователю обновлять и удалять <u>всё</u> содержимое связаному с данным термином. <br /><em>Эти полномочия  рекомендуется назначать <u>только администраторам</u> содержимого.</em>"
+
+#: taxonomy_access.module:31
+msgid "<strong>CREATE</strong> enables the user to set that term when adding a new node or when editing a node."
+msgstr "<strong>Создание</strong> позволяет пользователю создавать и редактировать материал соотнося его  с текущим термиом."
+
+#: taxonomy_access.module:32
+msgid "<strong>LIST</strong> enables the user to view the name of the given term below the title of a node or in category lists.  It also controls whether a user can access the taxonomy page for the given term.  (e.g. \"taxonomy/term/*\")"
+msgstr "<strong>Отображение списка</strong> позволяет отображать пользователю названия данного термина в материале или в списке категорий. Он также управляет доступом к странице таксономии для данного термина.   (например \"taxonomy/term/*\")"
+
+#: taxonomy_access.module:34
+msgid "VIEW, UPDATE, and DELETE control the node access system.  LIST and CREATE control if a user can view and select a given term.  (Note: In previous versions of Taxonomy Access Control, there was no LIST permission; its functionality was controlled by the VIEW permission.)"
+msgstr "Полномочия <em>Просмотр, Обновление</em> и <em>Удаление</em> используются тогда, когда пользователь имеет доступ к материалам. Полномочия <em>Просмотр списка</em> и <em>Создание</em> используются тогда, когда пользователь может просматривать и выбирать термин. (Примечание: В предыдущих версиях Taxonomy Access Control нет полномочий <em>Отображение списка</em>; Функциональность контролировалась полномочием <em>Просмотр</em>.) "
+
+#: taxonomy_access.module:35
+msgid "<strong>VIEW, UPDATE and DELETE have three options for each term: <u>A</u>llow, <u>I</u>gnore, and <u>D</u>eny.</strong>  Indicate which rights each role should have for each term."
+msgstr "<strong>Просмотр, Обновление и Удаление имеют три опции для каждого термина: (<u> A </u>) Разрешить, (<u> I </u>) Игнорировать, и (<u> D </u>) Запретить</strong>. Укажите, какие права каждая роль должна иметь для каждого термина."
+
+#: taxonomy_access.module:36
+msgid "<strong>CREATE and LIST have only two options for each term:  YES (selected) or NO (deselected).</strong>  Indicate what each role should be allowed to do with each term."
+msgstr "<strong>Создание и Отображение списка имеют только две опции для каждого термина:  Да (отмечено) или Нет (не отмечено).</strong> Укажите, какие права каждая роль должна иметь для каждого термина."
+
+#: taxonomy_access.module:37
+msgid "<strong>IMPORTANT NOTE:</strong><br><u>The DENY directives are processed after the ALLOW directives. (DENY overrides ALLOW.)</u>  So, if a multicategory node is in Categories \"A\" and \"B\" and a user has ALLOW permissions for VIEW in Category \"A\" and DENY permissions for VIEW in Category \"B\", then the user will NOT be permitted to VIEW the node. (DENY overrides ALLOW.)<br><u>Access is denied by default.</u> So, if a multicategory node is in Categories \"C\" and \"D\" and a user has IGNORE permissions for VIEW in both Category \"C\" and \"D\", then the user will NOT be permitted to VIEW the node.<br>(If you are familiar with Apache mod_access, this permission system works similar to directive: <em>ORDER ALLOW, DENY</em>)"
+msgstr "<strong>Важно:</strong><br /><u>Опция Запретить ( D ), обрабатывается после опции Разрешить ( A ).  Опция Запретить ( D ) перекрывает  опцию Разрешить ( A )</u> Так, если материал относиться к термину  \"А \" и  \"В \" и пользователь  обладает правом <em>Просмотр</em> для термина  \"А \", но не обладает  правом <em>Просмотр</em> для термина  \"В \", он никогда не увидит данный материал.<br /><u>По умолчанию доступ запрещен.</u> Так, если материал относиться к термину  \"С \" и  \"D \" и пользователь обладает полномочием <em>Игнорировать</em> для  права <em>Просмотр</em> данных категорий  \"А \" и  \"В \", он не получит разрешения для права <em>Просмотр</em> текущего материала.<br /> ( Если вам знаком  mod_access сервера Apache, данные полномочия работают по аналогии с директивой <em>ORDER ALLOW, DENY</em>)"
+
+#: taxonomy_access.module:38
+msgid "<strong>Allow/Ignore/Deny All</strong> or <strong>Select/Deselect All:</strong><br>Beside each vocabulary title there are dropdowns containing the options that can be set for individual terms.  Selecting one of these options using the dropdown effectively <u>selects that option for ALL of the individual terms inside that vocabulary when the options are saved.</u><br>Selecting \"--\" does not make any automatic changes to the permission of the terms in that vocabulary; only manual changes that you make will be saved.<br>NOTE:  This does <u>not</u> change the \"Default\" option (described below)."
+msgstr "<strong>Параметры (<u> A </u>) Разрешить / (<u> I </u>) Игнорировать / (<u> D </u>) Запретить</strong> и <strong>Выделить / Снять выделение</strong>:<br />Рядом с каждым словарем есть поле, содержащие варианты привилегий, которые могут быть установлены для индивидуальных терминов.  Выбирая одну из этих опций, используя выпадающий список, можно установить данный вариант для <u>всех</u> терминов словаря. <br />Выбор \"--\" не позволит автоматически назначить полномочия всем терминам словаря;<br />Внимание:  Это <u>не изменит </u> \"Значение по умолчанию\"."
+
+#: taxonomy_access.module:39
+msgid "<strong>Default:</strong><br>This option, just underneath the vocabulary title, <u>sets the permission that will automatically be given</u> to the role, <u>for any new terms</u> that are added within the vocabulary.  This includes terms that are added via free tagging."
+msgstr "<strong>Значение по умолчанию:</strong><br />Данная опция <u>автоматически устанавливает полномочия</u> роли <u>для любых новых терминов</u>, которые будут добавлены в данный словарь."
+
+#: taxonomy_access.module:40
+msgid "<strong>GOOD TO KNOW:</strong><br><strong>Input formats:</strong>  <u>Node editing/deleting is blocked</u>, even when user has <em>UPDATE/DELETE</em> permission to the node, <u>when user is not allowed to use a filter format</u> that the node was saved at."
+msgstr "<strong>Полезно знать:</strong><br /><strong>Форматы вывода:</strong>  <u>Правка / Удаление материала заблокированы</u> даже в тех случаях, когда пользователь обладает полномочиями типа Обновление / Удаление, <u>а также</u> если пользователю не разрешено использовать формат фильтра в котором был сохранен материал."
+
+#: taxonomy_access.module:48
+msgid "<p><strong>Vocabulary Settings:</strong> Each vocabulary displays a list of the terms within it, each with five types of permission: <em>View, Update, Delete, Create</em> and <em>List</em>.</p><p>For a detailed description of these permissions and how to use them, see <a href=\"@taxonomy_access_help\">Taxonomy Access Control help</a>. If you are new to Taxonomy Access Control, it is very important that you read the help page.</p>"
+msgstr "<p><strong>Настройки словаря:</strong> Каждый словарь содержит список терминов содержащийся в нем, для него определены пять видов разрешений : <em>Просмотр, Обновление, Удаление, Создание, Отображение списка </em>. </p><p>Для более подробного описания этих полномочий обратитесь к <a href=\"@taxonomy_access_help\">справке</a>.  Если вы новичок в назначении полномочий таксономии, очень важно, чтоб вы прочли страницу помощи</p>."
+
+#: taxonomy_access.module:52
+msgid "In this area you will define the permissions that each <a href=\"@role\">user role</a> has for each category.  Each category can have <em>View, Update, Delete, Create</em> and <em>List</em> permissions set for each user role."
+msgstr "Здесь вы можете определить полномочия любой пользовательской роли для каждой категории содержимого. Каждая категория может иметь настройки полномочий для таких действий с содержимым, как <em>Просмотреть, Обновить, Удалить, Создать, Показать список</em>."
+
+#: taxonomy_access.module:161
+msgid "Taxonomy Access: Settings"
+msgstr "Настройка доступа к таксономии"
+
+#: taxonomy_access.module:169
+msgid "Taxonomy Access: Permissions"
+msgstr "Полномочия доступа к таксономии"
+
+#: taxonomy_access.module:170
+msgid "Sophisticated access control for content items based on category"
+msgstr "Переработанное управление доступа для элементов содержимого, базирующихся на категориях."
+
+#: taxonomy_access.module:0
+#: taxonomy_access.info:0
+msgid "taxonomy_access"
+msgstr "taxonomy_access"
+

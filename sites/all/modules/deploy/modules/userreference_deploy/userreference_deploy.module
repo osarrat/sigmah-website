@@ -1,0 +1,128 @@
+<?php
+/**
+ * @file
+ * Deployment module for userreferences
+ */
+
+/**
+ * Implementation of hook_node_deploy_check().
+ *
+ * Used to manage deployment dependencies
+ *
+ * @param $node
+ *   Node object we are deploying
+ */
+function userreference_deploy_node_deploy_check(&$node) {
+  // Get the remote server info.
+  $url = variable_get('deploy_server_url', '');
+  $pid = variable_get('deploy_pid', 0);
+
+  $userreference_fields = userreference_deploy_get_userreference_fields();
+
+  // This will be an array of the uids of all fields our user
+  // references
+  $uids = array();
+
+  // Roll through all the possible userreference fields. If it exists
+  // in the node, then roll through its values and add them to $uids
+  // (unless they were already added previously and are not the node
+  // whose dependencies are currently being checked).
+  foreach ($userreference_fields as $field => $widget) {
+    if (property_exists($node, $field)) {
+      foreach ($node->{$field} as $userreference) {
+        if (!empty($userreference['uid']) && !in_array($userreference['uid'], $uids) && ($userreference['uid'] != 0 && $userreference['uid'] != 1)) {
+          $uids[] = $userreference['uid'];
+        }
+      }
+    }
+  }
+
+  // For each of these users, if they're not already in the plan,
+  // add them and dependency check them.
+  foreach ($uids as $uid) {
+    // If this user is already in the deployment plan then either
+    // a) it was added by the user and will get checked down the line or
+    // b) it was added through dependency checks and its already been
+    // dealt with. So we just move on in this case.
+    if (!deploy_item_is_in_plan($pid, 'user', $uid)) {
+      // Does this user exist on the remote server?
+      $remote_key = deploy_get_remote_key(deploy_uuid_get_user_uuid($uid), 'users');
+
+      // If it doesn't exist or the local version is newer, add it to the deployment plan, 
+      // with a weight of min(weight) - 1, and then run dependency checking on it
+      $plan_user = user_load(array('uid' => $uid));
+      if ($plan_user && !$remote_key) {
+        deploy_add_to_plan($pid, 'user', 'User: '. $plan_user->name, $uid, deploy_get_min_weight($pid)-1, DEPLOY_USER_GROUP_WEIGHT);
+
+        // Now that we're deploying a user, we need to check all of its
+        // dependencies (might be able to skip this now that we've eliminated roles)
+        module_invoke_all('user_deploy_check', $plan_node);
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_node_deploy(),
+ *
+ * @param $node
+ *   Unique identifier for the node we're deploying.
+ */
+function userreference_node_deploy(&$node) {
+  $userreference_fields = userreference_deploy_get_userreference_fields();
+  foreach ($userreference_fields as $field_name => $widget_type) {
+    if (property_exists($node, $field_name)) {
+      $field = array();
+      foreach ($node->{$field_name} as $key => $userreference) {
+        if (!empty($userreference['uid'])) {
+          switch ($widget_type) {
+            case 'userreference_select':
+              if ($userreference['uid'] == 0 || $userreference['uid'] == 1) {
+                $field['uid']['uid'][$key] = $userreference['uid'];
+              }
+              else {
+                $uuid = deploy_uuid_get_user_uuid($userreference['uid']);
+                $remote_data = deploy_get_remote_key($uuid, 'users');
+                if ($remote_data) {
+                  $field['uid']['uid'][$key] = $remote_data['uid'];
+                }                      
+              }
+              break;
+            
+            case 'userreference_autocomplete':
+              $account = user_load(array('uid' => $userreference['uid']));
+              $field[$key]['uid']['uid'] = $account->name;
+              break;
+
+            default:
+              # code...
+              break;
+          }
+        }
+      }
+      $node->{$field_name} = $field;
+    }
+  }
+}
+
+/**
+ * Get an array listing the names of all userreference fields.
+ *
+ * @return
+ *   Array of all created userreference fields
+ **/
+function userreference_deploy_get_userreference_fields() {
+  // This isn't changing much, so cache it to save some queries
+  static $userreference_fields = array();
+
+  if (empty($userreference_fields)) {
+    $fields = content_fields();
+    foreach (content_fields() as $name => $field) {
+      if ($field['type'] == 'userreference') {
+        $userreference_fields[$name] = $field['widget']['type'];
+      }
+    }
+  }
+
+  return $userreference_fields;
+}

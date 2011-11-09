@@ -1,0 +1,87 @@
+<?php
+/**
+ * @file
+ * Service for importing or exporting CCK content types.
+ */
+include_once ('./'. drupal_get_path('module', 'node'    ) .'/content_types.inc');
+include_once ('./'. drupal_get_path('module', 'content') .'/includes/content.admin.inc');
+
+/**
+ * Implementation of hook_help().
+ */
+function content_copy_service_help($path, $args) {
+  switch ($path) {
+    case 'admin/help#services_content_copy':
+      return t('<p>Provides content_copy services. Requires services.module and content_copy.module.</p>');
+    case 'admin/modules#description':
+      return t('Provides content_copy services. Requires services.module and content_copy.module.');
+  }
+}
+
+/**
+ * Implementation of hook_content_fieldapi().
+ *
+ * When a very large content type is imported, it can (and often does) exceed
+ * PHP's timeout because every field instance being created also fires menu_rebuild().
+ * Luckily(?) I can hook into that process and reset the timer to precent this 
+ * timeout from happening.
+ */
+function content_copy_content_fieldapi($op, $field) {
+  if ($op == 'create instance') {
+    set_time_limit(60);
+  }
+}
+
+/**
+ * Implementation of hook_service()
+ */
+function content_copy_service_service() {
+  return array(
+    
+    // content_copy.import
+    array(
+      '#method'   => 'content_copy.import',
+      '#callback' => 'content_copy_service_import',
+      '#access arguments' => 'administer_content_types',
+      '#file'     => array('file' => 'inc', 'module' => 'content_copy_service'),
+      '#args'     => array(
+        array(
+          '#name'         => 'type_name',
+          '#type'         => 'string',
+          '#description'  => t('Content type name to import fields into (or "create" to create new).')),
+        array(
+          '#name'         => 'export',
+          '#type'         => 'text',
+          '#description'  => t('Text of a content copy export'))),
+      '#return'   => 'boolean',
+      '#help'     => t('Import a content type macro')),
+      
+    // content_copy.export
+    array(
+      '#method'   => 'content_copy.export',
+      '#callback' => 'content_copy_service_export',
+      '#access arguments' => 'administer_content_types',
+      '#file'     => array('file' => 'inc', 'module' => 'content_copy_service'),
+      '#args'     => array(
+        array(
+          '#name'         => 'type_name',
+          '#type'         => 'string',
+          '#description'  => t('The content type to export'))),
+      '#return'   => 'string',
+      '#help'     => t('Export a content type macro')),
+
+      // content_copy.content_type_exists
+      array(
+        '#method'   => 'content_copy.content_type_exists',
+        '#callback' => 'content_copy_content_type_exists',
+        '#access arguments' => 'administer_content_types',
+        '#file'     => array('file' => 'inc', 'module' => 'content_copy_service'),
+        '#args'     => array(
+          array(
+            '#name'         => 'type_name',
+            '#type'         => 'string',
+            '#description'  => t('The content type to check'))),
+        '#return'   => 'bool',
+        '#help'     => t('Check to see if a specified content type exists.')),
+  );
+}

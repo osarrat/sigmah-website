@@ -1,0 +1,152 @@
+<?php
+// $Id: tac_fields.install,v 1.1.2.1 2010/08/07 02:12:04 xjm Exp $
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the TAC Fields module.
+ */
+
+/**
+ * Implements hook_schema().
+ * Tables: {term_field_access} and {term_field_access_defaults}
+ */
+function tac_fields_schema() {
+  $schema = array();
+  
+  $schema['term_field_access'] = array(
+    'description' => t('Identifies which roles may view and update certain CCK fields of nodes with a given term.'),
+    'fields' => array(
+      'tid' => array(
+        'description' => t('The term_data.tid this record affects.  Overrides vocabulary default in {term_field_access_defaults}.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'rid' => array(
+        'description' => t("The role.rid a user must possess to gain this row's privileges on this field for nodes for this term."),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'field' => array(
+        'description' => t('The CCK field to which this row applies.'),
+        'type' => 'varchar',
+        'length' => '32', // CCK's max fieldname length is 32 (26 plus 'field_')
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'grant_view' => array(
+        'description' => t('Whether this role can view nodes with this term. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_update' => array(
+        'description' => t('Whether this role can edit nodes with this term. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('tid', 'rid', 'field'),
+  );
+
+  $schema['term_field_access_defaults'] = array(
+    'description' => t('Sets vocabulary defaults which roles may view and update certain CCK fields of nodes with a given term. Overridden by {term_field_access}.'),
+    'fields' => array(
+      'vid' => array(
+        'description' => t('The vocabulary.vid for which this row sets defaults.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'rid' => array(
+        'description' => t("The role.rid a user must possess to gain this row's privileges on nodes for terms in this vocabulary."),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'field' => array(
+        'description' => t('The CCK field to which this row applies.'),
+        'type' => 'varchar',
+        'length' => '32', // CCK's max fieldname length is 32 (26 plus 'field_')
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'grant_view' => array(
+        'description' => t('Whether this role can view nodes with terms in this vocabulary. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_update' => array(
+        'description' => t('Whether this role can edit nodes with terms in this vocabulary. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('vid', 'rid', 'field'),
+  );
+  
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ * Adds module tables to the database and sets module weight.
+ */
+function tac_fields_install() {
+  drupal_set_message("Warning: This module is experimental.  Do not use on a production site.", 'warning', FALSE);
+
+  // Use Schema API to install tables.
+  $status = drupal_install_schema('tac_fields');
+  
+  // drupal_install_schema() returns an array of the results of each query;
+  // each entry includes 'status' which is 0 for failure or 1 for success.
+  $success = 1;
+  foreach ($status as $s) {
+    $success = $success * $s['success'];
+  }
+  
+  // Notify of changes
+  if ($success) {
+    drupal_set_message(t('TAC Fields module installed tables successfully.'));
+  }
+  else {
+    drupal_set_message(t('The installation of TAC Fields was unsuccessful.'), 'error');
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ * Removes module tables from the database.
+ */
+function tac_fields_uninstall() {
+  $status = drupal_uninstall_schema('tac_fields');
+  
+  // drupal_install_schema() returns an array of the results of each query;
+  // each entry includes 'status' which is 0 for failure or 1 for success.
+  $success = 1;
+  foreach ($status as $s) {
+    $success = $success * $s['success'];
+  }
+  if ($success) {
+    drupal_set_message(t('TAC Fields has been successfully uninstalled.'));
+  }
+  else {
+    drupal_set_message(t('Uninstalling TAC Fields was unsuccessful.'), 'error');
+  }
+}

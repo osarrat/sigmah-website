@@ -1,0 +1,231 @@
+<?php
+// $Id: formfilter_ui.module,v 1.6 2010/01/26 00:11:58 nedjo Exp $
+
+/**
+ * @file
+ * Provide a UI for modification of the fields presented in any form in your
+ * installation without resorting to hook_form_alter() or a custom theme.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function formfilter_ui_menu() {
+  $items = array();
+  $items['admin/settings/formfilter-ui'] = array(
+    'title' => 'Form Filter',
+    'description' => 'Select what filtering to apply.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('formfilter_ui_admin_settings'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['formfilter-ui/node'] = array(
+    'title' => 'Filter all node forms',
+    'description' => 'Set filtering for all node types.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('formfilter_ui_node_form'),
+    'access arguments' => array('administer form filters'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function formfilter_ui_perm() {
+  return array('administer form filters', 'view forms without filtering');
+}
+
+/**
+ * Menu callback for node form.
+ *
+ * Create a dummy node form with only the fields common to all node forms.
+ */
+function formfilter_ui_node_form() {
+  $form_state = array();
+  $node = array('type' => 'formfilter');
+  module_load_include('inc', 'node', 'node.pages');
+  $form = node_form($form_state, $form);
+  return $form;
+}
+
+/**
+ * Menu callback for module settings.
+ */
+function formfilter_ui_admin_settings() {
+  $form = array();
+  $form['formfilter_ui'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Filtering UI'),
+    '#description' => t('Check this option to provide a link, <em>Filter this form</em> at the bottom of every form (for users with the <em>administer form filters</em> permission). Clicking the link will bring up a version of the form with checkboxes for filtering (hiding) unwanted elements.'),
+    '#default_value' => variable_get('formfilter_ui', 1),
+  );
+  $form['formfilter_simplify_node'] = array(
+    '#type' => 'radios',
+    '#title' => t('Simplify node form'),
+    '#default_value' => variable_get('formfilter_simplify_node', 0),
+    '#options' => array(t('Disabled'), t('Enabled')),
+    '#description' => t('Simplify the node form by pulling the <em>Promote</em> and <em>Sticky</em> options out of fieldsets and then putting all the fieldsets in one <em>Advanced options</em> fieldset.'),
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Implementation of hook_form_alter().
+ *
+ * Add all users to select for assigning issues.
+ */
+function formfilter_ui_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+
+  $filters = variable_get('formfilter', array());
+  _formfilter_ui_add_node_filters($filters, $form, $form_id);
+  // If user has access to create form filters, add filtering link or filtering
+  // checkboxes.
+  if (variable_get('formfilter_ui', 1) && user_access('administer form filters')) {
+    // Comment form doesn't have a submit button and so can't be filtered
+    // if preview is required.
+    if ($form_id == 'comment_form' && variable_get('comment_preview', COMMENT_PREVIEW_REQUIRED) == COMMENT_PREVIEW_REQUIRED) {
+      return;
+    }
+    if ($form_id == $_REQUEST['formfilter_id']) {
+      $form['formfilter'] = array(
+        '#type' => 'tree',
+      );
+      $form['#pre_render'][] = 'formfilter_ui_add_selectors';
+      $form['#formfilter_id'] = $form_id;
+      $form['#validate'][] = 'formfilter_ui_form_validate';
+      drupal_set_message(t('To register filters for this form, select which filters to apply and then submit the form normally.'));
+    }
+    else {
+      $form['#suffix'] .= '<div class="suffix">'. l(t('Filter this form'), $_GET['q'], array('query' => 'formfilter_id='. $form_id)) .'</div>';
+      if (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) {
+    $node = $form['#node'];
+        $form['#suffix'] .= '<div class="suffix">'. l(t('Filter all node forms'), 'formfilter-ui/node', array('query' => 'formfilter_id=formfilter_ui_node_form')) .'</div>';
+      }
+      // If the user applying a filter had permission to view forms without filtering,
+      // give her or him a link to preview the filtering if a filter exists on the form.
+      if (array_key_exists($form_id, $filters) && user_access('view forms without filtering') && !$_REQUEST['formfilter_preview']) {
+        $form['#suffix'] .= '<div class="suffix">'. l(t('Preview a filtered version of this form'), $_GET['q'], array('query' => 'formfilter_preview=1')) .'</div>';
+      }
+    }
+  }
+
+  if ((!$_REQUEST['formfilter_id']) && array_key_exists($form_id, $filters) && is_array($filters[$form_id]) && ((!user_access('view forms without filtering') || $_REQUEST['formfilter_preview']))) {
+    $form['#pre_render'][] = 'formfilter_ui_pre_render';
+  }
+
+  // Simplify the node form.
+  if (variable_get('formfilter_simplify_node', 0) && isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
+    // Remove the most-used fields from the form admin fieldsets. Add them
+    // below the body.
+    if ($form['body_filter']) {
+      // Move 'promote' and 'sticky'.
+      if ($form['options']) {
+        foreach (array('promote', 'sticky') as $key) {
+          if ($form['options'][$key]) {
+            $form['body_filter'][$key] = $form['options'][$key];
+            unset($form['options'][$key]);
+          }
+        }
+      }
+    }
+    // Simplify the node form.
+    // Create an 'advanced' fieldset...
+    $form['advanced'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Advanced options',
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+    // ...and move all first-level fieldsets there.
+    foreach (element_children($form) as $key) {
+      if (!(in_array($key, array('advanced', 'taxonomy'))) && $form[$key]['#type'] && $form[$key]['#type'] == 'fieldset') {
+        $form['advanced'][$key] = $form[$key];
+        unset($form[$key]);
+      }
+    }
+    // If nothing has been moved to the advanced fieldset, drop it.
+    if (!count(element_children($form['advanced']))) {
+      unset($form['advanced']);
+    }
+  }
+}
+
+/**
+ * Merge in defaults to node form filters.
+ */
+function _formfilter_ui_add_node_filters(&$filters, $form, $form_id) {
+  if (isset($filters['formfilter_ui_node_form']) && isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
+    if (!isset($filters[$form_id])) {
+      $filters[$form_id] = array();
+    }
+    $filters[$form_id] = array_merge($filters[$form_id] , $filters['formfilter_ui_node_form']);
+  }
+}
+
+/**
+ * Forms API pre render callback for filtering forms.
+ */
+function formfilter_ui_pre_render($form) {
+  if (!$form['#formfilter_ui_processed']) {
+    $filters = variable_get('formfilter', array());
+    $form_id = $form['form_id']['#value'];
+    // If this is a node form, merge in the default settings for node forms.
+    _formfilter_ui_add_node_filters($filters, $form, $form_id);
+    $form_filters = array();
+    if ($_REQUEST['formfilter_preview']) {
+      drupal_set_message(t('Previewing filtered version of form.'));
+    }
+    if (isset($filters[$form_id]) && is_array($filters[$form_id])) {
+      // Convert filters to arrays.
+      foreach (array_keys($filters[$form_id]) as $filter) {
+        $form_filters[] = explode('|', $filter);
+      }
+      formfilter_filter_form($form, $form_filters);
+    }
+    $form['#formfilter_ui_processed'] = TRUE;
+  }
+  return $form;
+}
+
+/**
+ * Validate a form filtering submission. Read in data from the $_POST because
+ * we have added elements not via the Forms API.
+ */
+function formfilter_ui_form_validate($form, &$form_state) {
+  $filters = variable_get('formfilter', array());
+  if (isset($_REQUEST['edit']['formfilter']) && is_array($_REQUEST['edit']['formfilter'])) {
+    $filters[$form_state['values']['form_id']] = array_filter($_REQUEST['edit']['formfilter']);
+    variable_set('formfilter', $filters);
+    drupal_set_message(t('Form filtering registered.'));
+  }
+  drupal_goto($_GET['q']);
+}
+
+/**
+ * Forms API pre render callback to add selectors to a form for the user to select
+ * which elements to filter.
+ */
+function formfilter_ui_add_selectors($form, $filters = NULL, $keys = array()) {
+  if (!$form['#formfilter_ui_processed']) {
+    if (is_null($filters) && isset($form['form_id'])) {
+      $filters = variable_get('formfilter', array());
+      $form_id = $form['form_id']['#value'];
+      $filters = array_key_exists($form_id, $filters) ? $filters[$form_id] : NULL;
+    }
+    foreach (element_children($form) as $key) {
+      $keys[] = $key;
+      // Prevent validation errors when form is submitted.
+      unset($form[$key]['#required']);
+      if (isset($form[$key]['#type']) && in_array($form[$key]['#type'], formfilter_supported_types())) {
+        $form[$key]['#suffix'] .= '<div class="suffix">'. t('Hide %title:', array('%title' => isset($form[$key]['#title']) ? $form[$key]['#title'] : $key)) .' <input type="checkbox" name="edit[formfilter]['. implode('|', $keys) .']" value="1"'. ($filters && $filters[implode('|', $keys)] ? ' checked="checked" ' : ' ') .'/></div>';
+      }
+      $form[$key] = formfilter_ui_add_selectors($form[$key], $filters, $keys);
+      unset($keys[array_search($key, $keys)]);
+    }
+    $form['#formfilter_ui_processed'] = TRUE;
+  }
+  return $form;
+}

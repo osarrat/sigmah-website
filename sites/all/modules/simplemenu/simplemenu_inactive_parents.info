@@ -1,0 +1,14 @@
+; $Id: simplemenu_inactive_parents.info,v 1.1.2.1 2010/05/16 09:10:28 alexiswilke Exp $
+name = SimpleMenu Inactive Parent Menu
+description = Make all the parent menus inactive so users cannot click on them inadvertendly.
+dependencies[] = simplemenu
+core = 6.x
+package = Menu
+project = simplemenu
+
+; Information added by drupal.org packaging script on 2010-08-30
+version = "6.x-1.13"
+core = "6.x"
+project = "simplemenu"
+datestamp = "1283140912"
+

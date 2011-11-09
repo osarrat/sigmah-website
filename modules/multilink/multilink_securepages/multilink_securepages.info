@@ -1,0 +1,17 @@
+; $Id:
+name = MultiLink Secure Pages
+description = "Provides integration between <em>MultiLink</em> and <a href=http://drupal.org/project/securepages>Secure Pages</a> and allows enhanced operation on a multi-language site."
+package = "Multilanguage"
+
+; --- Drupal 6.x ---
+dependencies[] = multilink
+dependencies[] = securepages
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2010-04-19
+version = "6.x-2.1"
+core = "6.x"
+project = "multilink"
+datestamp = "1271677811"
+

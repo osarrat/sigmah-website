@@ -1,0 +1,107 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: webfm_ipfolder\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2009-08-19 23:03+0100\n"
+"Last-Translator: Niels Hackius <niels.hackius@tu-harburg.de>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: German\n"
+"X-Poedit-Country: GERMANY\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+
+msgid "Current IP authenticated folders"
+msgstr "Derzeit über die IP authentifizierte Verzeichnisse"
+
+msgid "Instructions:"
+msgstr "Anleitung:"
+
+msgid "Click on an ip range to modify the authenticator assignment."
+msgstr "Auf einen IP-Bereich klicken um diese zu bearbeiten."
+
+msgid "The title fields are sortable."
+msgstr "Die Titel Felder kann man sortieren."
+
+msgid "Your IP: @s"
+msgstr "Ihre IP: @s"
+
+msgid "Please note that users with the <em>administer webfm</em> rights will be able to download the files anyway."
+msgstr "Bitte beachten: Nutzer mit der Berechtigung webfm zu verwalten (<em>administer webfm</em>) können die Dateien immer herunterladen."
+
+msgid "IP Range"
+msgstr "IP Bereich"
+
+msgid "Folder"
+msgstr "Verzeichnis"
+
+msgid "There are no folders or IPs to list."
+msgstr "Keine IPs oder Verzeichnisse eingetragen."
+
+msgid "WebFile manager IP based folder access"
+msgstr "WebFile manager IP abhängiger Verzeichniszugriff."
+
+msgid "Start of IP range"
+msgstr "Beginn des IP-Bereichs"
+
+msgid "It is not possible to use wildcards."
+msgstr "Es ist nicht möglich Platzhalterzeichen zu benutzen."
+
+msgid "End of IP range"
+msgstr "Ende des IP-Bereichs"
+
+msgid "Leave empty for single IP matching of ip1"
+msgstr "Leer lassen falls nur die einzelne IP aus dem Feld ip1 betroffen ist"
+
+msgid "Name of folder"
+msgstr "Name des Verzeichnisses"
+
+msgid "Provide folder name as it is provided through webfm."
+msgstr "Geben Sie den Namen des Ordners genauso wie ein wie er in webfm eingegeben ist."
+
+msgid "Please select your IP-Range again"
+msgstr "Bitte wählen Sie Ihren IP-Bereich noch einmal."
+
+msgid "You must enter an ip address in the first field."
+msgstr "Sie müssen im ersten Feld eine IP-Adresse eingeben."
+
+msgid "You must enter an ip address in the second field or leave it empty."
+msgstr "Sie müssen im zweiten Feld eine IP-Adresse eingeben oder es leer lassen."
+
+msgid "You must enter a folder."
+msgstr "Es wurde kein Verzeichnis angegeben."
+
+msgid "Default behavior"
+msgstr "Standard Verhalten"
+
+msgid "Block access to all folders, but not to IP/folder-Pairs specifed."
+msgstr "Zugriff auf alle Verzeichnisse beschränken, außer für die angegeben IP/Verzeichnis-Paare."
+
+msgid "Allow access to all folders, but restrict access for the IP/folder-Pairs as specified."
+msgstr "Zugriff auf alle Verzeichnisse erlauben, aber für die angegeben IP/Verzeichnis-Paare beschränken wie angegeben."
+
+msgid "This module extends the Web File Manager. It allows to block or allow certain IP Ranges access to specified folders. <br /> In the !configuration you can provide IP Ranges and folder names.<br /> Depending on your !settings the selected IP Range will be allowed or blocked. By default it <b>blocks</b> access to all folders."
+msgstr "Dieses Modul erweitert den Web File Manager. Es ermöglicht bestimmten IP Bereiche den Zugriff auf bestimmte Verzeichnisse zu erlauben oder zu entziehen.<br /> In der !configuration kann man bestimmte IP Bereichen Namen von Ordnern zu weisen.<br />Abhängig von den !settings wird IPs aus dem gewählten IP Block Zugriff gewährt oder blockiert. Voreingestellt ist den Zugriff auf alle Ordner zu <b>blockieren</b>."
+
+msgid "Enable the Web File Manager Extension to allow IP based folder blocking."
+msgstr "Web File Manager Erweiterung aktivieren um IP-Bereich basierende Zugriffsbeschränkungen zu erlauben."
+
+msgid "WebFM IP based folder access"
+msgstr "WebFM IP-Bereich basierender Verzeichnis-Zugriff"
+
+msgid "Configure IP based folder access."
+msgstr "Konfigurieren des WebFM IP-Bereich basierenden Verzeichnis-Zugriff"
+
+msgid "WebFM IP based folder access -- Modify"
+msgstr "WebFM IP-Bereich basierender Verzeichnis-Zugriff -- Bearbeiten"
+
+msgid "WebFM IP based folder access -- Delete"
+msgstr "WebFM IP-Bereich basierender Verzeichnis-Zugriff -- Löschen"
+
+msgid "Configure IP based folder access - default behavior"
+msgstr "Konfigurieren des WebFM IP-Bereich basierenden Verzeichnis-Zugriff -- Standardmäßiges Verhalten"
+
+msgid "configuration"
+msgstr "Konfiguration"

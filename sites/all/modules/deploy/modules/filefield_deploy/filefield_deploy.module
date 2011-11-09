@@ -1,0 +1,156 @@
+<?php
+/**
+ * @file
+ * Deployment API which enables modules to deploy items between servers.
+ *
+ * This module manages deployment-related issues for files added via filefield.
+ */
+
+function filefield_deploy($fid) {
+  $file_info = field_file_load($fid);
+  if (empty($file_info)) {
+    return xmlrpc_error($xmlrpcusererr + 1, t('File not found'));
+  }
+
+  // Save the base64_encode()d file into the file_info array for transfer
+  $filepath = file_create_path($file_info['filepath']);
+  $binaryfile = fopen($filepath, 'rb');
+  $filelength = filesize($filepath);
+  $file = base64_encode(fread($binaryfile, $filelength));
+  $file_info['file'] = $file;
+
+  // Normally, like with users and nodes, the uuid is added to the object in the 'load'
+  // op of their hook. Files have no load op, so we have to get it by hand.
+  $remote_key = deploy_get_remote_key($file_info['uuid'], 'files');
+  $file_info['fid'] = isset($remote_key['fid']) ? $remote_key['fid'] : NULL;
+  
+  // If there is no remote file, then we also set the status to
+  // FILE_STATUS_TEMPORARY. If you don't do this, then Filefield
+  // will fail out with a validation error on the remote site. 
+  // It will get set to FILE_STATUS_PERMANENT when the node
+  // is saved.
+  if (isset($remote_key['fid'])) {
+    $file_info['fid'] = $remote_key['fid'];
+  }
+  else {
+    $file_info['fid'] = NULL;
+    $file_info['status'] = FILE_STATUS_TEMPORARY;
+  }
+  // The filefield service requires an object and I don't have time
+  // to go change all the above at the moment
+  $file_info = (object) $file_info;
+
+  // And we're off.
+  $fid = deploy_send(array('file.save'), array($file_info));
+
+  return $fid;
+}
+
+/**
+ * Implementation of hook_node_deploy_check().
+ *
+ * This is the dependency checking hook for nodes, called when
+ * a deployment has been requested that includes a node.
+ *
+ * @param $node
+ *   The node object being deployed
+ */
+function filefield_deploy_node_deploy_check($node) {
+  // Figure out which fields in this node are file-related.  
+  $fields = filefield_deploy_get_file_fields($node->type);
+  
+  // Get the remote server info.
+  $url = variable_get('deploy_server_url', '');
+  $pid = variable_get('deploy_pid', 0);
+
+  // Roll through all the file fields in this content type. If it
+  // is not empty, not in the plan already, and doesn't exist on the
+  // remote server, then add it to the plan with an appropriate weight.
+  if ($fields) {
+    foreach ($fields as $field) {
+      if (!empty($node->{$field})) {
+        foreach ($node->{$field} as $file) {
+          if (!deploy_item_is_in_plan($pid, 'filefield', $file['fid'])) {
+
+            // Does this user exist on the remote server?
+            $remote_key = deploy_get_remote_key($file['uuid'], 'files');
+
+            // If not we're going to add it to the deployment plan, with a weight
+            // of min(weight) - 1.
+            if (!$remote_key) {
+              deploy_add_to_plan($pid, 'filefield', 'File: '. $file['filename'], $file['fid'], deploy_get_min_weight($pid)-1, DEPLOY_FILE_GROUP_WEIGHT);
+            }
+          }
+        }
+      }
+    }  
+  }
+}
+
+/**
+ * Get an array listing the names of all file fields for a specific
+ * content type.
+ *
+ * @param $content_type
+ *   The content type you want to get file field names from.
+ * @return
+ *   Array of all file fields
+ **/
+function filefield_deploy_get_file_fields($content_type) {
+  static $filefields = array();
+  
+  if (empty($filefields[$content_type])) {
+    // filefield_get_field_list only exists in filefield 3.x and higher.
+    // For lower versions we have to use an alternate method.
+    if (function_exists('filefield_get_field_list')) {
+      $fields = filefield_get_field_list();
+      $fields = array_keys($fields);
+    }
+    else {
+      $info = _content_type_info();
+      $fields = $info['content types'][$content_type]['fields'];
+      $references = module_invoke_all('file_references', array());
+      foreach ($fields as $field) {
+        if (array_key_exists($field['module'], $references)) {
+          $filefields[$content_type][] = $field['field_name'];
+        }
+      }
+      $fields = $filefields[$content_type];
+    }
+  }
+  
+  return $fields;
+}
+
+/**
+ * Implementation of hook_node_deploy(),
+ *
+ * @param $node
+ *   The node we're deploying.
+ * @return
+ *   The results of our xmlrpc call.
+ */
+function filefield_node_deploy(&$node) {
+  $filefields = filefield_deploy_get_file_fields($node->type);  
+
+  // We keep a list of all the files in this node, so we can rsync them
+  // later.
+  $node_files = array();
+  if ($filefields) {
+    foreach ($filefields as $field) {
+      // A node object from a node load just returns the file field as empty.
+      // However our node object pulled out of the form api gives every file object
+      // at least one entry, even though this entry may well be filled with empty
+      // data when the file doesn't exist. This is why we need to check that the field's
+      // fid is not 0. 
+      if ($node->{$field}) {
+        foreach ($node->{$field} as &$file) {
+          if ($file['fid'] != 0) {
+            $remote_key = deploy_get_remote_key($file['uuid'], 'files');
+            $file['fid'] = $remote_key['fid'];
+          }
+        }
+      }
+    }
+  }  
+}

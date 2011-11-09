@@ -1,0 +1,53 @@
+name = sigmah_theme
+description = sigmah_theme starter theme for Drupal 6
+screenshot = css/images/screenshot.gif
+core = "6.x"
+project = "sigmah_theme"
+engine = phptemplate
+
+regions[content_top] = Content top
+regions[header] = Header
+regions[right] = Right sidebar
+regions[footer_block] = Footer
+regions[content_bottom] = Content bottom
+regions[pub] = Front page test
+regions[actualite] = Front page actualities
+regions[newsletter] = Front page newsletter
+regions[left] = Front page discover
+regions[center] = Front page use
+regions[contribute] = Front page contribute
+
+features[] = logo
+features[] = name
+features[] = slogan
+features[] = mission
+features[] = node_user_picture
+features[] = comment_user_picture
+features[] = search
+features[] = favicon
+features[] = primary_links
+features[] = secondary_links
+
+stylesheets[all][] = new_css/reset.css 
+stylesheets[all][] = new_css/typographie.css 
+stylesheets[all][] = new_css/style.css
+stylesheets[all][] = fancybox/jquery.fancybox-1.3.4.css
+;stylesheets[all][] = new_css/IE.css
+;stylesheets[all][] = new_css/pop.css
+;stylesheets[print][] = css/print.css
+;stylesheets[all][] = css/default.css
+;stylesheets[all][] = css/layout.css
+;stylesheets[all][] = css/style.css
+;stylesheets[all][] = css/jqModal.css 
+            
+			 
+settings[sigmah_theme_zen_tabs]             = 1
+settings[sigmah_theme_wireframe]            = 0
+settings[sigmah_theme_block_editing]        = 1
+settings[sigmah_theme_rebuild_registry]     = 0
+; Information added by drupal.org packaging script on 2010-04-27
+version = "6.x-2.10"
+core = "6.x"
+project = "sigmah_theme"
+datestamp = "1272402606"
+

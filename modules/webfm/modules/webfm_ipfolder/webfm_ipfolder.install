@@ -1,0 +1,49 @@
+<?php
+// $Id: webfm_ipfolder.install,v 1.2 2009/08/20 01:10:35 robmilne Exp $
+/* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
+/**
+ * @author			Niels Hackius <niels.hackius@tu-harburg.de>
+ * @copyright	2009, Technische Universität Hamburg-Harburg: Institut für Logistik und Unternehmensführung
+ * @license			http://www.opensource.org/licenses/gpl-3.0.html  GNU General Public License version 3 (GPLv3)
+ * @version		$Id: webfm_ipfolder.install,v 1.2 2009/08/20 01:10:35 robmilne Exp $
+ * @since			23:09:49 - 15.04.2009
+ */
+
+/**
+ * Implementation of hook_install
+ *
+ */
+function webfm_ipfolder_install()
+{
+	drupal_install_schema('webfm_ipfolder');
+	variable_set('webfm_ipfolder_bydefault',TRUE);
+}
+
+/**
+ * Implementation of hook_uninstall
+ *
+ */
+function webfm_ipfolder_uninstall()
+{
+	drupal_uninstall_schema('webfm_ipfolder');
+	variable_del('webfm_ipfolder_bydefault');
+}
+/**
+ * Implementation of hook_schema
+ *
+ * @return array
+ */
+function webfm_ipfolder_schema()
+{
+	$schema['webfm_ipfolder'] = array(
+		'fields' => array(
+			'id'		=> array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+		    'folder'	=> array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+			'ip1'		=> array('type' => 'int','unsigned' => TRUE,'not null' => TRUE),
+			'ip2'		=> array('type' => 'int','unsigned' => TRUE,'not null' => TRUE),
+			),
+		'primary key' => array('id'),
+	);
+
+	return $schema;
+}

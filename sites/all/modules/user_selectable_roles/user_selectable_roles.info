@@ -1,0 +1,11 @@
+; $Id: user_selectable_roles.info,v 1.1.4.3 2009/08/18 18:07:47 bacteriaman Exp $
+name = User-Selectable Roles
+description = Provides user-selectable roles when registering and account editing.
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-08-20
+version = "6.x-1.6"
+core = "6.x"
+project = "user_selectable_roles"
+datestamp = "1282273594"
+

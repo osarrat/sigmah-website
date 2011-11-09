@@ -1,0 +1,69 @@
+<?php
+/**
+ * @file
+ * Deployment API which enables modules to deploy items between servers.
+ *
+ * This module manages deployment of views between servers.
+ *
+ * @todo
+ *   This currently only adds new views if they don't exist. It doesn't
+ *   update existing view. Should be pretty simple though.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function views_deploy_menu() {
+  $items = array();
+  $plans = deploy_get_plans();
+
+  if (!empty($plans)) {
+    $items['admin/build/views/deploy'] = array(
+      'title' => 'Deploy',
+      'description' => 'Add a view to a deployment plan.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('views_deploy_add_form'),
+      'access arguments' => array('add items to deployment plan'),
+      'file' => 'views_deploy.pages.inc',
+      'type' => MENU_LOCAL_TASK
+    );
+  }
+  
+  return $items;
+}
+
+/**
+ * Implementation of hook_deploy().
+ *
+ * @param $view_name
+ *   Name of the view we're going to deploy.
+ * @return
+ *   The results of our remote call.
+ */
+function views_deploy($view_name) {
+  $view = views_get_view($view_name);
+  if (is_null($view)) {
+    drupal_set_message(t("View $view_name does not exist."));
+  }
+  
+  return deploy_send(array('views.import'), array($view->export(), $view_name));
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function views_deploy_form_alter(&$form, &$form_state, $form_id) {
+  // Add our own submit callback that will remove the deleted view from all
+  // plans.
+  if ($form_id == 'views_ui_delete_confirm') {
+    $form['#submit'][] = 'views_deploy_delete_form_submit';
+  }
+}
+
+/**
+ * Submit handler for the Views delete form.
+ */
+function views_deploy_delete_form_submit($form, &$form_state) {
+  // Remove the deleted view from all plans.
+  deploy_plan_item_delete(array('module' => 'views', 'data' => $form_state['view']->name));
+}

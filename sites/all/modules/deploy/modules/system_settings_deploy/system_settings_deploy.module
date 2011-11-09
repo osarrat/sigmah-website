@@ -1,0 +1,90 @@
+<?php
+/**
+ * @file
+ * Deployment API which enables modules to deploy items between servers.
+ *
+ * This module manages deployment of configuration settings that use the drupal
+ * system_settings_form() API.
+ */
+
+/**
+ * Implementation of hook_form_alter().
+ *
+ * Adds the deployment plan drop down to all forms built using system_settings_form(),
+ */
+function system_settings_deploy_form_alter(&$form, $form_state, $form_id) {
+  // If user doesn't have permissions then bail.
+  if (!user_access('add items to deployment plan')) {
+    return;
+  }
+
+  if (isset($form['#submit']) && in_array('system_settings_form_submit', $form['#submit'])) {
+    // Set our drop down's weight to be one lighter than the submit button's,
+    // ensuring that it always appears right above it (assuming nobody else
+    // form_alter()s us out.)
+    $weight = isset($form['buttons']['#weight']) ? $form['buttons']['#weight'] : 0;
+    $form['buttons']['#weight'] = $weight + 1;
+    $deploy_weight = $weight;
+
+    $form['#submit'][] = 'system_settings_deploy_form_submit';
+
+    $plans = deploy_get_plan_options();
+    if (!empty($plans)) {
+      $plans['0'] = '<None>';
+      natsort($plans);
+      $form['deploy']['deploy_plan'] = array(
+        '#type' => 'select',
+        '#title' => t('Deployment Plan'),
+        '#description' => t('A deployment plan to add these settings to, or none'),
+        '#weight' => $deploy_weight,
+        '#options' => $plans,
+      );
+    }
+  }
+}
+
+/**
+ * Submit handler for systems settings forms that have deployment enabled.
+ */
+function system_settings_deploy_form_submit($form, &$form_state) {  
+  $pid = $form_state['values']['deploy_plan'];
+
+  // Remove the "deploy_plan" key from form_values before
+  // we save the array, since it is stupid on the other side.
+  if (array_key_exists("deploy_plan", $form_state['values'])) {
+      unset($form_state['values']["deploy_plan"]);
+  }
+
+  // Serialize and save $form_values.
+  $data = serialize($form_state['values']);
+  $form_id = $form['form_id']['#value'];
+    
+  // if a deployment plan is submitted, and the settings don't already exist in that plan, then add these settings
+  if ($pid != '0') {
+    $result = db_query("SELECT iid FROM {deploy_plan_items} WHERE pid = %d AND description = '%s'", $pid, 'Settings: '. $form_id);
+    if (!db_result($result)) {
+      deploy_add_to_plan($pid, 'system_settings', 'Settings: '. $form['form_id']['#value'], $data, 0, DEPLOY_SYSTEM_SETTINGS_GROUP_WEIGHT);
+    }
+  }
+
+  // if these settings already exist in existing plans,
+  // then we need to update them. note that this the only thing in deployment that updates
+  // on the fly as changes occur due to the difficulty of retrieving system setting 
+  // information on the fly at deploy_time. yes, if a new set of settings has just been added
+  // above, this will rewrite the same data again. no harm, no foul.
+  $result = db_query("SELECT iid FROM {deploy_plan_items} WHERE description = '%s'", 'Settings: '. $form_id);
+  while ($row = db_fetch_array($result)) {
+    deploy_update_item($row['iid'], $data);  
+  }
+}
+
+/**
+ * Implementation of hook_deploy().
+ * @param $data
+ *   Serialized system settings we're pushing to the remote server.
+ * @return
+ *   The results of our xmlrpc call.
+ */
+function system_settings_deploy($data) {
+  return deploy_send(array('system_settings.import'), array(unserialize($data)));
+}

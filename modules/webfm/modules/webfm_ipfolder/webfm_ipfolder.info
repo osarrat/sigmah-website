@@ -1,0 +1,13 @@
+; $Id: webfm_ipfolder.info,v 1.2 2009/08/20 01:10:35 robmilne Exp $
+name = WebFM IP Folder
+description = Blocking/Allowing of users based upon their IP.
+package = WebFM
+dependencies[] = webfm
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-03-12
+version = "6.x-2.12"
+core = "6.x"
+project = "webfm"
+datestamp = "1268365810"
+

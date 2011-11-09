@@ -1,0 +1,26 @@
+<?php
+/**
+ * Implementation of hook_install().
+ * Create our own cache table.
+ */
+function multilink_install() {
+  drupal_install_schema('multilink');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ * Remove our cache table and variables.
+ */
+function multilink_uninstall() {
+  drupal_uninstall_schema('multilink');
+  db_query('DELETE FROM {variable} WHERE name LIKE "multilink_%"');
+  cache_clear_all('variables', 'cache');
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function multilink_schema() {
+  $schema['cache_multilink'] = drupal_get_schema_unprocessed('system', 'cache');
+  return $schema;
+}

@@ -1,0 +1,19 @@
+<?php
+// $Id: user_selectable_roles.install,v 1.1.4.4 2009/08/18 18:07:47 bacteriaman Exp $
+
+/**
+ * @file
+ * The user_selectable_roles module install file, which handles the install/uninstall tasks.
+ */
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function user_selectable_roles_uninstall() {
+  variable_del('user_selectable_roles_enabled');
+  variable_del('user_selectable_roles');
+  variable_del('user_selectable_roles_label');
+  variable_del('user_selectable_roles_mode');
+  variable_del('user_selectable_roles_required');
+  variable_del('user_selectable_roles_editing');
+}

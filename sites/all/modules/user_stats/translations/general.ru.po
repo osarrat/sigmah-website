@@ -1,0 +1,133 @@
+# Russian translation of user_stats (6.x-1.x-dev)
+# Copyright (c) 2009 by the Russian translation team
+# Generated from files:
+#  views_handler_filter_is_online.inc,v 1.1.2.3 2009/02/13 03:18:36 liammcdermott
+#  views_handler_field_is_online.inc,v 1.1.2.3 2009/02/13 03:18:36 liammcdermott
+#  user_stats.module,v 1.2.2.16.2.19 2009/02/14 21:50:09 liammcdermott
+#  user_stats.rules.inc,v 1.1.2.1 2009/02/07 04:10:38 liammcdermott
+#  user_stats.info,v 1.2.2.3.2.4 2009/02/07 04:10:38 liammcdermott
+#  user_stats.views.inc,v 1.1.2.4 2009/02/13 03:18:36 liammcdermott
+#  user_stats.admin.inc,v 1.1.2.2 2009/02/14 02:49:50 liammcdermott
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: user_stats (6.x-1.x-dev)\n"
+"POT-Creation-Date: 2009-02-26 01:15+0300\n"
+"PO-Revision-Date: 2009-02-26 01:23+0300\n"
+"Language-Team: Russian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=((((n%10)==1)&&((n%100)!=11))?(0):(((((n%10)>=2)&&((n%10)<=4))&&(((n%100)<10)||((n%100)>=20)))?(1):2));\n"
+"Last-Translator: Иван Потапов <elsewhere@yandex.ru>\n"
+
+#: views/views_handler_filter_is_online.inc:25;
+#: views/views_handler_field_is_online.inc:43
+msgid "Online"
+msgstr "В сети"
+
+#: user_stats.module:581,580,603,590;
+#: user_stats.rules.inc:41
+msgid "User post count reset"
+msgstr "Сбросить счётчик сообщений"
+
+#: user_stats.module:588,587,610,597;
+#: user_stats.rules.inc:51
+msgid "User is a day older"
+msgstr "Этот пользователь — новичок"
+
+#: user_stats.info:0;
+#: views/user_stats.views.inc:14
+msgid "User Stats"
+msgstr "Статистика пользователя"
+
+#: views/views_handler_filter_is_online.inc:25;
+#: views/views_handler_field_is_online.inc:43
+msgid "Offline"
+msgstr "Не в сети"
+
+#: user_stats.module:50,64,62;
+#: user_stats.admin.inc:15
+msgid "Post count options"
+msgstr "Настройки счётчика сообщения"
+
+#: user_stats.module:68,89,87;
+#: user_stats.admin.inc:40
+msgid "Content types to include in post count"
+msgstr "Типы материалов для подсчёта сообщений"
+
+#: user_stats.module:100,121,119;
+#: user_stats.admin.inc:72,57
+msgid "Post count reset"
+msgstr "Сброс счётчика сообщений"
+
+#: user_stats.module:93,114,112;
+#: user_stats.admin.inc:65,50
+msgid "Number of users to update per cron run"
+msgstr "Количество пользователей для обновления счётчика за сеанс хронометра"
+
+#: user_stats.module:107,143,156,128,164,177,126,167;
+#: user_stats.admin.inc:79,120,64,132
+msgid "Reset all post counts"
+msgstr "Сбросить все счётчики сообщений"
+
+#: user_stats.module:57,71,69;
+#: user_stats.admin.inc:22
+msgid "Count posts"
+msgstr "Считать сообщения"
+
+#: user_stats.module:58,72,70;
+#: user_stats.admin.inc:23
+msgid "If checked user post counts will be calculated."
+msgstr "Если включено, будут подсчитываться сообщения пользователя."
+
+#: user_stats.module:112,133,131;
+#: user_stats.admin.inc:84,69
+msgid "Login count options"
+msgstr "Настройки счётчика посещений"
+
+#: user_stats.module:119,140,138;
+#: user_stats.admin.inc:91,76
+msgid "Count logins"
+msgstr "Считать посещения"
+
+#: user_stats.module:120,141,139;
+#: user_stats.admin.inc:92,77
+msgid "If checked user login counts will be calculated."
+msgstr "Если включено, будут подсчитываться сообщения пользователя."
+
+#: user_stats.module:126,147,145;
+#: user_stats.admin.inc:98,83
+msgid "Login count reset"
+msgstr "Сбросить счётчик посещений"
+
+#: user_stats.module:133,146,164,154,167,185,152,170;
+#: user_stats.admin.inc:105,123,90,135
+msgid "Reset all login counts"
+msgstr "Сбросить все счётчики сообщений"
+
+#: user_stats.module:69,90,88;
+#: user_stats.admin.inc:41
+msgid "Select the content types to include in the user post count (hold ctrl or shift to select multiple types). Both nodes and comments will be included in the post count. If you do not select any content types, then all types will be counted."
+msgstr "Выбрать типы материалов, доступные для подсчёта сообщений пользователя (зажмите Ctrl или Shift, чтобы выбрать несколько). Счётчик сообщений будет обрабатывать и материалы, и комментарии. Если вы не выберете ни одного типа, статистика будет считаться для всех."
+
+#: user_stats.module:78,76;
+#: user_stats.admin.inc:29
+msgid "Count comments"
+msgstr "Считать комментарии"
+
+#: user_stats.module:79,77;
+#: user_stats.admin.inc:30
+msgid "If checked user comments counts will be included in the total user post count."
+msgstr "Если включено, счётчик комментариев дополнит счётчик сообщений пользователя."
+
+#: user_stats.module:185;
+#: user_stats.admin.inc:138,166
+msgid "Post counts have been reset."
+msgstr "Счётчик сообщений был сброшен."
+
+#: user_stats.module:194;
+#: user_stats.admin.inc:147,175
+msgid "User login counts have been reset."
+msgstr "Счётчик посещений был сброшен."
+

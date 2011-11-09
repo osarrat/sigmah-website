@@ -1,0 +1,25 @@
+$Id:
+
+Thu 15 Apr 2010 21:23:53 CEST 
+Extensive changes: 
+* Added new modules: MultiLink Redirect and MultiLink SecurePages
+* Added support for new modules in multilink.module.
+* Renamed _multilink functions get_link and _build_link to _getnode and _buildnode.
+
+To be released as 2.0 so as to keep a 1.x branch in case needed.
+
+Mon 12 Apr 2010 18:01:54 CEST 
+
+* Added 'format_test' mode which makes it easier to test input formats before enabling other filter modules.
+* Fixed #769076 - Bug in InsertNode regexp.
+* Added support for LinoDef and Link-node formats.
+* Removed config 'use_alias' option, now always done for urls (not for node tags such as PathFilter and InsertNode).
+* Fixed: 'absolute' setting was not initialised correctly on config form.
+* To release as 1.2
+
+-----
+
+* Now supports various other link formats - Markdown, PathFilter, InsertNode and HTML.
+* Allowed output caching (configurable) if check_markup_language_patch_1 is installed.
+* To release as 1.1
+

@@ -1,0 +1,16 @@
+; $Id:
+name = MultiLink Redirect
+description = Redirects user to translated version of a node, if available.
+package = "Multilanguage"
+
+; --- Drupal 6.x ---
+dependencies[] = multilink
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2010-04-19
+version = "6.x-2.1"
+core = "6.x"
+project = "multilink"
+datestamp = "1271677811"
+

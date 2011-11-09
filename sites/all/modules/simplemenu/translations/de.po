@@ -1,0 +1,201 @@
+﻿# $Id: de.po,v 1.1.4.2 2009/04/02 00:41:22 rz Exp $
+#
+# German translation of Drupal (general)
+# Copyright Private-Servers <webmaster@private-servers.info>
+# Generated from files:
+#  simplemenu.module,v 1.9.2.11.2.6 2008/12/12 05:25:07 rz
+#  simplemenu.info,v 1.4.2.2.2.1 2008/02/28 21:47:17 m3avrck
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2008-12-22 13:52+0100\n"
+"PO-Revision-Date: 2008-12-22 13:52+0100\n"
+"Last-Translator: XerraX <XerraX@GMail.com>\n"
+"Language-Team: Private-Servers <info@private-servers.info>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: simplemenu.module:107
+msgid "Menu"
+msgstr "Menü"
+
+#: simplemenu.module:110;17
+msgid "Select the menu to display."
+msgstr "Wähle das anzuzeigene Menü"
+
+#: simplemenu.module:117
+msgid "Add devel module links"
+msgstr "Devel Module Verweise hinzufügen"
+
+#: simplemenu.module:119
+msgid "Add devel module links for those users that can access the devel module."
+msgstr "Devel Module Verweise für Benutzer hinzufügen, welche Zugriff auf das Devel Module haben."
+
+#: simplemenu.module:125
+msgid "Theme"
+msgstr "Theme"
+
+#: simplemenu.module:127
+msgid "original"
+msgstr "Original"
+
+#: simplemenu.module:128
+msgid "black & blue"
+msgstr "Schwarz & Blau"
+
+#: simplemenu.module:129
+msgid "custom"
+msgstr "angepasst"
+
+#: simplemenu.module:132
+msgid "Select which theme to use. If you specify custom, you need to define CSS in your theme."
+msgstr "Wähle das zu verwendene Theme. Wenn Sie angepasst wählen, müssen Sie das CSS in Ihrem Theme definieren."
+
+#: simplemenu.module:137
+msgid "Advanced settings"
+msgstr "Erweiterte Einstellungen"
+
+#: simplemenu.module:144
+msgid "CSS selector to attach menu to"
+msgstr "CSS Selektor zum Menü Anfügen zu"
+
+#: simplemenu.module:146
+msgid "A valid CSS selector to attach the menu to. <em>Example: body, #primary, div.my-class</em>"
+msgstr "Ein gültiger CSS Selektor zum Anfügen eines Menüs. <em>Beispiel: body, #primary, div.my-class</em>"
+
+#: simplemenu.module:152
+msgid "Attach method"
+msgstr "Anfügen Methode"
+
+#: simplemenu.module:154
+msgid "Prepend"
+msgstr "voranstellen"
+
+#: simplemenu.module:155
+msgid "Append"
+msgstr "hintenanstellen"
+
+#: simplemenu.module:158
+msgid "Choose how the menu should be attached to the above selector."
+msgstr "Wählen Sie wie das Menü an den obigen Selektor angefügt werden soll."
+
+#: simplemenu.module:164
+msgid "Theme exclusions"
+msgstr "Theme Ausschlüsse"
+
+#: simplemenu.module:167
+msgid "Select which themes to <strong>not</strong> display the menu. Use this when you have a theme that displays its own admin navigation."
+msgstr "Wählen Sie bei welchen Themes das Menü <strong>nicht</strong> angezeigt wird. Benutzen Sie dies wenn Sie ein Theme benutzen welches seine eigene Adminnavigation anzeigt."
+
+#: simplemenu.module:172
+msgid "Hide delay"
+msgstr "Verstecken Dauer"
+
+#: simplemenu.module:175
+msgid "How long (in milliseconds) should a menu still appear after losing focus."
+msgstr "Wie lange (in Millisekunden) soll ein menü noch angezeigt werden, nachdem es den Fokus verloren hat."
+
+#: simplemenu.module:180
+msgid "Show effect"
+msgstr "Anzeige-Effekt"
+
+#: simplemenu.module:181
+msgid "Fade"
+msgstr "Fading"
+
+#: simplemenu.module:181
+msgid "Slide"
+msgstr "Gleiten"
+
+#: simplemenu.module:181
+msgid "None"
+msgstr "Keine"
+
+#: simplemenu.module:183
+msgid "The effect used when displaying a menu."
+msgstr "Der Effekt welcher genutzt wird zum Anzeigen eines Menüs."
+
+#: simplemenu.module:188
+msgid "Show speed"
+msgstr "Anzeigegeschwindigkeit"
+
+#: simplemenu.module:189
+msgid "Slow"
+msgstr "Langsam"
+
+#: simplemenu.module:189
+msgid "Medium"
+msgstr "Mittel"
+
+#: simplemenu.module:189
+msgid "Fast"
+msgstr "Schnell"
+
+#: simplemenu.module:191
+msgid "The speed of the effect, not used when \"none\" is set to show effect."
+msgstr "Die Geschwindigkeit eines Effekts, welche benutzt wird, wenn \"keine\" gesetzt wurde."
+
+#: simplemenu.module:196
+msgid "Detect pop-up windows"
+msgstr "Pop-Up Fenster ermitteln"
+
+#: simplemenu.module:198
+msgid "Choose whether SimpleMenu should attempt to detect if it is inside of a pop-up window.  If enabled, SimpleMenu will not display if it is inside of a pop-up window."
+msgstr "Wählen Sie ob SimpleMenu versuchen soll, zu ermitteln ob es in einem Pop-Up Fenster ausgeführt wird. Wenn eingeschalten, wird SimpleMenu nicht angezeigt wenn es in einem Pop-Up Fenster ausgeführt wird."
+
+#: simplemenu.module:203
+msgid "Show block on specific pages"
+msgstr "Diesen Block nur auf den aufgelisteten Seiten anzeigen"
+
+#: simplemenu.module:206
+msgid "Show on every page except the listed pages."
+msgstr "Auf allen Seiten außer den aufgelisteten Seiten anzeigen."
+
+#: simplemenu.module:207
+msgid "Show on only the listed pages."
+msgstr "Nur auf den aufgelisteten Seiten anzeigen."
+
+#: simplemenu.module:213
+msgid "Pages"
+msgstr "Seiten"
+
+#: simplemenu.module:215
+msgid "Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page."
+msgstr ""
+"Geben Sie eine Seite pro Zeile als Drupal-Pfad an. Das ‚*‘-Zeichen "
+"ist ein Platzhalter. Beispielpfade sind %blog für die Blog-Seite und "
+"%blog-wildcard für jedes einzelne Blog. %front steht für die "
+"Startseite."
+
+#: simplemenu.module:233
+msgid "No menu items found. Try a different menu as the default."
+msgstr "Keine Menü-Einträge gefunden. Versuche ein anderes Menü als Standart."
+
+#: simplemenu.module:334
+msgid "Devel module"
+msgstr "Devel Module"
+
+#: simplemenu.module:97
+msgid "view simplemenu"
+msgstr "SimpleMenü anzeigen"
+
+#: simplemenu.module:97
+msgid "administer simplemenu"
+msgstr "SimpleMenü administrieren"
+
+#: simplemenu.module:16 simplemenu.info:0
+msgid "SimpleMenu"
+msgstr "SimpleMenu"
+
+#: simplemenu.module:0
+msgid "simplemenu"
+msgstr "SimpleMenu"
+
+#: simplemenu.info:0
+msgid "Creates a menu bar that is displayed at the top of every page."
+msgstr "Fügt eine Menüleiste hinzu, welche über jeder Seite angezeigt wird."
+

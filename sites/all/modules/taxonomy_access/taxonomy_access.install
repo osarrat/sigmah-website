@@ -1,0 +1,239 @@
+<?php
+// $Id: taxonomy_access.install,v 1.9.2.7 2011/02/07 17:22:43 xjm Exp $
+
+/**
+ * @file
+ *  Install, update, and uninstall functions for Taxonomy Access Control.
+ */
+
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function taxonomy_access_last_removed() {
+  return 3;
+}
+
+
+/**
+ * Delete variable 'taxonomy_access_enabled'.
+ */
+function taxonomy_access_update_4() {
+  variable_del('taxonomy_access_enabled');
+  return array();
+}
+
+
+/**
+ * Move global default records from term_access to term_access_defaults.
+ */
+function taxonomy_access_update_5() {
+  $result = db_query('SELECT rid, grant_view, grant_update, grant_delete, grant_create, grant_list FROM {term_access} WHERE tid=0');
+  while ($row = db_fetch_array($result)) {
+    if ($row['rid'] > 0) { // just in case we have a weird row with 0, 0
+      // Typecast each element to sanitize for use in update_sql.
+      foreach ($row as $key => $value) {
+        $row[$key] = (int) $value;
+      }
+      $row_ints = implode(", ", $row);
+      update_sql("INSERT INTO {term_access_defaults} (vid, rid, grant_view, grant_update, grant_delete, grant_create, grant_list) VALUES (0, $row_ints)");
+    }
+  }
+  update_sql('DELETE FROM {term_access} WHERE tid=0');
+  return array();
+}
+
+
+/**
+ * Implements hook_install().
+ * Adds tables to database: 'term_access', 'term_access_defaults'
+ */
+function taxonomy_access_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'pgsql':
+      /*
+       * Not using pg_version() because it is only available in PHP 5 and with
+       * PostgreSQL library: 7.4.  More importantly, the 'server_version'
+       * is missing, at least in PHP 5.1.2.
+       */
+      $row = db_fetch_object(db_query('SELECT version() AS version'));
+      $version = preg_replace('/^[^0-9]+([^ ]+).*/i', '\\1', $row->version);
+
+      if (version_compare($version, '8.0', '<')) {
+        // PRIOR TO POSTGRESQL 8.0: making a BIT_OR aggregate function
+        db_query("CREATE AGGREGATE BIT_OR (
+          basetype = smallint,
+          sfunc = int2or,
+          stype = smallint
+        );");
+      }
+      break;
+
+  }
+
+  // Use Schema API to install tables.
+  $status = drupal_install_schema('taxonomy_access');
+
+  // drupal_install_schema() returns an array of the results of each query;
+  // each entry includes 'status' which is 0 for failure or 1 for success.
+  $success = 1;
+  foreach ($status as $s) {
+    $success = $success * $s['success'];
+  }
+
+ // Default global perms for roles 1 (anonymous) and 2 (authenticated).
+  db_query('INSERT INTO {term_access_defaults} (vid, rid, grant_view, grant_update, grant_delete, grant_create, grant_list) VALUES(0, 1, 1, 0, 0, 0, 1)');
+  db_query('INSERT INTO {term_access_defaults} (vid, rid, grant_view, grant_update, grant_delete, grant_create, grant_list) VALUES(0, 2, 1, 0, 0, 0, 1)');
+
+  // Weight taxonomy_access below most modules, but above the very last ones.
+  db_query("UPDATE {system} SET weight = 9 WHERE name = 'taxonomy_access'");
+
+  // Notify user of status.
+  if ($success) {
+    drupal_set_message(t('Taxonomy Access module installed tables successfully.'));
+  }
+  else {
+    drupal_set_message(t('The installation of Taxonomy Access module was unsuccessful.'), 'error');
+  }
+}
+
+
+/**
+ * Implements hook_uninstall().
+ */
+function taxonomy_access_uninstall() {
+  drupal_uninstall_schema('taxonomy_access');
+  drupal_set_message(t('Taxonomy Access has been successfully uninstalled.'));
+}
+
+
+/**
+ * Implements hook_schema().
+ */
+function taxonomy_access_schema() {
+  $schema = array();
+
+  $schema['term_access'] = array(
+    'description' => t('Identifies which roles may view, update, delete, create, and list nodes with a given term.'),
+    'fields' => array(
+      'tid' => array(
+        'description' => t('The term_data.tid this record affects.  Overrides vocabulary default in term_access_defaults.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'rid' => array(
+        'description' => t("The role.rid a user must possess to gain this row's privileges on nodes for this term."),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_view' => array(
+        'description' => t('Whether this role can view nodes with this term. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_update' => array(
+        'description' => t('Whether this role can edit nodes with this term. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_delete' => array(
+        'description' => t('Whether this role can delete nodes with this term. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_create' => array(
+        'description' => t('Whether this role can set this term when adding or editing a node. 0=>No, 1=>Yes.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_list' => array(
+        'description' => t('Whether this role can view the name of this term on a node or in category lists. 0=>No, 1=>Yes.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('tid', 'rid'),
+  );
+
+  $schema['term_access_defaults'] = array(
+    'description' => t('Sets vocabulary defaults which roles may view, update, delete, create, and list nodes with a given term. Overridden by {term_access}/'),
+    'fields' => array(
+      'vid' => array(
+        'description' => t('The vocabulary.vid for which this row sets defaults.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'rid' => array(
+        'description' => t("The role.rid a user must possess to gain this row's privileges on nodes for terms in this vocabulary."),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_view' => array(
+        'description' => t('Whether this role can view nodes with terms in this vocabulary. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_update' => array(
+        'description' => t('Whether this role can edit nodes with terms in this vocabulary. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_delete' => array(
+        'description' => t('Whether this role can delete nodes with terms in this vocabulary. 0=>Ignore, 1=>Allow, 2=>Deny.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_create' => array(
+        'description' => t('Whether this role can set terms in this vocabulary when adding or editing a node. 0=>No, 1=>Yes.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'grant_list' => array(
+        'description' => t('Whether this role can view the name of terms in this vocabulary on a node or in category lists. 0=>No, 1=>Yes.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('vid', 'rid'),
+  );
+
+  return $schema;
+}

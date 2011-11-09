@@ -1,0 +1,61 @@
+READ THIS FILE if you are updating from previous versions of 
+  'taxonomy_access.module'.
+
+If you are installing taxonomy_access.module for the first time, you may ignore
+  this file.
+
+Taxonomy Access uses Drupal's AUTOMATED UPDATE SYSTEM (since Drupal 4.7).
+
+--------
+UPDATING
+--------
+
+1. DISABLE THE MODULE on page: 
+   "Administer >> Site building >> Modules"
+   (Drupal path: admin/build/modules).
+
+2. BACKUP your database.
+
+3. UPLOAD the new module files.
+
+4. LOG ON AS MAIN ADMINISTRATOR (user with user ID 1).
+
+5. ENABLE THE MODULE on page: 
+   "Administer >> Site building >> Modules"
+   (Drupal path: admin/build/modules).
+
+6. RUN UPDATE.PHP by visiting "http://www.example.com/update.php"
+
+7. GRANT ADMINISTRATORS CONTROL on page:
+   "Administer >> User Management >> Permissions"
+   (Drupal path: admin/user/permissions)
+
+   To administer Taxonomy Access, administrators must have "access 
+   administration pages" checked (under "system module") and "administer 
+   permissions" checked (under "user module"). 
+
+8. TEST YOUR SITE'S PERMISSIONS.  If there are problems, see the README.txt.
+
+-----------------------
+UPDATING FROM VERSION 5.1 OR PREVIOUS
+-----------------------
+
+If one upgrades an existing site using an older version (5.1 or before) of 
+TAC, then no performance gains will be made until the admin goes through each 
+role and "rebuilds" the permissions settings for each role from scratch (i.e. 
+disable TAC for that role, then set it up again with just the categories and 
+terms to apply TAC settings to).
+
+
+-----------------------
+TAXONOMY ACCESS UPDATES
+-----------------------
+
+Update #1: Updating the tables to UTF-8
+Update #2: Adding new field 'grant_list' to the tables.
+           (Neccessary after revision 1.53 Jan 12, 2006)
+Update #3: Changing weight of the  module: put taxonomy_access to the bottom 
+           (but before the very last ones) in the chain.
+Update #4: Deleting old variable 'taxonomy_access_enabled'
+
+(Send comments to Keve. http://drupal.org/user/13163/contact )

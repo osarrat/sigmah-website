@@ -1,0 +1,140 @@
+<?php
+// $Id: formfilter.module,v 1.9 2008/12/15 18:54:44 nedjo Exp $
+
+/**
+ * Array of form element types for which filtering is supported.
+ */
+function formfilter_supported_types() {
+  return array('button', 'fieldset', 'select', 'textfield', 'checkbox', 'checkboxes', 'radio', 'radios', 'textarea', 'item', 'file', 'weight', 'markup');
+}
+
+/**
+ * Filter a form so the requested elements are invisible (passed as values).
+ *
+ * @param $form
+ *   A reference to the form to be altered.
+ * @param $filters
+ *   An array of elements to make invisible in the form, each element in turn being
+ *   an array of form keys corresponding to the path of the element in the form
+ *   structure. For example, to hide the element $form['comment_filter']['format']
+ *   from $form, you could call this function as follows:
+ *   formfilter_filter_form($form, array(array('comment_filter', 'format')));
+ * @param $inverse
+ *   If TRUE, all elements except the ones given in $filters will become
+ *   invisible. This defaults to FALSE.
+ */
+function formfilter_filter_form(&$form, $filters, $inverse = FALSE) {
+  // Iterate through filters.
+  $filtered = array();
+  foreach ($filters as $filter) {
+    _formfilter_filter_form($form, $filter, $inverse);
+    $filtered[] = $filter[0];
+  }
+  if ($inverse) {
+    foreach (element_children($form) as $key) {
+      if (!in_array($key, $filtered)) {
+        _formfilter_filter_element($form[$key]);
+      }
+    }
+  }
+}
+
+/**
+ * Apply filtering to a form.
+ */
+function _formfilter_filter_form(&$form, $filter, $inverse) {
+  // Iterate through form elements.
+  foreach (element_children($form) as $key) {
+    // Determine if there are further levels of nesting.
+    if ($filter[0] == $key) {
+      // If not, send the element for filtering.
+      if (count($filter) == 1) {
+        if ($inverse)  {
+          continue;
+        }
+        else {
+          _formfilter_filter_element($form[$key]);
+        }
+      }
+      // If so, go one level deeper in the nested array.
+      else {
+        if ($inverse) {
+          _formfilter_filter_element($form[$key], FALSE);
+        }
+        array_shift($filter);
+        _formfilter_filter_form($form[$key], $filter, $inverse);
+      }
+      break;
+    }
+    elseif ($inverse) {
+      _formfilter_filter_element($form[$key]);
+    }
+  }
+}
+
+/**
+ * Filter a form element.
+ */
+function _formfilter_filter_element(&$element, $recurse = TRUE) {
+  // Don't filter unsupported types. If no type is set, however, we do filter.
+  if ($element['#type'] && !in_array($element['#type'], formfilter_supported_types())) {
+    return;
+  }
+
+  // Read in values. Bail if filtering conditions not met.
+  switch ($element['#type']) {
+    case 'fieldset':
+    case 'button':
+    case 'item':
+    case 'file':
+    case 'markup':
+      break;
+    case 'select':
+    case 'checkboxes':
+    case 'radios':
+      $value = isset($element['#default_value']) ? $element['#default_value'] : key($element['#options']);
+      break;
+    case 'weight':
+      $value = isset($element['#default_value']) ? $element['#default_value'] : 0;
+      break;
+    case 'checkbox':
+    case 'radio':
+      // TBD: Why doesn't passing values work for checkbox elements?
+      //$value = isset($element['#default_value']) ? $element['#default_value'] : $element['#return_value'];
+      //break;
+      // For now, pass them as hidden elements.
+      $element['#type'] = 'hidden';
+      $element['#value'] = isset($element['#default_value']) ? $element['#default_value'] : $element['#return_value'];
+      return;
+    case 'textfield':
+    case 'textarea':
+      $value = isset($element['#default_value']) ? $element['#default_value'] : NULL;
+      if (!$value && $element['#required']) {
+        return;
+      }
+      break;
+  }
+  // Unset unneeded keys. We don't simply redefine the arrays as they may have
+  // nested form elements (element_children).
+  foreach (element_properties($element) as $key) {
+    switch ($key) {
+      case '#tree':
+        continue;
+      default:
+        unset($element[$key]);
+    }
+  }
+  // Set final form of array.
+  if ($value) {
+    $element += array(
+      '#type' => 'value',
+      '#value' => $value,
+    );
+  }
+  // Convert child elements.
+  if ($recurse) {
+    foreach (element_children($element) as $key) {
+      _formfilter_filter_element($element[$key]);
+    }
+  }
+}

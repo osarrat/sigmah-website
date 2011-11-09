@@ -1,0 +1,11 @@
+; $Id: sigmah.info,v 1.0 2011/05/17 12:09:00 nrebiai Exp $
+name = Sigmah
+description = Sigmah custom theme.
+package = Sigmah
+core = 6.x
+
+version = "6.x-1.0"
+core = "6.x"
+project = "sigmah"
+datestamp = "1259799377"
+

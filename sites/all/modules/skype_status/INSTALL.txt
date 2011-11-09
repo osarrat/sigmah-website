@@ -1,0 +1,41 @@
+// $Id: INSTALL.txt,v 1.4 2010/04/06 16:34:28 nicholasalipaz Exp $
+
+REQUIREMENTS
+------------
+This module requires Drupal 6.x, as well as the
+Profile module (included in Drupal).
+
+INSTALLATION
+------------
+
+  1. Copy all the module files into a subdirectory called
+     sites/all/modules/skype_status/ under your Drupal installation
+     directory.
+
+  2. Go to Administer >> Site building >> Modules and enable the
+     Skype Status module.
+
+  3. Go to Administer >> User management >> Profiles and create a new
+     single-line textfield that will hold your users' Skype IDs. You can
+     name and title this field anything you like, but make sure that the
+     field's Visibility setting is either of the two "Public field, content
+     shown on profile page" options.
+
+  4. Go to Administer >> Site configuration >> Skype status to review and
+     change the configuration options to your liking. Specifically, select
+     the profile field that you created in the previous step. You may also
+     hide the title of the field if you so wish.
+
+  5. Go to My account, click Edit, input your Skype ID into the profile
+     field you created in step 3, and click Save; when your profile page is
+     displayed, you should see your Skype status and your Skype ID should
+     have become converted to a skype:// link.
+
+  6. (See README.txt for information on submitting bug reports.)
+
+FURTHER USAGE
+-------------
+
+  The module does currently support views integration.  You will see display
+  options for both "Skype Button" and "Skype ID (plain text)" when using
+  the skype ID field within views displays.

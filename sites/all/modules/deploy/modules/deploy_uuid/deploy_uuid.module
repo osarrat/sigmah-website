@@ -1,0 +1,382 @@
+<?php
+  /**
+   * @file
+   *
+   * Deployment UUID management
+   *
+   * I am incredibly torn on how I have architected this. 
+   * There is obviously a great deal of code in here that may or may not be useful
+   * depending on what modules you have installed or enabled (comments, filefields,
+   * etc.) From that standpoint, it makes sense to move all this code into the
+   * separate modules (comment_deploy, fielfield_deploy, etc.) On the other hand if
+   * I do that, then the remote server (most likely the production site) has to actually
+   * enable all those modules, increasing its code weight quite a bit. Whereas this way
+   * the production server can simply enable deploy_uuid and the services and be done with 
+   * it. How this is managed is one of the stickiest problems I have, and the only solution
+   * I can come upt with is creating node_deploy_uuid, filefield_deploy_uuid, etc. Which
+   * blows but maybe that's where this has to go.
+   *
+   * Suddenly wishing I had hook_module_enable() and hook_module_disable(). Then I could
+   * manage this behind the scenes.
+   */  
+
+  /**
+   * Implementation of hook_file_load()
+   *
+   * Add the UUID to file objects on load.
+   */
+  function deploy_uuid_file_load(&$file) {
+    // Ensure that $file is an object.
+    if (!is_object($file)) {
+      $file = (object) $file;
+    }
+
+    $uuid = deploy_uuid_get_files_uuid($file->fid);
+    if ($uuid) {
+      $file->uuid = $uuid;
+    }
+  }
+
+  /**
+   * Implementation of hook_file_insert().
+   *
+   * Add files UUID to appropriate table.
+   */
+  function deploy_uuid_file_insert($file) {
+    // Ensure that $file is an object.
+    if (!is_object($file)) {
+      $file = (object) $file;
+    }
+
+    if ($file->uuid) {
+      db_query("INSERT INTO {files_uuid} (fid, uuid) VALUES (%d, '%s')", $file->fid, $file->uuid);
+    }
+    else {
+      db_query("INSERT INTO {files_uuid} (fid, uuid) VALUES (%d, '%s')", $file->fid, deploy_uuid_create_uuid());
+    }
+  }
+
+  /**
+   * Implementation of hook_file_delete().
+   *
+   * Delete files UUID from appropriate table.
+   */
+  function deploy_uuid_file_delete($file) {
+    // Ensure that $file is an object.
+    if (!is_object($file)) {
+      $file = (object) $file;
+    }
+
+    db_query("DELETE FROM {files_uuid} WHERE fid = %d", $file->fid);
+  }
+
+/**
+ * Implementation of hook_comment(),
+ *
+ * This all relates to managing the mapped cid->uuid mapping.
+ *
+ * $a1 Dependent on the action being performed.
+ *
+ *     * For "validate","update","insert", passes in an array of form values submitted by the user.
+ *     * For all other operations, passes in the comment the action is being performed on. 
+ *
+ * $op What kind of action is being performed. Possible values:
+ *
+ *     * "insert": The comment is being inserted.
+ *     * "update": The comment is being updated.
+ *     * "view": The comment is being viewed. This hook can be used to add additional data to the comment before theming.
+ *     * "validate": The user has just finished editing the comment and is trying to preview or submit it. This hook can be used to check or even modify the node. Errors should be set with form_set_error().
+ *     * "publish": The comment is being published by the moderator.
+ *     * "unpublish": The comment is being unpublished by the moderator.
+ *     * "delete": The comment is being deleted by the moderator.
+ */
+function deploy_uuid_comment(&$a1, $op) {
+  switch ($op) {
+    // Make sure that a new entry gets made in the node_uuid table when new content
+    // is added. NOTE the fallthrough to 'update' which is intentional.
+    case 'insert':
+      if (!empty($a1['uuid'])) {
+        db_query("INSERT INTO {comments_uuid} (cid, uuid) VALUES (%d, '%s')", $a1['cid'], $a1['uuid']);
+      }
+      else {
+        db_query("INSERT INTO {comments_uuid} (cid, uuid) VALUES (%d, '%s')", $a1['cid'], deploy_uuid_create_uuid());
+      }
+      break;
+      
+    // Clean up node_uuid table when content is deleted.
+    case 'delete':
+      db_query("DELETE FROM {comments_uuid} WHERE cid = %d", $a1->cid);
+      break;
+  }
+}
+
+  /**
+   * Implementation of hook_taxonomy().
+   *
+   * $op What is being done to $array. Possible values:
+   *
+   *     * "delete"
+   *     * "insert"
+   *     * "update"
+   *
+   * $type What manner of item $array is. Possible values:
+   *
+   *     * "term"
+   *     * "vocabulary"
+   *
+   * $array The item on which $op is being performed. Possible values:
+   *
+   *     * for vocabularies, 'insert' and 'update' ops: $form_values from taxonomy_form_vocabulary_submit()
+   *     * for vocabularies, 'delete' op: $vocabulary from taxonomy_get_vocabulary() cast to an array
+   *     * for terms, 'insert' and 'update' ops: $form_values from taxonomy_form_term_submit()
+   *     * for terms, 'delete' op: $term from taxonomy_get_term() cast to an array
+   */
+  function deploy_uuid_taxonomy($op, $type, $array = NULL) {
+    switch ($op) {
+      case 'insert':
+        // The only case in which we would have a term or vocabulary come through insert with a uuid
+        // already in place is the case where it's being deployed from a remote source. In this case,
+        // keep the existing uuid. Otherwise, create a new one.
+        if ($type == 'term') {
+          if (isset($array['uuid'])) {
+            db_query("INSERT INTO {term_data_uuid} (tid, uuid) VALUES (%d, '%s')", $array['tid'], $array['uuid']);
+          }
+          else {
+            db_query("INSERT INTO {term_data_uuid} (tid, uuid) VALUES (%d, '%s')", $array['tid'], deploy_uuid_create_uuid());
+          }
+        }
+        else {
+          if (isset($array['uuid'])) {
+            db_query("INSERT INTO {vocabulary_uuid} (vid, uuid) VALUES (%d, '%s')", $array['vid'], $array['uuid']);
+          }
+          else {
+            db_query("INSERT INTO {vocabulary_uuid} (vid, uuid) VALUES (%d, '%s')", $array['vid'], deploy_uuid_create_uuid());
+          }
+        }
+        break;
+
+      // When a term or vocabulary is deleted, clean out its associated UUID.
+      case 'delete':
+        if ($type == 'term') {
+          db_query("DELETE FROM {term_data_uuid} WHERE tid = %d", $array['tid']);
+        }
+        else {
+          db_query("DELETE FROM {vocabulary_uuid} WHERE vid = %d", $array['vid']);
+        }
+        break;
+    }
+  }
+
+  /**
+   * Implementation of hook_user().
+   *
+   * This mostly relates to managing the mapped uid->uuid mapping. There is some
+   * non-uuid-related code below, which I decided to keep in this module anyways 
+   * for the purposes of code organization. 
+   */
+  function deploy_uuid_user($op, &$edit, &$account, $category = NULL) {
+    switch ($op) {
+      case 'update':
+        // Users submitted through deployment contain the original password, which has been MD5 hashed.
+        // Unforutnately when this user object is passed through user_save, this password is then itself
+        // MD5 hashed. So in this situation, we need to do an update to the user table forcing the 
+        // password back to its original value. 
+        if ($edit['deploy']) {
+          db_query("UPDATE {users} SET pass = '%s' WHERE uid = %d", $edit['pass'], $account->uid);
+        }
+        break;
+      
+      case 'after update':
+        break;
+
+      case 'load':
+        // If the user has an accompanying uuid, then add it to the $account object.
+        // This makes things easier and cleaner than always having a uuid field and
+        // having it sometimes be empty.
+        $uuid = db_result(db_query("SELECT uuid FROM {users_uuid} WHERE uid = %d", $account->uid));
+        if ($uuid) {
+          $account->uuid = $uuid;
+        }
+        break;
+
+      case 'insert':
+        // The only case in which we would have a node come through insert with a uuid already in place
+        // is the case where it's being deployed from a remote source. In this case, keep the existing
+        // uuid. Otherwise, create a new one.
+        if (!empty($edit['uuid'])) {
+          db_query("INSERT INTO {users_uuid} (uid, uuid) VALUES (%d, '%s')", $account->uid, $edit['uuid']);
+        }
+        else {
+          db_query("INSERT INTO {users_uuid} (uid, uuid) VALUES (%d, '%s')", $account->uid, deploy_uuid_create_uuid());
+        }
+      
+        // Users submitted through deployment contain the original password, which has been MD5 hashed.
+        // Unforutnately when this user object is passed through user_save, this password is then itself
+        // MD5 hashed. So in this situation, we need to do an update to the user table forcing the 
+        // password back to its original value. 
+        if ($edit['deploy']) {
+          db_query("UPDATE {users} SET pass = '%s' WHERE uid = %d", $edit['pass'], $account->uid);
+        }
+        break;
+
+      case 'delete':
+        db_query("DELETE FROM {users_uuid} WHERE uid = %d", $account->uid);
+        break;
+    }
+  }
+
+  /**
+   * Implementation of hook_form_alter(),
+   *
+   * Add the UUID into all node edit fields so that drupal_executes and form submissions
+   * handle this data properly. If you don't do this, then the uuid gets lost during
+   * a node save from drupal_execute(). Same goes for the user register form.
+   */
+  function deploy_uuid_form_alter(&$form, $form_state, $form_id) {
+    if (strpos($form_id, 'node_form') !== FALSE) {
+      $node = $form['#node'];
+      $form['uuid'] = array(
+        '#type' => 'hidden',
+        '#default_value' => isset($node->uuid) ? $node->uuid : '',
+      );
+    }
+
+    if (strpos($form_id, 'user_register') !== FALSE) {
+      $form['uuid'] = array(
+        '#type' => 'hidden',
+        '#default_value' => '',
+      );
+    }
+  }
+
+  /**
+   * Implementation of hook_nodeapi(),
+   *
+   * This mostly relates to managing the mapped nid->uuid mapping. There is some
+   * non-uuid-related code below, which I decided to keep in this module anyways 
+   * for the purposes of code organization. 
+   *
+   * When a node is deployed, it needs its changed property maintained from one
+   * server to the next. Otherwise there can be situations where the live server thinks
+   * it has a newer version than staging, when in fact it doesn't. This situation can
+   * be exacerbated by time zone differences between the two servers. This is why we jump
+   * through all the hoops below in order to save the existing changed timestamp from the
+   * pushed in node to save back into the record later. I will write a more detailed
+   * explanation of the how/why of this later.
+   */
+  function deploy_uuid_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+    //watchdog($op, print_r($node, TRUE));
+    static $node_deploy = FALSE;
+    static $deploy_changed = FALSE;
+    switch ($op) {
+      // Get the uuid into the node object (if present.)
+      case 'load':
+        $uuid = db_result(db_query("SELECT uuid FROM {node_uuid} WHERE nid = %d", $node->nid));
+        if ($uuid) {
+          return array('uuid' => $uuid);
+        }
+        break;
+
+      case 'prepare':
+        if ($node->deploy) {
+          $node_deploy = TRUE;
+        }
+        break;
+
+      case 'presave':
+        if ($node_deploy) {
+          $deploy_changed = $node->changed;
+        }
+        break;
+      
+      // Make sure that a new entry gets made in the node_uuid table when new content
+      // is added.
+      case 'insert':
+        if ($node->uuid) {
+          db_query("INSERT INTO {node_uuid} (nid, uuid) VALUES (%d, '%s')", $node->nid, $node->uuid);
+        }
+        else {
+          db_query("INSERT INTO {node_uuid} (nid, uuid) VALUES (%d, '%s')", $node->nid, deploy_uuid_create_uuid());
+        }
+      
+        if ($deploy_changed) {
+          db_query("UPDATE {node} SET changed = %d WHERE nid = %d", $deploy_changed, $node->nid);
+        }
+        break;
+
+      case 'update':
+        if ($deploy_changed) {
+          db_query("UPDATE {node} SET changed = %d WHERE nid = %d", $deploy_changed, $node->nid);
+        }
+        break;
+
+      // Clean up node_uuid table when content is deleted.
+      case 'delete':
+        db_query("DELETE FROM {node_uuid} WHERE nid = %d", $node->nid);
+        break;
+    }
+  }
+
+  /**
+   * Return the unique key of an item, given its UUID.
+   *
+   * I need to come up with a new way to manage this. I am torn by the 
+   * desire to have a single generic function to manage this, and the
+   * desire to not have so many parameters that you may as well just build
+   * the SQL yourself. However, the whole if/then to get around nodes
+   * vs other content types is ugly too so I don't know.
+   *
+   * @return array
+   *   Array with the uuid, key, and possibly also a changed date depending
+   *   on the type of information requested.
+   **/
+  function deploy_uuid_get_key($uuid, $module) {
+    // Nodes return their changed date along with their identifying information
+    // to give node_deploy() information to judge whether or not a dependency
+    // should be pushed.
+    if ($module == 'node') {
+      $result = db_query("SELECT n.nid, u.uuid, n.changed FROM {node} n INNER JOIN {node_uuid} u ON n.nid = u.nid WHERE u.uuid = '%s'", $uuid);
+    }
+    else {
+      $result = db_query("SELECT * FROM {%s} WHERE uuid = '%s'", $module . '_uuid', $uuid);      
+    }
+    return db_fetch_array($result);
+  }
+  
+  function deploy_uuid_get_term_uuid($tid) {
+    return db_result(db_query("SELECT uuid FROM {term_data_uuid} WHERE tid = %d", $tid));
+  }
+  
+  function deploy_uuid_get_vocabulary_uuid($vid) {
+    return db_result(db_query("SELECT uuid FROM {vocabulary_uuid} WHERE vid = %d", $vid));
+  }
+  
+  function deploy_uuid_get_node_uuid($nid) {
+    return db_result(db_query("SELECT u.uuid, n.changed FROM {node_uuid} u INNER JOIN {node} n on u.nid = n.nid WHERE n.nid = %d", $nid));
+  }
+  
+  function deploy_uuid_get_user_uuid($uid) {
+    return db_result(db_query("SELECT uuid FROM {users_uuid} WHERE uid = %d", $uid));
+  }
+  
+  function deploy_uuid_get_comment_uuid($cid) {
+    return db_result(db_query("SELECT uuid FROM {comments_uuid} WHERE cid = %d", $cid));
+  }
+  
+  function deploy_uuid_get_files_uuid($fid) {
+    return db_result(db_query("SELECT uuid FROM {files_uuid} WHERE fid = %d", $fid));
+  }
+  
+  /**
+   * Standard function to create a unique identifier.
+   *
+   * Useful to have in a function in case we decide to change the generation
+   * method down the road.
+   *
+   * @return string
+   *   UUID
+   **/
+  function deploy_uuid_create_uuid() {
+    return uniqid(rand(), TRUE);
+  }
+  

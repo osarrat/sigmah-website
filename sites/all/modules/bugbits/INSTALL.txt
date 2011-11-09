@@ -1,0 +1,18 @@
+Installation instruction
+
+Step 1: Install mantis (current supported version: 1.1.8).
+		You can do this in the same database as drupal or a different one.
+
+Step 2: Add the following lines to your config_inc.php file in the mantis directory.
+		$g_allow_signup = OFF;
+		$g_lost_password_feature = OFF;
+		This will make sure your users can't use your seperate mantis setup to register or change 
+		their password, everything should go through drupal. 
+
+Step 3: Get the latest bugbits release and copy it in one of your modules folders.
+
+Step 4: Enable the bugbits module
+
+Step 5: Go to the bugbits settings page (admin/settings/bugbits) and fill in the form.
+
+Step 6: To test: log out and back in again and check the 'recent log entries' page to see if something went wrong.

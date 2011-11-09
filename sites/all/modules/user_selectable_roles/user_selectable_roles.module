@@ -1,0 +1,275 @@
+<?php
+// $Id: user_selectable_roles.module,v 1.1.4.8 2010/08/20 03:02:37 bacteriaman Exp $
+
+/**
+ * @file
+ * The user_selectable_roles module file, which produces the primary functionality.
+ */
+
+/**
+ * Implementation of hook_help().
+ */
+function user_selectable_roles_help($path, $arg) {
+  switch ($path) {
+    case 'admin/user/user_selectable_roles':
+      return '<p>'. t('User-selectable roles allows users to select one or multiple roles during registration. Users can change their role selection(s) by editing their account.') .'</p>';
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function user_selectable_roles_menu() {
+  $items = array();
+
+  $items['admin/user/user_selectable_roles'] = array(
+    'title' => 'User-selectable roles',
+    'page callback' => 'user_selectable_roles_admin',
+    'access arguments' => array('administer site configuration'),
+    'description' => 'Manage user-selectable roles for inclusion in registration and account edit forms.',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Custom callback function for user-selectable role settings form.
+ */
+function user_selectable_roles_admin() {
+  // exclude anonymous user
+  $user_selectable_roles = user_roles(TRUE);
+  // remove authenticated user
+  unset($user_selectable_roles[DRUPAL_AUTHENTICATED_RID]);
+  if (count($user_selectable_roles)) {
+    return drupal_get_form('user_selectable_roles_admin_form', $user_selectable_roles);
+  }
+  else {
+    return t('You must first create at least one custom role.');
+  }
+}
+
+/**
+ * Custom function for user-selectable roles form.
+ * 
+ * @param array
+ * @return array
+ */
+function user_selectable_roles_admin_form($form_id, $user_selectable_roles) {
+  $form['user_selectable_roles_enabled'] = array(
+    '#type' => 'radios',
+    '#title' => t('Allow user-selectable roles'),
+    '#default_value' => variable_get('user_selectable_roles_enabled', 0),
+    '#options' => array(t('Disabled'), t('Enabled')),
+    '#description' => '',
+  );
+  $form['user_selectable_roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Choose user-selectable roles'), 
+    '#default_value' => variable_get('user_selectable_roles', array()),
+    '#options' => $user_selectable_roles,
+    '#description' => t('Select the user-selectable role(s) available to users during registration and account editing.'),
+  );
+  $form['user_selectable_roles_label'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Role Label'),
+    '#default_value' => variable_get('user_selectable_roles_label', 'role|roles'),
+    '#size' => 32, 
+    '#maxlength' => 64,
+    '#description' => t('Enter lowercase singular/plural labels for public display using the format singular|plural. Examples: role|roles, company|companies, occupation|occupations, etc.'),
+  );
+  $options = array('0' => 'Single choice (dropdown)', '2' => 'Single choice (radio buttons)', '1' => 'Multiple choice (checkboxes)');
+  $form['user_selectable_roles_mode'] = array(
+    '#type' => 'radios',
+    '#default_value' => variable_get('user_selectable_roles_mode', 0),
+    '#options' => $options,
+    '#description' => t('Select whether the user can choose a single or multiple roles (if applicable). Warning: changing this setting after data has been created could result in the loss of data.'),
+  );
+  $form['user_selectable_roles_required'] = array(
+    '#type' => 'checkbox', 
+    '#title' => t('User-selectable role choice required'),
+    '#default_value' => variable_get('user_selectable_roles_required', 0),
+    '#description' => t('Check if user is required to select at least one role.'),
+  );
+  $options = array('0' => 'Registration form only', '1' => 'Registration and user account forms');
+  $form['user_selectable_roles_editing'] = array(
+    '#type' => 'radios',
+    '#title' => t('Provide user-selectable roles editing'),
+    '#default_value' => variable_get('user_selectable_roles_editing', 0),
+    '#options' => $options,
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * User-selectable roles form validation function.
+ */
+function user_selectable_roles_admin_form_validate($form, &$form_state) {
+  if ($form_state['values']['user_selectable_roles_enabled'] == 1) {
+    if (count(array_filter($form_state['values']['user_selectable_roles'])) == 0) {
+      // user-selectable roles enabled, but no roles for inclusion were selected
+      form_set_error('user_selectable_roles', t("You need to select at least one role."));
+    }
+    $pattern = "'(\pL+)\|(\pL+)'";
+    if (!preg_match($pattern, trim($form_state['values']['user_selectable_roles_label']))) {
+      form_set_error('user_selectable_roles_label', t('Please enter lowercase singular/plural role labels delimited with a vertical bar (|).'));
+    }
+  }
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function user_selectable_roles_user($op, &$edit, &$account, $category = NULL) {
+  $user_selectable_roles_label = explode('|', variable_get('user_selectable_roles_label', 'role|roles'));
+
+  // exclude anonymous role
+  $system_user_roles = user_roles(TRUE);
+  // remove authenticated role
+  unset($system_user_roles[DRUPAL_AUTHENTICATED_RID]);
+  // get admin-defined user-selectable roles; filter out unchecked roles
+  $admin_defined_roles = array_filter(variable_get('user_selectable_roles', array()));
+
+  $user_selectable_roles = array();
+  foreach ($admin_defined_roles as $rid) {
+    $user_selectable_roles[$rid] = $system_user_roles[$rid];
+  }
+
+  // admins use system default role assignment checkboxes
+  if (!user_access('administer users') && variable_get('user_selectable_roles_enabled', 0)) {
+    switch ($op) {
+      case 'update':
+        if (variable_get('user_selectable_roles_editing', 0)) {
+          // populate form w/ account roles
+          $edit['roles'] = $account->roles;
+          // clear all user-selectable roles
+          // only when editing an account page
+          if (isset($edit['user_selectable_roles'])) {
+            foreach ($admin_defined_roles as $rid) {
+              unset($edit['roles'][$rid]);
+            }
+          }
+        }
+        // fall through to insert case
+      case 'insert':
+        // multiple choice checkboxes
+        if (is_array($edit['user_selectable_roles'])) {
+          $roles = array_filter($edit['user_selectable_roles']);
+          if (count($roles)) {
+            // add user selections to form array
+            foreach ($roles as $rid) {
+              $edit['roles'][$rid] = $system_user_roles[$rid];
+            }
+          }
+        }
+        else {
+          // single selection dropdown
+          if ($edit['user_selectable_roles']) {
+            // add user selection to form array
+            $edit['roles'][$edit['user_selectable_roles']] = $system_user_roles[$edit['user_selectable_roles']];
+          }
+        }
+        break;
+      case 'form':
+        // display on new account creation OR when editing an existing account AND when editing the user account form
+        if ((!isset($account->uid) || variable_get('user_selectable_roles_editing', 0)) && $category == 'account') {
+          $user_roles = $account->roles;
+          // remove anonymous and authenticated roles
+          unset($user_roles[DRUPAL_ANONYMOUS_RID]);
+          unset($user_roles[DRUPAL_AUTHENTICATED_RID]);
+          return user_selectable_roles_form($user_selectable_roles, array_keys($user_roles), $user_selectable_roles_label);
+        }
+        break;
+      case 'register':
+        return user_selectable_roles_form($user_selectable_roles, array(), $user_selectable_roles_label);
+        break;
+      case 'validate':
+        // validate on new account creation OR when editing an existing account AND when editing the user account form
+        if ((!isset($account->uid) || variable_get('user_selectable_roles_editing', 0)) && $category == 'account') {
+          user_selectable_roles_validation($edit, $user_selectable_roles_label);
+        }
+        break;
+    }
+  }
+}
+
+/**
+ * Custom function for user-selectable roles form.
+ * 
+ * @param array
+ * @param array
+ * @param array
+ * @return array
+ */
+function user_selectable_roles_form($user_selectable_roles, $default_value, $user_selectable_roles_label) {
+  $form['user_selectable_roles'] = array(
+     '#type' => 'fieldset', 
+     '#title' => t('!label', array('!label' => format_plural(variable_get('user_selectable_roles_mode', 0), ucfirst($user_selectable_roles_label[1]), ucfirst($user_selectable_roles_label[0])))), 
+     '#collapsible' => FALSE, 
+     '#collapsed' => FALSE,
+     '#weight' => 10,
+  );
+
+  // due to a validation bug, the required property below is set to false
+  // function below validates selection when user-selectable role is required
+  switch (variable_get('user_selectable_roles_mode', 0)) {
+    case 0:
+      // append default dropdown option selection
+      $user_selectable_roles[0] = t('-- select !label --', array('!label' => format_plural(variable_get('user_selectable_roles_mode', 0), $user_selectable_roles_label[1], $user_selectable_roles_label[0])));
+      // reverse the array order so that above default option is first
+      // workaround because array_unshift and array_merge do not preserve keys
+      $user_selectable_roles = array_reverse($user_selectable_roles, TRUE);
+      $form['user_selectable_roles']['user_selectable_roles'] = array(
+        '#type' => 'select', 
+        '#default_value' => $default_value,
+        '#options' => $user_selectable_roles,
+        '#required' => FALSE,
+        '#description' => t('Select one !label.', array('!label' => format_plural(variable_get('user_selectable_roles_mode', 0), $user_selectable_roles_label[1], $user_selectable_roles_label[0]))),
+      );
+      break;
+    case 1:
+      $form['user_selectable_roles']['user_selectable_roles'] = array(
+        '#type' => 'checkboxes', 
+        '#default_value' => $default_value,
+        '#options' => $user_selectable_roles,
+        '#required' => FALSE,
+        '#multiple' => TRUE,
+        '#description' => t('Select one or more !label.', array('!label' => format_plural(variable_get('user_selectable_roles_mode', 0), $user_selectable_roles_label[1], $user_selectable_roles_label[0]))),
+      );
+      break;
+    case 2:
+      // display single selection as radio buttons
+      // first key of default_value array is role
+      $form['user_selectable_roles']['user_selectable_roles'] = array(
+        '#type' => 'radios',
+        '#default_value' => $default_value[0],
+        '#options' => $user_selectable_roles,
+        '#required' => FALSE,
+        '#description' => t('Select one !label.', array('!label' => format_plural(variable_get('user_selectable_roles_mode', 0), $user_selectable_roles_label[1], $user_selectable_roles_label[0]))),
+      );
+      break;
+  }
+
+  return $form;
+}
+
+/**
+ * Custom function for user-selectable roles form validation.
+ * 
+ * @param array
+ * @param array
+ * @return none
+ */
+function user_selectable_roles_validation($edit, $user_selectable_roles_label) {
+  if (variable_get('user_selectable_roles_required', 0)) {
+    if (variable_get('user_selectable_roles_mode', 0) == 1 && count(array_filter($edit['user_selectable_roles'])) == 0) {
+      // one or more selections required
+      form_set_error('user_selectable_roles][user_selectable_roles', t('You must select one or more !label.', array('!label' => format_plural(variable_get('user_selectable_roles_mode', 0), $user_selectable_roles_label[1], $user_selectable_roles_label[0]))));
+    }
+    else if (empty($edit['user_selectable_roles'])) {
+      // single selection required
+      form_set_error('user_selectable_roles][user_selectable_roles', t('You must select one !label.', array('!label' => format_plural(variable_get('user_selectable_roles_mode', 0), $user_selectable_roles_label[1], $user_selectable_roles_label[0]))));
+    }
+  }
+}

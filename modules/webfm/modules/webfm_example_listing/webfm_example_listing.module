@@ -1,0 +1,136 @@
+<?php
+/**
+ * @file
+ * This is a simple example of how a custom module can use webfm to list
+ * files found in a specified directory
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function webfm_example_listing_menu() {
+  $items = array();
+
+  $items['admin/settings/webfm_example_listing'] = array(
+    'title' => 'Set file listing directory',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webfm_example_listing_set_dir'),
+    'access arguments' => array('administer webfm'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['webfm_example_listing'] = array(
+    'title' => t('WebFM File Listing Example'),
+    'page callback' => 'webfm_example_listing_file_list',
+    'access callback' => 'user_access',
+    'access arguments' => array('access webfm'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function webfm_example_listing_block($op = 'list', $delta = 0) {
+  if ($op == 'list') {
+    $blocks[0]['info'] = t('WebFM Example File Listing');
+    return $blocks;
+
+  }
+  else if ($op == 'view' &&
+           user_access('access content')) {
+    $block['content'] = webfm_example_listing_file_list();
+    $block['subject'] = t('Example File Listing');
+    return $block;
+  }
+}
+
+function webfm_example_listing_set_dir() {
+  $form['webfm_example_listing_dir'] = array(
+    '#type' => 'textfield',
+    '#title' => t('File listing path (Must be within webfm root)'),
+    '#default_value' => variable_get('webfm_example_listing_dir', ''),
+    '#maxlength' => '100',
+    '#size' => '50',
+    '#description' => t('Path to file directory.')
+  );
+  $form['#validate'] = array('webfm_example_listing_set_dir_validate');
+  return system_settings_form($form);
+}
+
+function webfm_example_listing_set_dir_validate($form, &$form_state) {
+  $webfm_root_path = webfm_get_root_path();
+  if($webfm_root_path == NULL) {
+    form_set_error('webfm_example_listing_dir', t('The WebFM root path is not set. Goto <a href="@link">admin/settings/webfm</a>', array('@link' => url('admin/settings/webfm'))));
+  } else {
+    $root_dir = file_directory_path().$webfm_root_path;
+    $listing_dir = $form_state['values']['webfm_example_listing_dir'];
+    if(!empty($listing_dir)) {
+      if(substr($listing_dir, 0, 1) != '/')
+        $listing_dir = '/'.$listing_dir;
+      if(!is_dir($root_dir.$listing_dir))
+        form_set_error('webfm_example_listing_dir', t('The %file directory does not exist.', array('%file' => $root_dir.$listing_dir)));
+    }
+  }
+}
+
+/**
+ * Implementation of hook_theme
+ */
+function webfm_example_listing_theme() {
+  return array(
+    'webfm_example_listing' => array(
+      'arguments' => array('files' => NULL),
+      'template' => 'webfm-example-listing',
+    ),
+  );
+}
+
+function webfm_example_listing_file_list() {
+  // The user is either an admin, user or prohibited
+  if(user_access('administer webfm')) {
+    $webfm_perm = WEBFM_ADMIN;
+  } else if(user_access('access webfm')) {
+    $webfm_perm = WEBFM_USER;
+  } else {
+    drupal_access_denied();
+    return;
+  }
+
+  $webfm_root_path = webfm_get_root_path();
+  $files = array();
+  if($webfm_root_path == NULL) {
+    //WebFM root dir must exist
+    drupal_set_message(t('WebFM root dir does not exist'), 'error');
+  } else {
+    // Get directory set in 'admin/settings/webfm_example_listing'
+    $file_listing_dir = variable_get('webfm_example_listing_dir', '');
+    if($file_listing_dir == '') {
+      drupal_set_message(t('Listing directory not set. Goto <a href="@link">admin/settings/webfm_example_listing</a>', array('@link' => url('admin/settings/webfm_example_listing'))), 'error');
+    } else {
+      $root_dir = file_directory_path().$webfm_root_path;
+      if(substr($file_listing_dir, 0, 1) != '/')
+        $file_listing_dir = '/'.$file_listing_dir;
+      $listing_dir = $root_dir.$file_listing_dir;
+      if(!is_dir($listing_dir)) {
+        // Directory was deleted/renamed after being set in 'admin/settings/webfm_example_listing'
+        if($file_listing_dir != '')
+          drupal_set_message(t('%dir is not a directory', array('%dir' => $file_listing_dir)), 'error');
+      } else {
+        // Get file listing
+        if($webfm_perm == WEBFM_ADMIN)
+          // Admins do not have webfm root hidden
+          $file_listing_dir = webfm_get_root_path().$file_listing_dir;
+        $dir_list = new webfm_build_dir_list($file_listing_dir, $webfm_perm);
+        if($dir_list->get_breadcrumb()) {
+          $files = $dir_list->get_file_listing();
+        } else {
+          drupal_set_message(t('No access to files'), 'error');
+        }
+      }
+    }
+  }
+
+  return theme('webfm_example_listing', $files);
+}

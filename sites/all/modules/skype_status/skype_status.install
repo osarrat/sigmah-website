@@ -1,0 +1,34 @@
+<?php
+// $Id: skype_status.install,v 1.3 2010/03/20 23:43:17 nicholasalipaz Exp $
+
+//////////////////////////////////////////////////////////////////////////////
+// Core API hooks
+
+/**
+ * Implementation of hook_enable().
+ */
+function skype_status_enable() {
+  drupal_set_message(t('Skype Status module successfully installed. Please review the available <a href="@settings">configuration settings</a>.', array('@settings' => url('admin/settings/skype_status'))));
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function skype_status_install() {
+}
+
+/**
+ * Implementation of hook_update().
+ */
+function skype_status_update_6100(&$sandbox) {
+  db_query("DROP TABLE {rdf_data_skype_status}");
+  variable_del('skype_status_cache_lifetime');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function skype_status_uninstall() {
+  variable_del('skype_status_profile_field');
+  variable_del('skype_status_buttonstyle');
+}

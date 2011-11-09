@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * Implementation of hook_uninstall().
+ * Restore standard Secure Pages operation.
+ */
+function multilink_securepages_uninstall() {
+  variable_set('securepages_enable', variable_get('multilink_securepages_enable', 0));
+  variable_del('multilink_securepages_enable');
+  drupal_set_message('Standard operation has been restored for Secure Pages', 'warning');
+}

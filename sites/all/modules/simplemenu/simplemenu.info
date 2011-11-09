@@ -1,0 +1,12 @@
+; $Id: simplemenu.info,v 1.4.2.2.2.5 2010/05/16 09:00:07 alexiswilke Exp $
+name = SimpleMenu
+description = Displays a menu bar with drop down items. By default it appears at the top of the screen with the Navigation menu.
+core = 6.x
+package = Menu
+
+; Information added by drupal.org packaging script on 2010-08-30
+version = "6.x-1.13"
+core = "6.x"
+project = "simplemenu"
+datestamp = "1283140912"
+

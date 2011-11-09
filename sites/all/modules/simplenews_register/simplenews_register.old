@@ -1,0 +1,129 @@
+<?php
+// $Id: simplenews_register.module,v 1.1.2.4.2.1 2008/12/12 17:26:38 moonray Exp $
+
+/**
+ * @defgroup simplenews_register
+ * Allow signing up for newsletters on registration.
+ */
+
+/**
+ * @file
+ * Simplenews on register hooks
+ *
+ * @ingroup simplenews_register
+ */
+
+/**
+ * Fix for versions of simplenews greater than 1.2
+ */
+if (!function_exists('_simplenews_get_vid')) {
+  function _simplenews_get_vid() {
+    return variable_get('simplenews_vid', '');
+  }
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function simplenews_register_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'simplenews_admin_settings') {
+    $form['buttons']['#weight'] = 10;
+    
+    $form['simplenews_register_options'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('User registration page options'),
+      '#description' => t('Enable the newsletters you wish people to sign up for on the user registration page. You can change the default setting of opt-in to opt-out for each newsletter as well as changing the option to send a confirmation email before the user is subscribed to the newsletter, or automatically signing them up on submission if they checked to subscribe to that newsletter.'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#theme' => 'simplenews_register_admin_settings',
+      '#weight' => 1,
+    );
+    
+    foreach (taxonomy_get_tree(_simplenews_get_vid()) as $term) {
+      $form['simplenews_register_options']['simplenews_register_'. $term->tid .'_newsletter'] = array(
+        '#value' => check_plain($term->name),
+      );
+      $form['simplenews_register_options']['simplenews_register_'. $term->tid .'_show'] = array(
+        '#type' => 'checkbox',
+        '#return_value' => 1,
+        '#default_value' => variable_get('simplenews_register_'. $term->tid .'_show', TRUE),
+      );
+      $form['simplenews_register_options']['simplenews_register_'. $term->tid .'_optout'] = array(
+        '#type' => 'checkbox',
+        '#return_value' => 1,
+        '#default_value' => variable_get('simplenews_register_'. $term->tid .'_optout', FALSE),
+      );
+      $form['simplenews_register_options']['simplenews_register_'. $term->tid .'_confirm'] = array(
+        '#type' => 'checkbox',
+        '#return_value' => 1,
+        '#default_value' => variable_get('simplenews_register_'. $term->tid .'_confirm', TRUE),
+      );
+    }
+  }  
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function simplenews_register_theme() {
+  return array(
+    'simplenews_register_admin_settings' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+ * Custom theme function for a table for simplenews register page settings
+ */
+function theme_simplenews_register_admin_settings($form) {
+  foreach (taxonomy_get_tree(_simplenews_get_vid()) as $term) {
+    $row = array();
+    $row[] = drupal_render($form['simplenews_register_'. $term->tid .'_newsletter']);
+    $row[] = drupal_render($form['simplenews_register_'. $term->tid .'_show']);
+    $row[] = drupal_render($form['simplenews_register_'. $term->tid .'_optout']);
+    $row[] = drupal_render($form['simplenews_register_'. $term->tid .'_confirm']);
+    $rows[] = $row;
+  }
+  $header = array(t('Newsletter'), t('Show'), t('Opt-out'), t('Email confirmation'));
+  $output = theme('table', $header, $rows);
+  return $output;
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function simplenews_register_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'register':
+      $form = array();
+      $form['simplenews'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Newsletters'),
+        '#weight' => 5,
+      );
+      
+      foreach (taxonomy_get_tree(_simplenews_get_vid()) as $term) {
+        if (variable_get('simplenews_register_'. $term->tid .'_show', TRUE)) {
+          $form['simplenews']['simplenews-'. $term->tid] = array(
+            '#type' => 'checkbox',
+            '#title' => t('Subscribe to !newsletter', array('!newsletter' => $term->name)),
+            '#default_value' => isset($edit['simplenews-'. $term->tid]) ? $edit['simplenews-'. $term->tid] : variable_get('simplenews_register_'. $term->tid .'_optout', FALSE),
+          );
+        }
+      }
+      
+      return $form;
+      break;
+      
+    case 'insert':
+    case 'update':
+      foreach (taxonomy_get_tree(_simplenews_get_vid()) as $term) {
+        if (variable_get('simplenews_register_'. $term->tid .'_show', TRUE) && !empty($edit['simplenews-'. $term->tid])) {
+          drupal_set_message(t('Signing up for newsletter.'));
+          simplenews_subscribe_user($edit['mail'], $term->tid, variable_get('simplenews_register_'. $term->tid .'_confirm', FALSE));
+        }
+      }
+      break;
+  }
+}

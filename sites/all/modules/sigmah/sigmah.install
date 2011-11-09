@@ -1,0 +1,26 @@
+<?php 
+function sigmah_install() {
+  variable_set('sigmah_schema_version', 1);
+  //drupal_install_schema('cinema');
+}
+
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function cinema_uninstall() {
+  drupal_uninstall_schema('cinema');
+  //variable_del('sigmah_schema_version');
+}
+
+/*function cinema_schema(){
+  $schema['table_film'] = array(
+    'fields' => array(
+      'nid'      => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
+      'note'     => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('nid'),
+  );
+  return $schema;
+}*/
+?>

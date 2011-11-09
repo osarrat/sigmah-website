@@ -1,0 +1,143 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: taxonomy_access\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2006-01-17 12:51+0100\n"
+"Last-Translator: Uccio <ucciopan@aicomputer.it>\n"
+"Language-Team: drupalitalia.org <info@drupalitalia.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+
+#: taxonomy_access.module:11
+msgid "Allows users to specify how each category can be used by various roles."
+msgstr "Consente agli utenti di specificare quali categorie possono essere usate dai vari ruoli "
+
+#: taxonomy_access.module:22
+msgid "The module is currently enabled properly."
+msgstr "Il modulo è correntemente abilitato"
+
+#: taxonomy_access.module:23
+msgid "To disable the module properly, select 'disable' here and save the configuration before disabling it in the modules page."
+msgstr "Per disabilitare il modulo correttamente, seleziona 'disabilita' e salva la configurazione prima di disabiltare il modulo nella pagina dei moduli"
+
+#: taxonomy_access.module:28
+msgid "The module is currently disabled, but must also be disabled in the %module_page_link in order for it to be properly disabled.<br/>To properly enable this module, select 'enable' here and save the configuration.<br/>"
+msgstr "Il modulo è correntemente disabilitato, ma va ancora disabilitato nella %module_page_link per essere completamente disabilitato.<br/> Per abilitare correttamente il modulo seleziona 'Abilita' qui e salva la configurazione. <br/>"
+
+#: taxonomy_access.module:28
+msgid "modules admin page"
+msgstr "pagina di amministrazione dei moduli"
+
+#: taxonomy_access.module:28
+#, fuzzy
+msgid "View more."
+msgstr "leggi tutto"
+
+#: taxonomy_access.module:37
+msgid "<strong>Vocabulary Settings:</strong> Each vocabulary displays a list of the terms within it, each with four checkboxes: <em>View, Update, Delete, Create </em>and <em>List</em>. (For detailed description of these permissions, see README.txt) When you tick a checkbox next to a term, this role is given permission to perform that action on any nodes assigned to that term."
+msgstr "<strong>Configurazione del vocabolario:</strong> Ogni vocabolario mostra una lista di termini, ognuno con cinque spunte: <em> Vista, Aggiornamento, Eliminazione, Creazione, Lista(ndT ??) </em>. (Per una descrizione dettagliata dei permessi guarda il README.TXT) Quando tu spunti un termine, un ruolo acquisice il permesso di fare una una determinita azione su tutti i nodi assegnati a quel termine."
+
+#: taxonomy_access.module:38
+msgid "Beside each vocabulary title there is also a dropdown with &quot;<em>Select all</em>&quot; and &quot;<em>Deselect all</em>&quot; settings:"
+msgstr "Vicino ad ogni nome di Vocabolario c'è una tendina con  &quot; <em>Seleziona tutti</em>&quot; e &quot;<em>deseleziona tutti</em>&quot;:"
+
+#: taxonomy_access.module:38
+msgid "<ul><li>Choose the &quot;<em>Select all</em>&quot; setting to automatically select all of the terms in that vocabulary when you save (except '<em>Default</em>', which is not affected).</li><li>Choose the &quot;<em>Deselect all</em>&quot; setting to deselect all checkboxes in that vocabulary when you save (except &quot;<em>Default&quot;</em>).&nbsp;</li><li> &quot;--&quot; doesn't make any automatic changes to that vocabulary; only manual changes that you make to the checkboxes will be saved.</li></ul>"
+msgstr "<ul><li>Scegli &quot;<em>Seleziona tutti </em>&quot; per abilitare automaticamente tutti i termini di un vocabolario al momento del salvataggio (eccetto <em>predefinito</em>) </li><li>Scegli &quot;<em>Deseleziona tutti </em>&quot; per  rimuovere tutti i permessi da ogni termine del vocabolario (eccetto <em>predefinito</em>) .</li><li>Scegli  &quot;--&quot; per non modificare nessun termine; solo le modifiche manuali hanno effetto.</li> </ul>"
+
+#: taxonomy_access.module:39
+msgid "<strong>Default:</strong> This checkbox, just underneath the vocabulary title, <u>sets the permissions that will automatically be given</u> to this role, <u>for any new terms</u> that are added within the vocabulary."
+msgstr "<strong>Predefinito:</strong> Questa casella rappresenta il valore predefinito per tutti i nuovi termini di un dato vocabolario."
+
+#: taxonomy_access.module:43
+msgid "In this area you will define the permissions that each <a href=\"%role\">user role</a> has for each category.  Each category can have view, update,delete, create and list permissions set for each user role."
+msgstr "in questa area tu puoi definire i permessi per ogni <a href=\"%role\"> Ruolo</a> e per  ogni categoria. Ogni categoria puo essere vista, aggiornata, eliminata. Una lista di permessi puo essere configurata per ogni ruolo di utenti."
+
+#: taxonomy_access.module:63
+msgid "category permissions"
+msgstr "permessi dei ruoli"
+
+#: taxonomy_access.module:66
+msgid "update database"
+msgstr "aggiorna database"
+
+#: taxonomy_access.module:82
+#, fuzzy
+msgid "edit"
+msgstr "modifica"
+
+#: taxonomy_access.module:89
+msgid "Select all"
+msgstr "Seleziona tutti"
+
+#: taxonomy_access.module:89
+msgid "Deselect all"
+msgstr "Deseleziona tutti"
+
+#: taxonomy_access.module:156
+msgid "Save category permissions"
+msgstr "Salva i permessi della categoria"
+
+#: taxonomy_access.module:174
+#, fuzzy
+msgid "Default"
+msgstr "Predefinito"
+
+#: taxonomy_access.module:288
+msgid "Field 'grant_list' already exists in tables 'term_access'."
+msgstr "Il campo 'grant_list'  esiste già nella tabella 'term_access'."
+
+#: taxonomy_access.module:295
+msgid "Update complete."
+msgstr "Aggiornamento completato"
+
+#: taxonomy_access.module:301
+msgid "There is no update needed."
+msgstr "Non sono necessari aggiornamenti."
+
+#: taxonomy_access.module:304
+msgid ""
+"You have to apply this update if you used previous versions of Taxonomy Access. \n"
+" (For security reasons, do not forget to backup your database, before applying this script)"
+msgstr ""
+"Devi applicare questo agiornamento se tu usavi una versione precedente del Taxonomy Access. \n"
+"(Per ragioni di sicurezza, non dimenticarti di fare un backup del tuo database prima di applicare lo scipt.)"
+
+#: taxonomy_access.module:306
+msgid "Update for Taxonomy access"
+msgstr "Aggiornamento di Taxonomy access"
+
+#: taxonomy_access.module:307
+msgid "This update adds new field 'grant_list' to table 'term_access' and 'term_access_defaults'."
+msgstr "Questo aggiornamento aggiunge i campi 'grant_list' alla tabella  'term_access' e  'term_access_defaults'."
+
+#: taxonomy_access.module:544
+msgid "Enable the taxonomy_access module."
+msgstr "Abilita il modulo taxonomy_access."
+
+#: taxonomy_access.module:544
+msgid "Disable the taxonomy_access module."
+msgstr "Disabilita il modulo taxonomy_access"
+
+#: taxonomy_access.module:554
+#: ;561;565
+#, fuzzy
+msgid "Reset to defaults"
+msgstr "Ripristina i valori predefiniti"
+
+#: taxonomy_access.module:566
+msgid "The configuration options of taxonomy access have been reset to their default values."
+msgstr "Le opzioni di configurazione di taxonomy_access sono state ripristinate ai loro valori di default."
+
+#: taxonomy_access.module:570
+msgid "The configuration options of taxonomy access have been saved."
+msgstr "Le opzioni di configurazione di taxonomy_access sono state salvate."
+
+#: taxonomy_access.module:0
+msgid "taxonomy_access"
+msgstr "taxonomy_access"
+

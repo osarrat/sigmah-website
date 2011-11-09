@@ -1,0 +1,9 @@
+<?php
+// $Id: simplenews_register.install,v 1.1.2.3 2008/05/22 22:34:19 moonray Exp $
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function simplenews_register_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'simplenews_register_%%'");
+}

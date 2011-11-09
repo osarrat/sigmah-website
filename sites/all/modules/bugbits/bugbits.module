@@ -1,0 +1,343 @@
+<?php
+
+// $Id: bugbits.module,v 1.4.2.14 2009/08/21 23:04:34 daften Exp $
+
+
+/**
+ * @file
+ * Allows for an integration between the Mantis bug tracking system and drupal.
+ */
+
+/**
+ * Display help and module information
+ *
+ * @param path which path of the site we're displaying help
+ * @param arg array that holds the current path as would be returned from arg() function
+ * @return help text for the path
+ */
+function bugbits_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/help#onthisdate":
+      $output = '<p>' . t("Integrate the Mantis bug tracking system") . '</p>';
+      break;
+    case "admin/modules#description":
+      $output = t("Integrate the Mantis bug tracking system");
+      break;
+  }
+  return $output;
+}
+
+/**
+ * Valid permissions for this module
+ * @return array An array of valid permissions for the bugbits module
+ */
+function bugbits_perm() {
+  return array('access mantis', 'administer bugbits');
+} 
+
+function bugbits_menu() {
+  $items['mantis'] = array(
+  	'title' => 'Issue Tracking', 
+  	'page callback' => 'bugbits_all', 
+  	'access arguments' => array('access mantis'), 
+  	'type' => MENU_NORMAL_ITEM
+  );
+  $items['admin/settings/bugbits'] = array(
+  	'title' => 'Bugbits settings', 
+  	'description' => 'Change and test bugbits settings', 
+  	'page callback' => 'drupal_get_form', 
+  	'page arguments' => array('bugbits_admin_settings'), 
+  	'access arguments' => array('administer bugbits'), 
+  	'type' => MENU_NORMAL_ITEM, 
+  	'file' => 'bugbits.admin.inc'
+  );
+  $items['admin/settings/bugbits/config'] = array(
+    'title'       => t('Configure Bugbits'),
+    'description' => t('Change the bugbits settings'),
+    'type'        => MENU_DEFAULT_LOCAL_TASK,
+    'access callback'  => 'user_access',
+    'access arguments' => array('administer bugbits'),
+  );
+  $items['admin/settings/bugbits/test'] = array(
+    'title'       => t('Test bugbits settings'),
+    'description' => t('Test your bugbits settings'),
+    'type'        => MENU_LOCAL_TASK,
+  	'page callback' => 'bugbits_admin_test', 
+    'access callback'  => 'user_access',
+    'access arguments' => array('administer bugbits'),
+  	'file' => 'bugbits.admin.inc'
+  );
+  
+  return $items;
+} 
+
+function bugbits_all() {
+  drupal_set_header('P3P:CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"');
+  drupal_add_js(drupal_get_path('module', 'bugbits') . '/bugbits_iframe.js');
+  $url = variable_get('bugbits_mantis_url','');
+  $output .= '<iframe id="mantis_frame" src="' . $url . '" style="overflow:visible;width:100%; display:none" marginwidth="0" marginheight="0" frameborder="0" vspace="0" hspace="0" scrolling="no" width="100%"></iframe>';
+  
+  return $output;
+}
+
+function bugbits_user($op, &$edit, &$account, $category = NULL) {
+  // Connect to the mantis database. This sets the drupal database as inactive and changes 
+  // the connection. Always call _bugbits_db_set_inactive() again when finished!!!
+  require_once 'database-common.inc';
+  _bugbits_db_set_active();
+  if(!function_exists('_bugbits_db_connect')) {
+    _bugbits_db_set_inactive();
+    return;
+  }
+  _bugbits_db_connect(variable_get('bugbits_db_username', ''), variable_get('bugbits_db_password', ''), variable_get('bugbits_db_name', ''), variable_get('bugbits_db_host', ''), variable_get('bugbits_db_port', ''));
+
+  switch ($op) {
+    /** Edit has the following keys name, mail, status, roles, signature, timezone, mailalias,pass **/
+    case "insert":
+      _bugbits_create_user($edit["name"], $edit["pass"], $edit["mail"]);
+      break;
+    case "after_update":
+      _bugbits_uppass($account->name, $account->pass);
+      break;
+    case "validate":
+      if (!$account->uid) {
+        if (!_bugbits_check_name($edit["name"])) {
+          form_set_error('name', 'Sorry, that username is not available');
+        }
+        if (!_bugbits_check_email($edit["mail"])) {
+          form_set_error('mail', 'Sorry, that email address has already been taken');
+        }
+      }
+      break;
+    case "delete":
+      _bugbits_userdel($account->name);
+      break;
+    case "login":
+      /** $edit["pass"] is plain text while $user->pass is md5 hash of password **/
+      if (!bugbits_login($edit["name"], $edit["pass"])) {
+        watchdog("Bugbits", "Error user " . $edit["name"] . " was not able to log into Mantis", array(), WATCHDOG_ERROR);
+      }
+      break;
+    case "logout":
+      bugbits_logout();
+      break;
+  }
+  
+  _bugbits_db_set_inactive();
+}
+
+function _bugbits_check_name($name) {
+  $result = _bugbits_db_query("SELECT COUNT(username) from {user_table} where username = '$name'");
+  $mant_unique = (_bugbits_db_result($result) > 0) ? false : true;
+  
+  if ($mant_unique) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+function _bugbits_check_email($email){
+	$result = _bugbits_db_query("SELECT COUNT(email) from {user_table} where email = '$email'");
+	$mant_unique = (_bugbits_db_result($result) > 0) ? false : true;
+
+	if($mant_unique){
+		return true;
+	}else{
+		return false;
+	}
+}
+
+function _bugbits_create_user($username, $password, $email) {
+  $password_hash = md5($password);
+  
+  $cookie_hash = "";
+  $lcv = 0;
+  $c_flag = false;
+  
+  do {
+    if ($c_flag) {
+      $cookie_hash = md5($cookie_hash);
+    }
+    else {
+      $cookie_hash = md5($username . "openmfg" . $password . $email);
+    }
+    
+    $c_flag = bad_cookie($cookie_hash);
+    $lcv++;
+  
+  } while ($c_flag && $lcv < 5);
+  
+  $insert_user = "INSERT INTO {user_table}
+                    ( username, email, password, date_created, last_visit,
+                      enabled, access_level, login_count, cookie_string, realname )
+                    VALUES ( '$username', '$email', '$password_hash', now(), now(), 
+                      1, 10, 0, '$cookie_hash', '');";
+  
+  $result = _bugbits_db_query($insert_user);
+  
+  if (!$result) {
+    watchdog("Bugbits", "User $username could not be inserted into the mantis database", array(), WATCHDOG_ERROR);
+  }
+  
+  $count_query = "SELECT COUNT(id) FROM {user_table} WHERE username = '$username';";
+  
+  if (_bugbits_db_result(_bugbits_db_query($count_query)) == 1) {
+    $query = "SELECT id FROM {user_table} WHERE username = '$username';";
+    $id = _bugbits_db_result(_bugbits_db_query($query));
+  }
+  else {
+    watchdog("Bugbits", "There was an error in finding the user $username while registering", array(), WATCHDOG_ERROR);
+  }
+  
+  $insert_user_pref = "INSERT INTO mantis_user_pref_table 
+                         (user_id, project_id, default_profile, default_project, advanced_report, advanced_view, 
+                           advanced_update, refresh_delay, redirect_delay, bugnote_order, email_on_new, 
+                           email_on_assigned, email_on_feedback, email_on_resolved, email_on_closed, 
+                           email_on_reopened, email_on_bugnote, email_on_status, email_on_priority, 
+                           email_on_new_minimum_severity, email_on_assigned_minimum_severity, 
+                           email_on_feedback_minimum_severity, email_on_resolved_minimum_severity, 
+                           email_on_closed_minimum_severity, email_on_reopened_minimum_severity, 
+                           email_on_bugnote_minimum_severity, email_on_status_minimum_severity, 
+                           email_on_priority_minimum_severity, email_bugnote_limit, language)
+                        VALUES ($id, '0', '0', '0', '0', '0', 
+                          '0', '30', '2', 'ASC', '1', 
+                          '1', '1', '1', '1', 
+                          '1', '1', '0', '0', 
+                          '0', '0', 
+                          '0', '0', 
+                          '0', '0', 
+                          '0', '0', 
+                          '0', '0', 'english');";
+  $result = _bugbits_db_query($insert_user_pref);
+  
+  if (!$result) {
+    watchdog("Bugbits", "There was an error inserting preferences for user $username", array(), WATCHDOG_ERROR);
+  }
+  
+  watchdog("Bugbits", "User $username was successfully created", array(), WATCHDOG_INFO);
+}
+
+function bad_cookie($cookie) {
+  $query = "SELECT COUNT(cookie_string) FROM {user_table} WHERE cookie_string = '$cookie';";
+  $result = _bugbits_db_query($query);
+  if (_bugbits_db_result($result) >= 1) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+function _bugbits_uppass($username, $password) {
+  $query = "UPDATE {user_table} SET password = '$password' WHERE username = '$username';";
+  $result = _bugbits_db_query($query);
+  if (!$result) {
+    watchdog("Bugbits", "There was an error updating $username's password", array(), WATCHDOG_ERROR);
+  }
+}
+
+function _bugbits_userdel($username) {
+  watchdog('Bugbits', "Deleting user $username", array(), WATCHDOG_INFO);
+  $query = "DELETE FROM {user_table} WHERE username = '$username';";
+  $result = _bugbits_db_query($query);
+  if (!$result) {
+    watchdog("Bugbits", "There was an error deleting user $username.", array(), WATCHDOG_ERROR);
+  }
+}
+
+function bugbits_login($p_username, $p_password) {
+  $mantis_id = bugbits_mantis_id($p_username);
+  $processed_pass = md5($p_password);
+  
+  if (false === $mantis_id) {
+    watchdog("Bugbits", "User $p_username doesn't exist in mantis, failed mantis_id check.", array(), WATCHDOG_NOTICE);
+    return false;
+  }
+  $db_pass = bugbits_mantis_pass($mantis_id);
+  
+  if (!(bugbits_mantis_pass($mantis_id) == $processed_pass)) {
+    watchdog("Bugbits", "Failed password check for $p_username, db_pass = $db_pass proc pass = $processed_pass", array(), WATCHDOG_NOTICE);
+    return false;
+  }
+  
+  if (!bugbits_setcookie($mantis_id)) {
+    watchdog("Bugbits", "Failed to set mantis cookie for $p_username", array(), WATCHDOG_ERROR);
+    return false;
+  }
+  else {
+    return true;
+  }
+}
+
+function bugbits_logout() {
+  if (!bugbits_clear_cookie()) {
+    watchdog("Bugbits", "Mantis cookie was NOT cleared on user logging out", array(), WATCHDOG_NOTICE);
+  }
+}
+
+function bugbits_setcookie($mantis_id) {
+  $name = 'MANTIS_STRING_COOKIE';
+  $length = 300000000 + time();
+  $path = '/';
+  $domain = '';
+  
+  if ($user_string = bugbits_cookie_string($mantis_id)) {
+    return setcookie($name, $user_string, $length, $path, $domain);
+  }
+  else {
+    return false;
+  }
+}
+
+function bugbits_clear_cookie() {
+  $name = 'MANTIS_STRING_COOKIE';
+  $length = - 1;
+  $path = '/';
+  $domain = '';
+  
+  return setcookie($name, '', $length, $path, $domain);
+}
+
+function bugbits_cookie_string($mantis_id) {
+  $result = _bugbits_db_query("SELECT COUNT(cookie_string) FROM {user_table} where id = $mantis_id");
+  
+  if (_bugbits_db_result($result) == 1) {
+    $result = _bugbits_db_query("SELECT cookie_string FROM {user_table} where id = $mantis_id");
+    $row = _bugbits_db_fetch_object($result);
+    return $row->cookie_string;
+  }
+  else {
+    return false;
+  }
+}
+
+function bugbits_mantis_pass($p_user_id) {
+  $result = _bugbits_db_query("SELECT COUNT(password) FROM {user_table} WHERE id = $p_user_id");
+  
+  if (_bugbits_db_result($result) == 1) {
+    $result = _bugbits_db_query("SELECT password FROM {user_table} WHERE id = $p_user_id");
+    $row = _bugbits_db_fetch_object($result);
+    return $row->password;
+  }
+  else {
+    watchdog("Bugbits", "Returning false", array(), WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+function bugbits_mantis_id($username) {
+  $result = _bugbits_db_query("SELECT COUNT(id) FROM {user_table} WHERE username = '$username'");
+  
+  if (_bugbits_db_result($result) == 0) {
+    return false;
+  }
+  else {
+    $result = _bugbits_db_query("SELECT id FROM {user_table} WHERE username = '$username'");
+    $row = _bugbits_db_fetch_object($result);
+    return $row->id;
+  }
+}
+?>

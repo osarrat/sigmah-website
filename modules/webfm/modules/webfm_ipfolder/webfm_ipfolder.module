@@ -1,0 +1,117 @@
+<?php
+// $Id: webfm_ipfolder.module,v 1.2 2009/08/20 01:10:35 robmilne Exp $
+/* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
+/**
+ * @author		Niels Hackius <niels.hackius@tu-harburg.de>
+ * @copyright	2009, Technische Universität Hamburg-Harburg: Institut für Logistik und Unternehmensführung
+ * @license    http://www.opensource.org/licenses/gpl-3.0.html  GNU General Public License version 3 (GPLv3)
+ * @version		$Id: webfm_ipfolder.module,v 1.2 2009/08/20 01:10:35 robmilne Exp $
+ * @since		10:10:57 15.04.2009
+ *
+ */
+
+/**
+ * Implementation of hook_help
+ *
+ * @param $path string Path being accessed
+ * @param $arg array
+ * @return string A localized string containing the help text.
+ */
+function webfm_ipfolder_help($path,$arg)
+{
+	switch ($path) {
+    case 'admin/help#webfm_ipfolder':
+      return '<p>'. t('This module extends the Web File Manager. It allows to block or allow certain IP Ranges access to specified folders. <br /> In the !configuration you can provide IP Ranges and folder names.<br /> Depending on your !settings the selected IP Range will be allowed or blocked. By default it <b>blocks</b> access to all folders.',array('!configuration'=>l(t('configuration'),'admin/settings/webfm_ipfolder'),'!settings'=>l(t('settings'),'admin/settings/webfm_ipfolder/webfm_ipfolder_settings'))) .'</p>';
+	case 'admin/modules#description':
+      return t('Enable the Web File Manager Extension to allow IP based folder blocking.');
+  }
+}
+  
+/**
+ * Implementation of hook_webfm_send
+ * Provides an IP based checking routine that allows the user create IP based folder access rules
+ *
+ * @param $file object File object of file requested
+ * @return array Containing the maybe set sent flag
+ */
+
+function webfm_ipfolder_webfm_send($file)
+{
+	if(user_access('administer webfm')) return array(); //we do not check if user is allowed to administer webfm
+	$match = false; //default:nothing found
+	
+	$file_folders = trim(str_replace(file_directory_path(),'',$file->fpath),'/\\'); //strip drupal root directory, and leading or tailing slashes
+	$file_folders = explode('/', $file_folders); //expand to single directories
+	array_pop($file_folders); //pop off file name
+	$file_folders = array_flip($file_folders); //flip array for easier search with array_key_exists
+
+	//get folders for this ip
+	//this is based upon ipauth_get_ip_authenticators from ipauth.module
+  	$sql = "SELECT folder FROM {webfm_ipfolder} WHERE ((ip1 = '%s') OR (ip1 <> 0 AND ip1 <= '%s' AND ip2 >= '%s'))"; //get folders within ip range or for single ip match
+	$ip = sprintf("%u", ip2long($_SERVER['REMOTE_ADDR'])); //users current ip
+	
+	if($result = db_query($sql,$ip,$ip,$ip)) {
+		//we have to matches for this range
+		while($db_folders = db_fetch_object($result)) {
+			//compare all folders found w/ folders of current file
+			$match = array_key_exists($db_folders->folder,$file_folders);//set match to true if folders in range
+		}
+	}
+
+	//check access, default is to deny all access, but to specified folders
+	if($match == variable_get('webfm_ipfolder_bydefault',FALSE)) {
+		drupal_access_denied(); //go to Access Denied Page
+		return array("sent" => true ); //set this for the webfm_send hook
+	}
+
+	return array();
+}
+
+/**
+ * Implemtation of hook_menu
+ * @see webfm_ipfolder.admin.inc
+ *
+ * @return array
+ */
+function webfm_ipfolder_menu()
+{
+	$items = array();
+	$items['admin/settings/webfm_ipfolder'] = array(
+	    'title' => 'WebFM IP based folder access',
+	    'description' => 'Configure IP based folder access.',
+	    'file' => 'webfm_ipfolder.admin.inc',
+	    'page callback' => 'drupal_get_form',
+	    'page arguments' => array('webfm_ipfolder_ips'),
+	    'access arguments' => array('administer webfm'),
+	    'type' =>  MENU_NORMAL_ITEM,
+	  );
+	$items['admin/settings/webfm_ipfolder/edit'] = array(
+	    'title' => t('WebFM IP based folder access -- Modify'),
+	    'page callback' => 'drupal_get_form',
+	    'page arguments' => array('webfm_ipfolder_ips_edit'),
+	    'access callback' => 'user_access',    
+	    'access arguments' => Array('administer webfm'),
+	    'file' => 'webfm_ipfolder.admin.inc',
+	    'type' => MENU_CALLBACK
+	);
+	$items['admin/settings/webfm_ipfolder/delete'] = array(
+	    'title' => t('WebFM IP based folder access -- Delete'),
+	    'page callback' => 'drupal_get_form',
+	    'page arguments' => array('webfm_ipfolder_ips_delete'),
+	    'access callback' => 'user_access',    
+	    'access arguments' => Array('administer webfm'),
+	    'file' => 'webfm_ipfolder.admin.inc',
+	    'type' => MENU_CALLBACK
+	);
+	$items['admin/settings/webfm_ipfolder/webfm_ipfolder_settings'] = array(
+	    'title' => 'Default behavior',
+	    'description' => 'Configure IP based folder access - default behavior',
+	    'file' => 'webfm_ipfolder.admin.inc',
+	    'page callback' => 'drupal_get_form',
+	    'page arguments' => array('webfm_ipfolder_settings'),
+	    'access arguments' => array('administer webfm'),
+	    'type' =>  MENU_NORMAL_ITEM,
+	  );
+	  
+	  return $items;
+}

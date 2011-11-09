@@ -1,0 +1,12 @@
+; $Id: invisimail.info,v 1.1.4.1 2008/06/13 21:13:39 crell Exp $
+name = invisimail
+description = Attempts to thwart spam-bots by encoding email addresses.
+dependencies[] = filter
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-11-18
+version = "6.x-1.3"
+core = "6.x"
+project = "invisimail"
+datestamp = "1290039987"
+
