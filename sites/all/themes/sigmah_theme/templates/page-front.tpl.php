@@ -11,7 +11,7 @@
              <img id="img_test" src="<?php echo $base_path . path_to_theme().'/img/tester.jpg'; ?>" alt="capture d'écran" />
             <div>
           <h2><?php echo t('Test the demo'); ?></h2>
-                <h3><?php echo ' '.t('and discover the many solutions and functionalities imagined for you!'); ?></h3>
+                <h3><?php echo ' '.t('and discover the numerous solutions and features that work for you!'); //and discover the many solutions and functionalities imagined for you! ?></h3>
                 <a id="tester" class="button" href="http://demo.sigmah.org"><?php echo t('Test'); ?></a>
             </div>          
             </div>
@@ -37,8 +37,8 @@
 						<?php print $left; ?>
 					<?php endif; ?>
 					<p class="miseenavant"><?php echo t('What\'s Sigmah?'); ?></p>
-					 <a href="" id="video"><?php echo t('Sigmah video'); ?></a>
-					 <em class="baseline"><?php echo t('Coming soon ...');  //(TODO durée 2 min)?></em><br />
+					 <a href="<?php echo t('http://www.dailymotion.com/group/sigmah-launch-conference-2011/')?>" id="video"><?php echo t('Sigmah video'); ?></a>
+					 <em class="baseline"><?php echo t('Sigmah launch conference videos');  //(TODO durée 2 min)?></em><br />
 					 <span class="baseline"><?php //(TODO 892 visionnages) ?></span>
 				</div>
         </div>

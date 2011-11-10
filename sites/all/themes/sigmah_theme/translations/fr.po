@@ -316,7 +316,7 @@ msgid "Test the demo"
 msgstr "Testez la démo "
 
 #: templates/page-front.tpl.php:14
-msgid "and discover the many solutions and functionalities imagined for you!"
+msgid "and discover the numerous solutions and features that work for you!"
 msgstr "et découvrez les nombreuses solutions et fonctionnalités imaginées pour vous!"
 
 #: templates/page-front.tpl.php:15
@@ -332,12 +332,16 @@ msgid "What's Sigmah?"
 msgstr "Qu’est ce que Sigmah ?"
 
 #: templates/page-front.tpl.php:40
+msgid "http://www.dailymotion.com/group/sigmah-launch-conference-2011/"
+msgstr "http://www.dailymotion.com/group/sigmah-conference-lancement-2011/"
+
+#: templates/page-front.tpl.php:40
 msgid "Sigmah video"
 msgstr "La vidéo Sigmah"
 
 #: templates/page-front.tpl.php:41
-msgid "Coming soon ..."
-msgstr "Bientôt..."
+msgid "Sigmah launch conference videos"
+msgstr "Les vidéos de la conférence de lancement de Sigmah"
 
 #: templates/page-front.tpl.php:47
 msgid "Use"
