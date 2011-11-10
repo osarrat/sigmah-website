@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Theme implementation to format "The Sigmah newsletter" simplenews newsletter footer
+ * Theme implementation to format "Bulletin d'information Sigmah" simplenews newsletter footer
  * 
  * File named simplenews-newsletter-footer--<tid>.tpl.php with <tid> for
  * newsletter term's id.

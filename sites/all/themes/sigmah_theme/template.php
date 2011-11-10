@@ -448,3 +448,20 @@ function sigmah_theme_fieldgroup_fieldset($element){
 	return '';
 }
 
+
+/**
+ * Process variables to format the simplenews newsletter body.
+ *
+ * $variables contains:
+ * - $node
+ * - $language
+ *
+ * @see simplenews-newsletter-body.tpl.php
+ */
+function sigmah_theme_preprocess_simplenews_newsletter_body(&$variables) {
+  $variables['format'] = $variables['node']->simplenews['s_format'];
+  $variables['title'] = check_plain($variables['node']->title);
+  $variables['body'] = $variables['node']->body;
+}
+
+
