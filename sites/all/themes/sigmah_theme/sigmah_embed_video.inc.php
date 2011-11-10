@@ -10,7 +10,9 @@
             'dailymotion-group' => array ('name'=>'Sigmah Launch Conference 2011', 
                                           'code'=>'sigmah-launch-conference-2011'),
             'ogv' => '01-background.ogv',
-            'ogv-group' => 'launch-conference-2011'
+            'ogv-group' => 'launch-conference-2011',
+            'extra-link' => array ('label'=>'French version',
+                                  'url'=>'http://www.dailymotion.com/video/xkuvnw')
         );
      
      
@@ -22,7 +24,7 @@
           <td style="width:160px">&nbsp;</td>      
           <td style="width:320px;background-color:#494748;text-align:center;color:#AF9972;">
             <?php
-              if(array_key_exists('dailymotion-group', $sigmahEmbedVideoParamsArray)):
+              if(array_key_exists('dailymotion-group', $sigmahEmbedVideoParamsArray) && is_array($sigmahEmbedVideoParamsArray['dailymotion-group']) ):
             ?>
             <?php if ($sigmahEmbedVideoParamsArray['language']=='en') echo "Video part of"; else echo "Vid&eacute;o de"; ?>
             <a href="http://www.dailymotion.com/group/<?php echo $sigmahEmbedVideoParamsArray['dailymotion-group']['code']; ?>" target="_blank" style="color:#AF9972;">
@@ -39,6 +41,14 @@
             <a href="http://www.sigmah.org/videos/<?php if(array_key_exists('ogv-group', $sigmahEmbedVideoParamsArray)) echo $sigmahEmbedVideoParamsArray['ogv-group']."/"; ?><?php echo $sigmahEmbedVideoParamsArray['ogv']; ?>" style="color:#AF9972;font-style: italic;">
             <?php if ($sigmahEmbedVideoParamsArray['language']=='en') echo "Download this video in free format (.ogv)"; else echo "T&eacute;l&eacute;charger cette vid&eacute;o en format libre (.ogv)"; ?>
             </a>
+            <?php
+              endif;
+              if(array_key_exists('extra-link', $sigmahEmbedVideoParamsArray) && is_array($sigmahEmbedVideoParamsArray['extra-link']) ):
+            ?>
+            <br />
+            <a href="<?php echo $sigmahEmbedVideoParamsArray['extra-link']['url']; ?>" style="background-color:white;color:black;">
+            &nbsp;<?php echo $sigmahEmbedVideoParamsArray['extra-link']['label']; ?>&nbsp;
+            </a>             
             <?php
               endif;
             ?>
