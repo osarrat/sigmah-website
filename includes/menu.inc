@@ -1611,7 +1611,7 @@ function menu_get_active_breadcrumb() {
     $active_trail = menu_get_active_trail();
 
     foreach ($active_trail as $parent) {
-      $breadcrumb[] = l($parent['title'], $parent['href'], $parent['localized_options']);
+      $breadcrumb[] = l($parent['title'], $parent['href'], array($parent['localized_options']));
     }
     $end = end($active_trail);
 
