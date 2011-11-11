@@ -151,4 +151,42 @@ function sigmah_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL){
 	
 }
 */
+
+
+/**
+* cron task to keep the book organization of all translations of the 
+* Sigmah Guide French version up to date with original French version structure.
+*/
+function sigmah_cron() {
+  for($depth=2;$depth<=9;$depth++) {
+    db_query("
+INSERT INTO `drupal_menu_links` (`menu_name`, `plid`, `link_path`, `router_path`, `link_title`, `options`, `module`, `hidden`, `external`, `has_children`, `expanded`, `weight`, `depth`, `customized`, `p1`, `p2`, `p3`, `p4`, `p5`, `p6`, `p7`, `p8`, `p9`, `updated`)
+SELECT IF(t_dn.language='en','book-toc-219','book-toc-220') menu_name, t_parent_dml.mlid plid, CONCAT('node/',t_dn.nid) link_path, 'node/%%' router_path,  t_dn.title link_title, 'a:1:{s:5:\"alter\";b:1;}' options, 'book' module, 0 hidden, 0 external, 0 has_children, 0 expanded, 0 weight, dml.depth depth, 0 customized,  t_parent_dml.p1 p1,  t_parent_dml.p2 p2,  t_parent_dml.p3 p3,  t_parent_dml.p4 p4,  t_parent_dml.p5 p5,  t_parent_dml.p6 p6,  t_parent_dml.p7 p7,  t_parent_dml.p8 p8,  t_parent_dml.p9 p9, 0 updated
+FROM drupal_menu_links dml
+  inner join drupal_node t_dn on (dml.link_path = CONCAT('node/',t_dn.tnid) and t_dn.language!='fr')
+  inner join drupal_menu_links parent_dml on (parent_dml.mlid = dml.plid)
+  inner join drupal_node t_parent_dn on (parent_dml.link_path = CONCAT('node/',t_parent_dn.tnid) and t_parent_dn.language=t_dn.language)                       
+  inner join drupal_menu_links t_parent_dml on (t_parent_dml.link_path = CONCAT('node/',t_parent_dn.nid) and t_parent_dml.module='book')
+WHERE dml.menu_name = 'book-toc-32' and dml.depth=%d
+and CONCAT('node/',t_dn.nid) NOT IN (SELECT link_path FROM drupal_menu_links WHERE module = 'book')
+ORDER BY dml.mlid;
+    ", $depth);
+    
+    db_query("
+UPDATE drupal_menu_links dml
+SET p%d=mlid
+WHERE dml.module='book' and dml.p%d=0 and dml.depth=%d;
+    ", $depth, $depth, $depth);     
+  }
+  
+  db_query("
+INSERT INTO `drupal_book` (`mlid`, `nid`, `bid`)
+SELECT mlid, SUBSTRING(link_path, 6), SUBSTRING(menu_name, 10)
+FROM drupal_menu_links
+WHERE module='book' and mlid NOT IN (SELECT mlid FROM drupal_book);
+    "); 
+
+} 
+
+
 ?>
