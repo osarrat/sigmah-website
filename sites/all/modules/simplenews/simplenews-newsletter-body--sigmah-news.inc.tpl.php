@@ -31,6 +31,7 @@ p,li {
 #newsletter-footer {
   text-align: center;
 }
+
  
 //-->
 </style>
@@ -58,6 +59,7 @@ p,li {
           
           </td>
         </tr>
+        
 
 <?php //else: ?>
 <?php // print $body; ?>   

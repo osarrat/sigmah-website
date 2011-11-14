@@ -1,0 +1,13 @@
+/*
+           CSS style for all emails sent via mimemail
+
+ Note: this mail.css file MUST be in the root folder of the sigmah_theme theme
+   (it cannot be in the subfoler css)   
+
+ For more information, see template_preprocess_mimemail_message() in  
+   modules/mimemail/theme/mimemail.theme.inc 
+*/
+
+/* To ensure that no style will override the style given by 
+  the templates of the mail on table markups */
+table {}

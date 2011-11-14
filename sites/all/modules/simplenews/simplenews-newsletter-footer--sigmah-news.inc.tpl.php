@@ -25,7 +25,6 @@
  
 ?>
 <?php if ($format == 'html'): ?>
-        
         <tr>
           <td>
           
