@@ -59,8 +59,13 @@
 		</div>
 	<div class="baseRow baseline">
 		<?php 
-			echo t('By').$name;			
-			echo t('at').' '.date('j/m/Y H:i', $created);
+			if (user_access('access user profiles')) { 
+        echo t('By').$name;
+      }
+      else{
+        echo t('By').' '.$name.' ';
+      }
+      echo t('at').' '.date('j/m/Y H:i', $created);
 			echo ' | ';  
 			
 			if($comment_count == 0){
