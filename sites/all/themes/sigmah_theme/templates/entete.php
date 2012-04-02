@@ -69,8 +69,8 @@
 						</div>
                 </div>
                 <?php if (!empty($site_name)): ?>
-					<h1 id="title" <?php if($lang_name=='en'):echo 'class="en"';elseif($lang_name=='es'):echo 'class="es"';endif; ?> >
-						<a href="<?php print $front_page ?>" title="<?php print t('Home'); ?>" rel="home"><?php print $site_name; ?></a>
+						<h1 id="title" <?php if($lang_name=='en'):echo 'class="en"';elseif($lang_name=='es'):echo 'class="es"';elseif($lang_name=='fr'):echo 'class="fr"';endif; ?> >
+            <a href="<?php print $front_page ?>" title="<?php print t('Home'); ?>" rel="home"><?php print $site_name; ?></a>
 					</h1>
 				<?php endif; ?>
                 <h2 id="baseline-title">
