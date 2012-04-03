@@ -69,15 +69,31 @@
 					<?php //echo '('.$nb_account.' '.t('accounts').')'; ?></li>
                     <li class="last"><a href="<?php echo url('organisational-use'); ?>#download"><?php echo t('Download Sigmah'); ?></a><?php //(TODO 224 téléchargements)?></li>
                 </ul>
-            </div>
-        </div>
-        
-        <div id="right" class="col">
-        	<h4><?php echo t('Contribute to Sigmah'); ?></h4>
-            <div class="dotted">
+                </div>
+                </div>
+
+                <div id="right" class="col">
+                <h4><?php echo t('Contribute to Sigmah'); ?></h4>
+                <div class="dotted">
                 <div class="bloc_orange"><span class="titre_marron"><?php echo t('Questions, comments'); ?></span><br />
                 <div class="formulaire_send">
-                <textarea><?php echo t('Write your question here...')?></textarea>
+                <?php $translated_text_area_content=t("Write your question here..."); ?>
+                <textarea id="formulaire_send_textarea"><?php echo $translated_text_area_content; ?></textarea>
+                <script>
+                $(document).ready(function(){
+                    $("#formulaire_send_textarea").click(function(){
+                      if($(this).html()=="<?php echo $translated_text_area_content; ?>"){
+                      $(this).html('');
+                      }
+                      });
+                    $("#formulaire_send_textarea").blur(function(){
+                      if($(this).html()==''){
+                      $(this).html("<?php echo $translated_text_area_content; ?>");
+                      }
+                      });
+                    });
+</script>
+
                 
                 <a class="envoyer button iframe" href="<?php echo 'contact';  ?>" id="send" ><?php echo t('Send');//see Site building > contact form & page-contact & sigmah.module?></a>
                 </div>
