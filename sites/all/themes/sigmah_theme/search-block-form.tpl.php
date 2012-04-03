@@ -32,7 +32,7 @@
  */
 ?>
 <div class="container-inline">
-<input type="markup" maxlength="128" name="search_block_form" id="edit-search-block-form-1" size="15" value="Search" class="input_rechercher form-text" onfocus="if(this.value==\'Search\')this.value=\'\';" onblur="if(this.value==\'\')this.value=\'Search\';"> 
+<input type="markup" maxlength="128" name="search_block_form" id="edit-search-block-form-1" size="15" value="Search" class="input_rechercher form-text" onfocus="if(this.value=='Search')this.value='';" onblur="if(this.value=='')this.value='Search';"> 
 <?php print $search['submit']; ?>
 <?php print $search['hidden']; ?>
 </div>
