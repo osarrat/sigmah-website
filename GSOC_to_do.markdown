@@ -1,8 +1,8 @@
 ####
 Proposal : 
 
-1) Automatic Revision for User Guide
-   * issue : (0000310: No automatic revision on modification of a user guide)
+1) ~~Automatic Revision for User Guide~~
+   * ~~issue : (0000310: No automatic revision on modification of a user guide)~~
    * The current workflow requires, a user to manually add revisions when he is editing, proposed is an automatic versioning system whenever any content is edited.
 2) Diff between revisions of manual pages
    * issue : (0000311:Showing diff of revisions)
@@ -54,3 +54,12 @@ July 28th - End : Work on the technical Documentation of the sigmah-website proj
 
 
 ####Self NOTES
+
+
+1) #Automatic Revision for User Guide :
+   * Revision configured only for Book Page Content Type
+   * The default "create revision" checkbox on the Node edit page has been removed, because it is redundant if we want to force revisions with every edit.
+   * The "commit" message or revision log has not been enforced though, it depends on the user if he/she wishes to leave a commit message for the admins.
+   * Expected Behaviour tested on local copy of the software !! Working Fine !!
+   
+   
