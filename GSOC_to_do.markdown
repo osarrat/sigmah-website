@@ -4,8 +4,8 @@ Proposal :
 1) ~~Automatic Revision for User Guide~~
    * ~~issue : (0000310: No automatic revision on modification of a user guide)~~
    * The current workflow requires, a user to manually add revisions when he is editing, proposed is an automatic versioning system whenever any content is edited.
-2) Diff between revisions of manual pages
-   * issue : (0000311:Showing diff of revisions)
+2) ~~Diff between revisions of manual pages~~
+   * ~~issue : (0000311:Showing diff of revisions)~~
    * The current revision system, allows any user to have revisions of a document, but there is no system by which changes made between two particular revisions could be seen. Proposed is the implementation of such a feature in sigmah.org.
 3) Setting up a mailing list server, and its integration with the sigmah-website
    * issue : (0000373:Add discussion list management for Steering Cooperative mailing list)
@@ -56,10 +56,15 @@ July 28th - End : Work on the technical Documentation of the sigmah-website proj
 ####Self NOTES
 
 
-1) #Automatic Revision for User Guide :
+1) ####Automatic Revision for User Guide :
    * Revision configured only for Book Page Content Type
    * The default "create revision" checkbox on the Node edit page has been removed, because it is redundant if we want to force revisions with every edit.
    * The "commit" message or revision log has not been enforced though, it depends on the user if he/she wishes to leave a commit message for the admins.
    * Expected Behaviour tested on local copy of the software !! Working Fine !!
-   
-   
+
+2) ####Diff between revisions of manual pages
+   * Now anyone with "view revision" permissions will see a new column for diff on the revisions page
+   * The new column will be named "show diff" and will be sub divided into two more columns !! There are Radio buttons for every revision available in both the sub columns.
+   * Selecting two different revisions using the two columns, and then clicking on "show diff" will show the git style diff between both the revisions with "-" signifying deletion of line and "+" signifying addition of line.
+   * The diff engine is based on a GPLed phpWiki diff engine
+   * Expected Behaviour tested on local copy of the software !! Working Fine !!
