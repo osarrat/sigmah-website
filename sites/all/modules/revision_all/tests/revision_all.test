@@ -1,0 +1,392 @@
+<?php
+
+/**
+ * @file
+ * Tests for Revision All module.
+ */
+
+/**
+ * Defines a base class of
+ */
+class RevisionAllBase extends DrupalWebTestCase {
+  /**
+   * Implements setUp.
+   * Creates a user with 'administer site configuration' permissions as well as
+   * any other permissions passed in. Also enables all revision_all settings.
+   *
+   * @param array $permissions Additional permission to be granted to the user.
+   */
+  public function setUp($permissions = array()) {
+    parent::setUp('revision_all', 'revision_all_test');
+
+    $permissions[] = 'administer site configuration';
+
+    $user = $this->drupalCreateUser($permissions);
+    $this->drupalLogin($user);
+
+    $this->saveSettings($this->getSettings());
+  }
+
+  /**
+   * Gets a basic settings array for storing revision_all settings.
+   *
+   * @param bool $revision_all The "Revision All" checkbox state.
+   * @param bool $enable_future The "Enable for all Future Content Types"
+   *             checkbox state.
+   * @param bool $prevent_override The "Prevent Revisioning Overrides" checkbox
+   *             state.
+   * @return array A basic revision_all settings array.
+   */
+  protected function getSettings($revision_all = TRUE, $enable_future = TRUE, $prevent_override = TRUE) {
+    $settings = array();
+    $settings['revision-all[revision-all]'] = $revision_all;
+    $settings['revision-all[enable-future]'] = $enable_future;
+    $settings['revision-all[prevent-override]'] = $prevent_override;
+
+    return $settings;
+  }
+
+  /**
+   * Submits the revision_all settings form with the supplied settings.
+   *
+   * @param array $settings The form settings to be POSTed.
+   */
+  protected function saveSettings($settings = array()) {
+    $this->drupalPost('admin/content/revision-all', $settings, 'Save configuration');
+  }
+
+  /**
+   * Creates a custom content type called 'Custom Content/custom_content'.
+   */
+  protected function createCustomContentType() {
+    $settings = array(
+      'name' => 'Custom Content',
+      'type' => 'custom_content',
+    );
+
+    $this->drupalCreateContentType($settings);
+  }
+
+  /**
+   * Returns the name of the test method making a call to a helper function.
+   *
+   * @return string The calling methods name.
+   */
+  protected function getCallingMethodName() {
+    $trace = debug_backtrace();
+    return $trace[2]['function'];
+  }
+}
+
+
+/**
+ * Tests the basic Revision All settings.
+ */
+class RevisionAllBasicTests extends RevisionAllBase {
+
+  /**
+   * Implements getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Revision All Base',
+      'description' => 'Tests to ensure the Revision All settings work correctly.',
+      'group' => 'Revision All',
+    );
+  }
+
+  /**
+   * Tests that the revision_all settings form is available and properly
+   * preconfigured.
+   */
+  public function testSettingsAccessible() {
+    $this->drupalGet('admin/content/revision-all');
+    $this->assertResponse('200', 'Settings accessible');
+    $this->assertTitle('Revision All | Drupal', 'Settings title is "Revision All"');
+
+    $this->assertFieldChecked('edit-revision-all-revision-all', '"Revision All" Checked');
+    $this->assertFieldChecked('edit-revision-all-enable-future', '"Enable for all Future Content Types" checked');
+    $this->assertFieldChecked('edit-revision-all-prevent-override', '"Prevent Revisioning Overrides" unchecked');
+  }
+
+  /**
+   * Tests that revision_all settings are properly saved in the database when
+   * the form is submitted.
+   */
+  public function testSettingsSaving() {
+    $settings = parent::getSettings(FALSE, TRUE, FALSE);
+
+    parent::saveSettings($settings);
+
+    $this->assertText('Revisioning Set', '"Revisioning Set" message');
+
+    $settings = array();
+    $settings['revision-all'] = FALSE;
+    $settings['enable-future'] = TRUE;
+    $settings['prevent-override'] = FALSE;
+    $db_settings = variable_get('revision_all', array());
+
+    $this->assertEqual($settings, $db_settings, 'DB settings correct');
+  }
+}
+
+
+/**
+ * Tests the "Revision All" feature and revisioning of individual content types.
+ */
+class RevisionAllTypeRevisioningTests extends RevisionAllBase {
+  /**
+   * Implements getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Type Revisioning Tests',
+      'description' => 'Tests the"Revision All" feature and revisioning of individual content types.',
+      'group' => 'Revision All',
+    );
+  }
+
+  /**
+   * Implements setUp().
+   */
+  public function setUp() {
+    parent::setUp(array('administer nodes'));
+  }
+
+  /**
+   * Splits up the URL of of the currently open virtual browser page and returns
+   * the last piece of the address. Used to figure out what kind of content is
+   * being created.
+   *
+   * @return string The name of the content type being created.
+   */
+  private function getContentTypeBeingAdded() {
+    return array_pop(preg_split('/\//', $this->getUrl()));
+  }
+
+  /**
+   * Checks the current virtual browser page to ensure that the "Create new
+   * revision" checkbox is checked.
+   */
+  private function revisioningChecked() {
+    $caller = parent::getCallingMethodName();
+    $type = $this->getContentTypeBeingAdded();
+
+    $this->assertFieldChecked('edit-revision', "$caller: $type revisioning set");
+  }
+
+  /**
+   * Checks the current virtual browser page to ensure that the "Create new
+   * revision" checkbox is not checked.
+   */
+  private function revisioningNotChecked() {
+    $caller = parent::getCallingMethodName();
+    $type = $this->getContentTypeBeingAdded();
+
+    $this->assertNoFieldChecked('edit-revision', "$caller: $type - revisioning not set");
+  }
+
+  /**
+   * Tests the built-in content type behavior when 'Revision All' is checked.
+   */
+  public function testRevisionAllBase() {
+    $this->drupalGet('node/add/page');
+
+    $this->revisioningChecked();
+
+    $this->drupalGet('node/add/story');
+
+    $this->revisioningChecked();
+  }
+
+  /**
+   * Tests custom content type behavior when 'Revision All' is checked.
+   */
+  public function testRevisionAllCustomType() {
+    parent::createCustomContentType();
+
+    $this->drupalGet('node/add/custom-content');
+
+    $this->revisioningChecked();
+  }
+
+  /**
+   * Tests module-defined content type behavior when 'Revision All' is checked.
+   */
+  public function testRevisionAllModuleType() {
+    $this->drupalGet('node/add/revision-all-test');
+
+    $this->revisioningChecked();
+  }
+
+  /**
+   * Tests the built-in content type behavior when only some content types are
+   * selected.
+   */
+  public function testRevisionSelectBaseType() {
+    $settings = parent::getSettings(FALSE, TRUE, TRUE);
+    $settings['revision-all[revision-types][Page]'] = FALSE;
+
+    parent::saveSettings($settings);
+
+    $this->drupalGet('node/add/page');
+
+    $this->revisioningNotChecked();
+
+    $settings['revision-all[revision-types][Page]'] = TRUE;
+
+    parent::saveSettings($settings);
+
+    $this->drupalGet('node/add/page');
+
+    $this->revisioningChecked();
+  }
+
+  /**
+   * Tests custom content type behavior when only some content types are
+   * selected.
+   */
+  public function testRevisionSelectCustomType() {
+    parent::createCustomContentType();
+
+    $settings = parent::getSettings(FALSE, TRUE, TRUE);
+    parent::saveSettings($settings);
+
+    $settings['revision-all[revision-types][Custom Content]'] = FALSE;
+    parent::saveSettings($settings);
+
+    parent::saveSettings($settings);
+
+    $this->drupalGet('node/add/custom-content');
+
+    $this->revisioningNotChecked();
+
+    $settings['revision-all[revision-types][Custom Content]'] = TRUE;
+
+    parent::saveSettings($settings);
+
+    $this->drupalGet('node/add/custom-content');
+
+    $this->revisioningChecked();
+  }
+
+  /**
+   * Tests module-defined content type behavior when only some content types are
+   * selected.
+   */
+  public function testRevisionSelectModuleType() {
+    $settings = parent::getSettings(FALSE, TRUE, TRUE);
+    $settings['revision-all[revision-types][revision_all_test page]'] = FALSE;
+
+    parent::saveSettings($settings);
+
+    $this->drupalGet('node/add/revision-all-test');
+
+    $this->revisioningNotChecked();
+
+    $settings['revision-all[revision-types][revision_all_test page]'] = TRUE;
+
+    parent::saveSettings($settings);
+
+    $this->drupalGet('node/add/revision-all-test');
+
+    $this->revisioningChecked();
+  }
+}
+
+
+/**
+ * Tests the "Enable for all Future Content Types" feature.
+ */
+class RevisionAllEnableFutureTests extends RevisionAllBase {
+  /**
+   * Implements getInfo();
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Future Types Tests',
+      'description' => 'Tests the "Enable for all Future Content Types" feature.',
+      'group' => 'Revision All',
+    );
+  }
+
+  /**
+   * Implements setUp();
+   */
+  public function setUp() {
+    parent::setUp(array('administer content types'));
+  }
+
+  /**
+   * Tests that "Create new revision" is automatically set for new content
+   * types.
+   */
+  public function testFutureContentType() {
+    $this->drupalGet('admin/content/types/add');
+
+    $this->assertFieldChecked('edit-node-options-revision', '"Create new revision" checked on new content type');
+  }
+}
+
+
+/**
+ * Tests the Prevent Revisioning Overrides feature.
+ */
+class RevisionAllPreventOverrideTests extends RevisionAllBase {
+  /**
+   * Implements getInfo();
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Prevent Override Tests',
+      'description' => 'Tests the "Prevent Revisioning Overrides" feature.',
+      'group' => 'Revision All',
+    );
+  }
+
+  /**
+   * Implements setUp();
+   */
+  public function setUp() {
+    parent::setUp(array('administer nodes'));
+  }
+
+  /**
+   * Checks the current virtual browser page to ensure that the "Create new
+   * revision" checkbox is disabled.
+   */
+  private function has_disabled_revisions() {
+    $caller = parent::getCallingMethodName();
+
+    $this->assertRaw('<input type="checkbox" name="revision" id="edit-revision" value="1"  checked="checked"  disabled="disabled" class="form-checkbox" />', $caller . ': "Create new revision" disabled');
+  }
+
+  /**
+   * Tests built-in content type "Create new revision" behavior.
+   */
+  public function testPreventsOverrideBaseType() {
+    $this->drupalGet('node/add/page');
+
+    $this->has_disabled_revisions();
+  }
+
+  /**
+   * Tests custom content type "Create new revision" behavior.
+   */
+  public function testPreventsOverrideCustomType() {
+    parent::createCustomContentType();
+
+    $this->drupalGet('node/add/custom-content');
+
+    $this->has_disabled_revisions();
+  }
+
+  /**
+   * Tests module-defined content type "Create new revision" behavior.
+   */
+  public function testPreventsOverrideModuleType() {
+    $this->drupalGet('node/add/revision-all-test');
+
+    $this->has_disabled_revisions();
+  }
+}

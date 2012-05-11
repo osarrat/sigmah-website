@@ -1,0 +1,168 @@
+<?php
+
+/**
+ * @file
+ * Permits configuring content revision settings from a central location. Also
+ * makes alterations to existing forms based on user specified settings.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function revision_all_menu() {
+  $items['admin/content/revision-all'] = array(
+    'title' => 'Revision All',
+    'description' => 'Configure the revisioning of content types.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('revision_all_settings_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+
+  return $items;
+}
+
+/**
+ * Defines the settings form.
+ */
+function revision_all_settings_form() {
+  $path = drupal_get_path('module', 'revision_all');
+  drupal_add_js("$path/revision_all.js");
+
+  $settings = variable_get('revision_all', array());
+
+  $content_types = node_get_types('names');
+
+  $form['revision-all'] = array(
+    '#tree' => TRUE,
+  );
+
+  $form['revision-all']['revision-all'] = array(
+    '#title' => t('Revision All'),
+    '#description' => t('Enable revisioning for all content types.'),
+    '#type' => 'checkbox',
+    '#default_value' => $settings['revision-all'],
+  );
+
+  $form['revision-all']['revision-types'] = array(
+    '#title' => t('Revisioning By Content Type'),
+    '#description' => t('Select the content types you would like revisioned.
+      <em>Note</em>: Selecting "Revision All" above overrides these settings.'),
+    '#type' => 'fieldset',
+    '#attributes' => array('id' => 'revision-all-revision-types'),
+  );
+
+  while ($type = current($content_types)) {
+    $key = key($content_types);
+    $type_settings = variable_get("node_options_$key", array());
+
+    $default_value = in_array('revision', $type_settings);
+
+    $form['revision-all']['revision-types'][$type] = array(
+      '#title' => t($type),
+      '#type' => 'checkbox',
+      '#default_value' => $default_value,
+    );
+
+    next($content_types);
+  }
+
+  $form['revision-all']['enable-future'] = array(
+    '#title' => t('Enable for all Future Content Types'),
+    '#description' => t('Automatically checks the "Create new revision" checkbox
+      when creating new content types.'),
+    '#type' => 'checkbox',
+    '#default_value' => $settings['enable-future'],
+  );
+
+  $form['revision-all']['prevent-override'] = array(
+    '#title' => t('Prevent Revisioning Overrides'),
+    '#description' => t('Disables the "create revision" checkbox from node
+      forms.'),
+    '#type' => 'checkbox',
+    '#default_value' => $settings['prevent-override'],
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save configuration'),
+  );
+
+  return $form;
+}
+
+/**
+ * Processes the settings form.
+ *
+ * @param  $form
+ *  The form being processed.
+ * @param  $form_state
+ *  The state of the form upon submission.
+ */
+function revision_all_settings_form_submit(&$form, &$form_state) {
+  $content_types = node_get_types('names');
+  $revision_all = $form_state['values']['revision-all']['revision-all'];
+  $revision_types = $form_state['values']['revision-all']['revision-types'];
+
+  unset($form_state['values']['revision-all']['revision-types']);
+
+  variable_set('revision_all', $form_state['values']['revision-all']);
+
+  while ($type = current($content_types)) {
+    $key = key($content_types);
+    $settings_key = "node_options_$key";
+    $type_settings = variable_get($settings_key, array());
+
+    $should_revision = $revision_all || $revision_types[$type];
+    $currently_revision = array_search('revision', $type_settings);
+
+    if ($should_revision && $currently_revision === FALSE) {
+      $type_settings[] = 'revision';
+    }
+    elseif ($currently_revision !== FALSE && !$should_revision) {
+      unset($type_settings[$currently_revision]);
+    }
+
+    variable_set($settings_key, $type_settings);
+
+    next($content_types);
+  }
+
+  drupal_set_message(t('Revisioning Set'));
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * If the "Enable for all Future Content Types" setting is checked, the node
+ * type form is altered to set "Create new revision" by default.
+ */
+function revision_all_form_node_type_form_alter(&$form, &$form_state) {
+  $settings = variable_get('revision_all', array());
+
+  if ($settings['enable-future'] && empty($form['#node_type']->type)) {
+    $form['workflow']['node_options']['#default_value'][] = 'revision';
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * If the "Revision All" setting is checked, check the "Create new revision"
+ * checkbox.
+ *
+ * If the "Prevent Revisioning Overrides" setting is checked, node forms are
+ * altered to disable access to the "Create new revision" checkbox.
+ */
+function revision_all_form_alter(&$form, &$form_state, $form_id) {
+  $settings = variable_get('revision_all', array());
+
+  if ($form['#id'] == 'node-form') {
+    if ($settings['revision-all']) {
+      $form['revision_information']['revision']['#default_value'] = TRUE;
+    }
+
+    if ($settings['prevent-override']) {
+      $form['revision_information']['revision']['#disabled'] = TRUE;
+    }
+  }
+}
