@@ -24,9 +24,11 @@ How to start ?
    i) If you are on Windows , you can use : [WAMP server](http://www.wampserver.com/en/)
    ii) If you are on MAC OSX, you can use : [XAMPP-MaxOSx Server](http://www.apachefriends.org/en/xampp-macosx.html)
    iii) If you are on Linux, you will have to setup a LAMP server, based on your distro:
-   	a) Ubuntu and other Debian distributions: 
+   	a) Ubuntu and other Debian distributions:
+
 	   	  ```
 	   	    sudo apt-get install tasksel
+
 		    sudo tasksel install lamp-server
 		  ```
 			(Note : tasksel does work on a few other Debian distributions, but it is mostly a ubuntu specific package installer)
@@ -48,11 +50,15 @@ How to start ?
 	(If still the apache server doesnot start or process php files, you can try restarting the services once)
 	    	  ```
 			sudo /etc/init.d/apache2 restart
+
 			sudo /etc/init.d/mysqld restart
 		  ``` 
+
 		      or
+
 		   ```
 			sudo service httpd restart
+
 			sudo service mysqld restart
 		   ```
 			Whichever is applicable for your distribution
