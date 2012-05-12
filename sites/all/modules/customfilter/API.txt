@@ -1,0 +1,12 @@
+; $Id: API.txt,v 1.1.4.3 2009/12/18 20:07:55 kiam Exp $
+; This file contains a log of the changes in the API.
+
+API version 1.1
+
+* Split customfilter_filter_edit() in customfilter_filter_add(), and
+  customfilter_filter_edit().
+
+API version 1.2
+
+* The global variables passed to the rules are reset before to execute the
+  filter.

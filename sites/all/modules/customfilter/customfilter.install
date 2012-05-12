@@ -1,0 +1,551 @@
+<?php
+// $Id: customfilter.install,v 1.3.2.2.2.39 2010/01/03 22:41:54 kiam Exp $
+
+/**
+ * @file
+ * Installation file for Custom filter.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function customfilter_schema() {
+  $schema['customfilter_filter'] = array(
+    'description' => 'The table for filters.',
+    'fields' => array(
+      'fid' => array(
+        'description' => 'The filter ID.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'type' => array(
+        'description' => 'The machine-readable name of this filter.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'name' => array(
+        'description' => 'The human-readable name of this filter..',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'cache' => array(
+        'description' => "A boolean value that is set when the filter result is cached.",
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'description' => array(
+        'description' => 'The filter description.',
+        'type' => 'text',
+      ),
+      'shorttip' => array(
+        'description' => 'The short description shown in the node editing page.',
+        'type' => 'text',
+      ),
+      'longtip' => array(
+        'description' => 'The filter description shown in the filters description page.',
+        'type' => 'text',
+      ),
+    ),
+    'primary key' => array('fid'),
+  );
+
+  $schema['customfilter_rule'] = array(
+    'description' => 'The table for the filter rules.',
+    'fields' => array(
+      'rid' => array(
+        'description' => 'The rule ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'fid' => array(
+        'description' => 'The ID of the filter containing the replacement rule.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'prid' => array(
+        'description' => 'The parent rule.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'name' => array(
+        'description' => 'The name of the replacement rule.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'description' => array(
+        'description' => 'The description of the rule.',
+        'type' => 'text',
+      ),
+      'enabled' => array(
+        'description' => 'A boolean value that is set when the rule is enabled.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'matches' => array(
+        'description' => 'The n-th matched string to replace.',
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'pattern' => array(
+        'description' => 'The regular expression.',
+        'type' => 'text',
+      ),
+      'replacement' => array(
+        'description' => 'The replacement text.',
+        'type' => 'text',
+      ),
+      'code' => array(
+        'description' => 'A boolean value that is set when the replacement text is PHP code to execute.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'weight' => array(
+        'description' => 'The rule weight.',
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'customfilter_rule_fid' => array('fid'),
+      'customfilter_rule_prid' => array('prid'),
+      'customfilter_rule_weight' => array('weight'),
+    ),
+    'primary key' => array('rid'),
+  );
+
+  $schema['cache_customfilter'] = drupal_get_schema_unprocessed('system', 'cache');
+  $schema['cache_customfilter']['description'] = 'Cache table for the Custom filter module to store information about the custom filter, and the replacement rules.';
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function customfilter_install() {
+  drupal_install_schema('customfilter');
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6103() {
+  $ret = array();
+  $schema = array();
+
+  $schema['customfilter_filters'] = array(
+    'fields' => array(
+      'fid' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'cache' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'description' => array(
+        'type' => 'text',
+      ),
+      'shorttips' => array(
+        'type' => 'text',
+      ),
+      'longtips' => array(
+        'type' => 'text',
+      ),
+    ),
+    'primary key' => array('fid'),
+  );
+
+  $schema['customfilter_rules'] = array(
+    'fields' => array(
+      'rid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'fid' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'prid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'description' => array(
+        'type' => 'text',
+      ),
+      'enabled' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'matches' => array(
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'pattern' => array(
+        'type' => 'text',
+      ),
+      'replacement' => array(
+        'type' => 'text',
+      ),
+      'code' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'weight' => array('weight'),
+    ),
+    'primary key' => array('rid'),
+  );
+
+  db_drop_primary_key($ret, 'customfilter_filters');
+
+  db_change_field($ret, 'customfilter_filters', 'fid', 'fid',
+    $schema['customfilter_filters']['fid']
+  );
+
+  db_add_primary_key($ret, 'customfilter_filters', array('fid'));
+
+  db_change_field($ret, 'customfilter_rules', 'fid', 'fid',
+    $schema['customfilter_rules']['fid']
+  );
+  db_add_field($ret, 'customfilter_rules', 'enabled',
+    $schema['customfilter_rules']['enabled']
+  );
+
+  db_add_index($ret, 'customfilter_rules', 'weight', array('weight'));
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6104() {
+  $ret = array();
+  $schema = drupal_get_schema_unprocessed('system', 'cache');
+  $schema['description'] = 'Cache table for the Custom filter module to store information about the custom filter, and the replacement rules.';
+
+  if (!db_table_exists('cache_customfilter')) {
+    db_create_table($ret, 'cache_customfilter', $schema);
+  }
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6105() {
+  $ret = array();
+
+  db_add_field($ret, 'customfilter_rules', 'enabled',
+    array(
+      'type' => 'int',
+      'size' => 'tiny',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 1,
+    )
+  );
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6106() {
+  $ret = array();
+
+  if (!variable_get('menu_rebuild_needed', FALSE)) {
+    variable_set('menu_rebuild_needed', TRUE);
+    $ret[] = array(
+      'success' => TRUE,
+      'query' => 'Updated the module menus'
+    );
+  }
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6109() {
+  $ret = array();
+
+  db_drop_primary_key($ret, 'customfilter_filters');
+  db_change_field($ret, 'customfilter_filters', 'fid', 'fid',
+    array(
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,
+    ),
+    array('primary key' => array('fid'))
+  );
+
+  db_change_field($ret, 'customfilter_rules', 'fid', 'fid',
+    array(
+      'description' => 'The ID of the filter containing the replacement rule.',
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+    )
+  );
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6110() {
+  $ret = array();
+
+  db_add_index($ret, 'customfilter_rules', 'weight', array('weight'));
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6111() {
+  $ret = array();
+
+  if (!variable_get('customfilter_update_6111', FALSE)) {
+    db_drop_index($ret, 'customfilter_rules', 'weight');
+
+    db_add_index($ret, 'customfilter_rules', 'customfilter_rule_fid', array('fid'));
+    db_add_index($ret, 'customfilter_rules', 'customfilter_rule_weight', array('weight'));
+
+    if (db_table_exists('customfilter_filters')) {
+      if (db_table_exists('customfilter_filter')) {
+        db_drop_table($ret, 'customfilter_filter');
+      }
+
+      db_rename_table($ret, 'customfilter_filters', 'customfilter_filter');
+    }
+
+    if (db_table_exists('customfilter_rules')) {
+      if (db_table_exists('customfilter_rule')) {
+        db_drop_table($ret, 'customfilter_rule');
+      }
+
+      db_rename_table($ret, 'customfilter_rules', 'customfilter_rule');
+    }
+
+    variable_set('customfilter_update_6111', TRUE);
+  }
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6112() {
+  $ret = array();
+
+  if (db_column_exists('customfilter_filter', 'longtips')) {
+    db_change_field($ret, 'customfilter_filter', 'longtips', 'longtip',
+      array(
+        'type' => 'text',
+      )
+    );
+  }
+
+  if (db_column_exists('customfilter_filter', 'shorttips')) {
+    db_change_field($ret, 'customfilter_filter', 'shorttips', 'shorttip',
+      array(
+        'type' => 'text',
+      )
+    );
+  }
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6114() {
+  $ret = array();
+
+  if (!db_column_exists('customfilter_filter', 'type')) {
+    db_add_field($ret, 'customfilter_filter', 'type',
+      array(
+        'description' => 'The machine-readable name of this filter.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      )
+    );
+  }
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6116() {
+  $ret = array();
+
+  if (!variable_get('customfilter_update_6116', FALSE)) {
+    db_add_index($ret, 'customfilter_rule', 'customfilter_rule_prid', array('prid'));
+
+    variable_set('customfilter_update_6116', TRUE);
+  }
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6118() {
+  $ret = array();
+
+  if (!variable_get('customfilter_update_6118', FALSE)) {
+    if (!isset($sandbox['progress'])) {
+      $sandbox['progress'] = 0;
+      $sandbox['max'] = db_result(
+        db_query(
+          "SELECT COUNT(*) FROM {customfilter_filter}"
+        )
+      );
+    }
+
+    if ($sandbox['max']) {
+      $result = db_query_range(
+        "SELECT * FROM {customfilter_filter} ORDER BY fid ASC",
+        $sandbox['progress'], 10
+      );
+
+      while ($row = db_fetch_object($result)) {
+        db_query(
+          "UPDATE {customfilter_filter} SET type = '%s' WHERE fid = %d",
+          'filter' . $sandbox['progress'],
+          $row->fid
+        );
+
+        $sandbox['progress']++;
+      }
+    }
+  }
+
+  $ret['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+
+  if ($ret['#finished'] == 1) {
+    variable_set('customfilter_update_6118', TRUE);
+
+    if (!empty($sandbox['max'])) {
+      drupal_set_message('The filter machine-readable names have been changed because the previous update did not set them correctly.');
+    }
+  }
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function customfilter_update_6119() {
+  $ret = array();
+
+  variable_del('customfilter_update_6111');
+  variable_del('customfilter_update_6113');
+  variable_del('customfilter_update_6115');
+  variable_del('customfilter_update_6116');
+  variable_del('customfilter_update_6117');
+  variable_del('customfilter_update_6118');
+
+  variable_set('customfilter_update', 6119);
+
+  $ret[] = array(
+    'success' => TRUE,
+    'query' => 'Removed unused variables'
+  );
+
+  return $ret;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function customfilter_uninstall() {
+  drupal_uninstall_schema('customfilter');
+}

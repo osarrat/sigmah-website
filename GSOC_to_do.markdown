@@ -68,3 +68,12 @@ July 28th - End : Work on the technical Documentation of the sigmah-website proj
    * Selecting two different revisions using the two columns, and then clicking on "show diff" will show the git style diff between both the revisions with "-" signifying deletion of line and "+" signifying addition of line.
    * The diff engine is based on a GPLed phpWiki diff engine
    * Expected Behaviour tested on local copy of the software !! Working Fine !!
+
+3) Ability to insert title and link to issues just by typing a pattern in the wysiwyg editor (viz. say typing #_393_ would map to issue number 393 in the sigmah issue tracker and be replaced by 393:Sample Issue Title, and also automatically hyperlinked to the particular issue.
+   * the text entered through the "FUll HTML input format" and "Filtered HTML input format" are searched for regular expressions of the form  #{numbers} and they are mapped to the appropriate issue number on the sigmah issue tracker
+   * I have done simple URL mapping as of now, meaning, it is NOT checked if the issue exists or not
+   * Planning to include a MySQL query which looks for the particular issue in the Mantis Database and returns error if the issue doesnot exist, gives back other information like title of the issue to use in the hyperlink in the text.
+   * Expected Behaviour tested on local copy of the software !! Working Fine !!
+   * Planning a few modifications after getting in touch with Olivier
+   * @Olivier : When can you give me a sql dump of the current Mantis Issue tracker database (Data obscured, ofcourse) , would help testing this feature.
+'  * @Olivier : to refer to issues, what convention exactly to use ? the most obvious would be of the form #<numbers> , but hash can naturally occur next to a number, again creating confusion, I have used the Ruby on Rails convention for inline variables, i.e. #{numbers} , but I am not sure, how comfertable would be people using it. Let me know if you have any paricular pattern in mind.

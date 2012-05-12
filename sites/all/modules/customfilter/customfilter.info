@@ -1,0 +1,12 @@
+; $Id: customfilter.info,v 1.2.4.5 2009/06/21 20:45:16 kiam Exp $
+name = "Custom filter"
+description = "Allows the users with the right permission to create custom filters."
+package = "Filters"
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-01-03
+version = "6.x-1.0-rc2"
+core = "6.x"
+project = "customfilter"
+datestamp = "1262562319"
+
