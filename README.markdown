@@ -102,6 +102,25 @@ or apache2.conf file whichever is applicable, and add the following lines
   a user account which has all privileges.
 => You're in !
 
+7. Now for the integration of the sigmah website with the issue tracker, the database config details are to be updated at :
+
+```
+<your base url>/admin/settings/customfilter/1/1/edit
+```
+
+in the text box with heading replacement text, you will find an associtive array :
+// Database config details
+$db = array(
+'server' => '127.0.01',
+'username' => 'root',
+'password' => '',
+'database' => 'mantis'
+);
+
+there you can replace the username,password,database name,server address, etc of the Mantis issue tracker, and then click save, and you are ready to go :)
+
+
+
 For information: all user accounts have "sigmah" as password. 
 
 If you have any queries or troubles setting up the project, drop a mail to sigmah-dev@googlegroups.com , we will be more than happy to help you get code up and running :).
