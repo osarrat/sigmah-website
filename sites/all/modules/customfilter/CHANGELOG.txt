@@ -1,0 +1,96 @@
+; $Id: CHANGELOG.txt,v 1.1.2.28 2009/11/27 04:10:51 kiam Exp $
+; All the dates reported here are referred to UTC.
+
+Custom filter 6.x-1 2009-11-27
+------------------------------
+#643702 by kiamlaluno: Imported filters don't appear in the list.
+
+Custom filter 6.x-1 2009-11-23
+------------------------------
+#639074 by KiamLaLuno: The module uses the wrong table name.
+
+Custom filter 6.x-1 2009-11-12
+------------------------------
+#628906 by KiamLaLuno: Error while upgrading from Drupal 5 version to Drupal 6 version.
+
+Custom filter 6.x-1 2009-11-06
+------------------------------
+#510486 by KiamLaLuno: Verify that the value passed to fid doesn't exceed the maximum value the field is able to contain.
+
+Custom filter 6.x-1 2009-09-23
+------------------------------
+#585108 by KiamLaLuno: Missing documentation for the last changes.
+
+Custom filter 6.x-1 2009-08-21
+------------------------------
+#555730 by KiamLaLuno: The parameter for t() should be a literal string.
+
+Custom filter 6.x-1 2009-08-19
+------------------------------
+#553090 by KiamLaLuno: Filters should not access any data referred to the node they are filtering.
+#552336 by KiamLaLuno: Replacement rules table misses the message "There are no replacement rules currently defined."
+
+Custom filter 6.x-1 2009-08-18
+------------------------------
+#551762 by KiamLaLuno: Importing function fails with duplicate key error.
+
+Custom filter 6.x-1 2009-08-11
+------------------------------
+#546076 by BenKewell: Update function is referring to a not existing column.
+#546218 by KiamLaLuno: Implement hook_flush_caches().
+
+Custom filter 6.x-1 2009-08-06
+------------------------------
+#541550 by KiamLaLuno: customfilter_import_form() is not defined.
+
+Custom filter 6.x-1 2009-08-01
+------------------------------
+#510484 by KiamLaLuno: Incorrect definition of the fid database field.
+
+Custom filter 6.x-1 2009-07-14
+------------------------------
+#518956 by KiamLaLuno: Missing argument 2 for _customfilter_get_rules().
+
+Custom filter 6.x-1 2009-07-09
+------------------------------
+#514482 by KiamLaLuno: Class 'CustomFilter' not found.
+
+Custom filter 6.x-1 2009-07-08
+------------------------------
+#511674 by KiamLaLuno: Shown menu breadcrumbs are not correct.
+#512970 by KiamLaLuno: Undefined function _customfilter_delete_rule().
+#512886 by KiamLaLuno: Rename "List filters", and "List rules" as "Filters", and "Rules".
+#505354 by KiamLaLuno: Cache the filters / rules obtained from the database tables.
+#510502 by KiamLaLuno: Redesign the module API.
+#511088 by KiamLaLuno: Avoid using create_function().
+#283658 by KiamLaLuno: Option to disable replacement rules.
+#511100 by KiamLaLuno: User interface issues.
+#511106 by KiamLaLuno: Use a better default value for the name of the filter.
+#511058 by KiamLaLuno: Rules vanish from the rules list.
+#510620 by KiamLaLuno: Import/export issues.
+#510758 by KiamLaLuno: Menu item "admin/settings/filters/customfilter/%" does not work with "gaps" in fids.
+#510624 by KiamLaLuno: Delete filter does not work.
+#511048 by KiamLaLuno: Label the submit button more consistently.
+
+Custom filter 6.x-1 2009-07-01
+------------------------------
+#505354 by Kiam@avpnet.org: Cache the filters / rules obtained from the database tables.
+
+Custom filter 6.x-1 2009-06-25
+------------------------------
+#502372 by Kiam@avpnet.org: Update database errors.
+
+Custom filter 6.x-1 2009-06-24
+------------------------------
+#497680 by Kiam@avpnet.org: Split customfilter.export.inc into customfilter.export.inc, and customfilter.import.inc.
+#497380 by Kiam@avpnet.org: Change the user interface for exporting / importing rules.
+
+Custom filter 6.x-1 2009-06-23
+------------------------------
+#499570 by origo: Undefined function drupal_match_assoc().
+
+Custom filter 6.x-1 2009-06-20
+------------------------------
+#284935 by gustav: Export code doesn't work.
+#272524 by Anselm Heaton, Kiam@avpnet.org: Change the variable containing the filter global values into a stack.
+#286889 by gustav, Kiam@avpnet.org: PHP notices.
