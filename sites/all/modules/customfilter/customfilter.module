@@ -1,0 +1,509 @@
+<?php
+// $Id: customfilter.module,v 1.3.2.1.2.55 2009/12/25 03:18:06 kiam Exp $
+
+/**
+ * @file
+ * Allows the users with the right permission to define custom filters.
+ */
+
+/**
+ * @addtogroup customfilter
+ * @{
+ */
+
+/**
+ * The version of the API currently implemented.
+ */
+define('CUSTOMFILTER_API', '1.2');
+
+/**
+ * Implements hook_filter().
+ */
+function customfilter_filter($op, $delta = 0, $format = -1, $text = '') {
+  $filters = _customfilter_get_filters();
+
+  switch ($op) {
+    case 'description':
+      return isset($filters[$delta]['description']) ? $filters[$delta]['description'] : '';
+
+    case 'list':
+      $flist = array();
+
+      foreach ($filters as $filter) {
+        $flist[$filter['fid']] = t('Custom filter #!fid (%fname)', array('!fid' => $filter['fid'], '%fname' => $filter['name']));
+      }
+
+      return $flist;
+
+    case 'no cache':
+      return isset($filters[$delta]['cache']) ? !$filters[$delta]['cache'] : FALSE;
+
+    case 'process':
+      // If the text passed is an empty string, then return it immediately.
+      if (empty($text)) {
+        return '';
+      }
+
+      // If the filter cannot be loaded from the database, then return the text
+      // passed to the function.
+      if (!isset($filters[$delta])) {
+        return $text;
+      }
+
+      $globals =& _customfilter_globals('push');
+      $globals->text = $text;
+
+      $rules = _customfilter_get_rules($delta);
+
+      if (is_array($rules) && count($rules)) {
+        // Reset the object containing the global variables.
+        _customfilter_code_vars(TRUE);
+
+        // Prepare the stack used to save the parent rule.
+        $globals->stack = array();
+
+        foreach ($rules as $rule) {
+          if ($rule['enabled']) {
+            $globals->stack[] = $rule;
+            $globals->text = preg_replace_callback($rule['pattern'], '_customfilter_process', $globals->text);
+
+            array_pop($globals->stack);
+          }
+        }
+      }
+
+      $result = $globals->text;
+      _customfilter_globals('pop');
+
+      return $result;
+
+    default:
+      return $text;
+  }
+}
+
+/**
+ * Implements hook_filter_tips().
+ */
+function customfilter_filter_tips($delta, $format, $long = FALSE) {
+  $col = $long ? 'longtip' : 'shorttip';
+  $filters = _customfilter_get_filters();
+
+  return isset($filters[$delta][$col]) ? $filters[$delta][$col] : '';
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function customfilter_flush_caches() {
+  return array('cache_customfilter');
+}
+
+/**
+ * Implements hook_help().
+ */
+function customfilter_help($path, $arg) {
+  $help = '';
+
+  switch ($path) {
+    case 'admin/modules#description':
+      $help = t('Allows the users with the right permission to create custom filters.');
+      break;
+
+    case 'admin/settings/customfilter':
+      $help = '<p>' . t('Custom filter provides the ability for creating user defined filters using regular expressions. Instead of creating filter modules, users can create their own filter for specific site purpose.') . '</p>';
+      $help .= '<p>' . t('A filter is a collection of replacement rules. Each filter will appear in the input format settings page. Click on the filter name to see its replacement rules.') . '</p>';
+      break;
+
+    case 'admin/settings/customfilter/%/add':
+    case 'admin/settings/customfilter/%/%':
+    case 'admin/settings/customfilter/%/%/edit':
+    case 'admin/settings/customfilter/%/%/add':
+      $help = '<p>' . t('For more information about the regular expressions syntax, see <a href="http://www.php.net/manual/en/regexp.reference.php">Regular expression details</a>.') . '</p>';
+      break;
+  }
+
+  return $help;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function customfilter_menu() {
+  $access = array('administer customfilter');
+  $items = array();
+
+  $items['admin/settings/customfilter'] = array(
+    'title' => 'Custom filters',
+    'description' => 'Allow the users to define custom filters.',
+    'page callback' => 'customfilter_settings',
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+  );
+
+  $items['admin/settings/customfilter/list'] = array(
+    'title' => 'Filters',
+    'access arguments' => $access,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -1,
+  );
+
+  $items['admin/settings/customfilter/add'] = array(
+    'title' => 'Add filter',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_filter_add'),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['admin/settings/customfilter/tools'] = array(
+    'title' => 'Tools',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_export_form'),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['admin/settings/customfilter/tools/export'] = array(
+    'title' => 'Export',
+    'access arguments' => $access,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['admin/settings/customfilter/tools/import'] = array(
+    'title' => 'Import',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_import_form'),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['admin/settings/customfilter/%'] = array(
+    'title' => 'Rules',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_rules_form', 3),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/settings/customfilter/%/list'] = array(
+    'title' => 'List rules',
+    'access arguments' => $access,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -1,
+  );
+
+  $items['admin/settings/customfilter/%/edit'] = array(
+    'title' => 'Edit filter',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_filter_edit', 3),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/settings/customfilter/%/delete'] = array(
+    'title' => 'Delete filter',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_filter_delete', 3),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_CALLBACK,
+    'weight' => 2,
+  );
+
+  $items['admin/settings/customfilter/%/add'] = array(
+    'title' => 'Add rule',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_rule_edit', 'add', 3),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 4,
+  );
+
+  $items['admin/settings/customfilter/%/%'] = array(
+    'title' => 'Edit rule',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_rule_edit', 'edit', 3, 4),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/settings/customfilter/%/%/edit'] = array(
+    'title' => 'Edit rule',
+    'access arguments' => $access,
+    'type' => MENU_CALLBACK,
+    'weight' => -1,
+  );
+
+  $items['admin/settings/customfilter/%/%/delete'] = array(
+    'title' => 'Delete rule',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_rule_delete', 4),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/settings/customfilter/%/%/add'] = array(
+    'title' => 'Add subrule',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customfilter_rule_edit', 'add', 3, 4),
+    'access arguments' => $access,
+    'file' => 'customfilter.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_perm().
+ */
+function customfilter_perm() {
+  return array('administer customfilter');
+}
+
+/**
+ * Implements hook_theme().
+ */
+function customfilter_theme() {
+  return array(
+    'customfilter_rules_form' => array(
+      'arguments' => array('form' => NULL),
+      'file' => 'customfilter.admin.inc',
+    ),
+  );
+}
+
+function customfilter_cache_clear($fid = NULL) {
+  cache_clear_all('filters', 'cache_customfilter');
+  cache_clear_all(isset($fid) ? "rules:{$fid}" : 'rules', 'cache_customfilter', TRUE);
+}
+
+/**
+ * Set the current menu breadcrumb for pages that don't have it correctly set.
+ *
+ * @param $page_breadcrumb
+ *   The part of the breadcrumb specific for the page.
+ */
+function _customfilter_breadcrumb($page_breadcrumb = array()) {
+  $base = array(
+    l(t('Home'), NULL),
+    l(t('Administer'), 'admin'),
+    l(t('Site configuration'), 'admin/settings'),
+    l(t('Custom filters'), 'admin/settings/customfilter'),
+  );
+
+  if (count($page_breadcrumb)) {
+    drupal_set_breadcrumb(array_merge($base, $page_breadcrumb));
+  }
+  else {
+    drupal_set_breadcrumb($base);
+  }
+}
+
+/**
+ * Delete a rule from the database table.
+ * @param $rid
+ *   The rule ID.
+ */
+function _customfilter_delete_rule($rid) {
+  $result = db_query("SELECT * FROM {customfilter_rule} where prid = %d", $rid);
+
+  while ($rule = db_fetch_object($result)) {
+    _customfilter_delete_rule($rule->rid);
+  }
+
+  db_query("DELETE FROM {customfilter_rule} WHERE rid = %d", $rid);
+}
+
+/**
+ * Get the list of filters.
+ *
+ * @return
+ *   An array of filters.
+ */
+function _customfilter_get_filters() {
+  if ($cache = cache_get('filters', 'cache_customfilter')) {
+    $filters = $cache->data;
+  }
+  else {
+    $filters = array();
+    $result = db_query("SELECT * FROM {customfilter_filter} ORDER BY name");
+
+    while ($filter = db_fetch_array($result)) {
+      $filters[$filter['fid']] = $filter;
+    }
+
+    cache_set('filters', $filters, 'cache_customfilter');
+  }
+
+  return $filters;
+}
+
+/**
+ * Retrieve the replacement rules for a specific filter.
+ *
+ * @param $fid
+ *   The filter ID.
+ * @param $root
+ *   The root rule.
+ * @param $nocache
+ *   If FALSE, the function will get the rules from the cache table, if there
+ *   are any.
+ *
+ * @return
+ *   An array of rules, which include any subrules.
+ */
+function _customfilter_get_rules($fid, $root = 0, $nocache = FALSE) {
+  if (!$nocache && ($cache = cache_get("rules:{$fid}:{$root}", 'cache_customfilter'))) {
+    $rules = $cache->data;
+  }
+  else {
+    $rules = array();
+    $result = db_query("SELECT * FROM {customfilter_rule} WHERE fid = %d and prid = %d ORDER BY weight", $fid, $root);
+
+    while ($rule = db_fetch_array($result)) {
+      $rule['sub'] = _customfilter_get_rules($fid, $rule['rid'], TRUE);
+      $rules[$rule['rid']] = $rule;
+    }
+
+    if (!$nocache) {
+      cache_set("rules:{$fid}:{$root}", $rules, 'cache_customfilter');
+    }
+  }
+
+  return $rules;
+}
+
+/**
+ * Return the global object containing the global properties used in the
+ * replacement PHP code.
+ *
+ * @param $reset
+ *  Boolean value set to TRUE when the global object must be reset.
+ */
+function &_customfilter_code_vars($reset = FALSE) {
+  static $vars;
+
+  if (!isset($vars) || $reset) {
+    $vars = new stdClass();
+  }
+
+  return $vars;
+}
+
+/**
+ * Return an object that contains the global variables used during the
+ * execution of a rule.
+ */
+function &_customfilter_globals($op = '') {
+  static $globals = array(), $index = 0;
+
+  if ($op == 'push') {
+    $globals[++$index] = new stdClass();
+  }
+  elseif ($op == 'pop' && $index) {
+    unset($globals[$index--]);
+  }
+
+  return $globals[$index];
+}
+
+function _customfilter_process($matches) {
+  $globals =& _customfilter_globals();
+  $result = $matches[0];
+  $rule = end($globals->stack);
+
+  $code = $rule['code'];
+  $pattern = $rule['pattern'];
+  $replacement = $rule['replacement'];
+
+  if (is_array($sub = $rule['sub']) && count($sub)) {
+    foreach ($sub as $subrule) {
+      if ($subrule['enabled']) {
+        $globals->stack[] = $subrule;
+
+        $substr =& $matches[$subrule['matches']];
+        $substr = preg_replace_callback($subrule['pattern'], '_customfilter_process', $substr);
+
+        array_pop($globals->stack);
+      }
+    }
+
+    if ($code) {
+      _customfilter_replace_callback($replacement, TRUE);
+      $result = _customfilter_replace_callback($matches);
+    }
+    else {
+      $result = $replacement;
+
+      $rmatches = array();
+      $reps = array();
+
+      preg_match_all('/([^\\\\]|^)(\$([0-9]{1,2}|\{([0-9]{1,2})\}))/', $replacement, $rmatches, PREG_OFFSET_CAPTURE);
+
+      foreach ($rmatches[4] as $key => $val) {
+        if ($val == '') {
+          $index = $rmatches[3][$key][0];
+        }
+        else {
+          $index = $rmatches[4][$key][0];
+        }
+
+        $offset = $rmatches[2][$key][1];
+        $length = strlen($rmatches[2][$key][0]);
+
+        $reps[] = array(
+          'index' => $index,
+          'offset' => $offset,
+          'length' => $length,
+        );
+      }
+
+      krsort($reps);
+
+      foreach ($reps as $rep) {
+        $result = substr_replace($result, $matches[$rep['index']], $rep['offset'], $rep['length']);
+      }
+    }
+  }
+  elseif ($code) {
+    _customfilter_replace_callback($replacement, TRUE);
+    $result = preg_replace_callback($pattern, '_customfilter_replace_callback', $result);
+  }
+  else {
+    $result = preg_replace($pattern, $replacement, $result);
+  }
+
+  return $result;
+}
+
+/**
+ * Helper function for preg_replace_callback().
+ */
+function _customfilter_replace_callback($matches, $init = FALSE) {
+  static $code;
+
+  if ($init) {
+    $code = $matches;
+    return;
+  }
+
+  $vars =& _customfilter_code_vars();
+
+  @eval($code);
+
+  return isset($result) ? $result : '';
+}
+
+/**
+ * @} End of "addtogroup customfilter".
+ */
