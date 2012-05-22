@@ -77,3 +77,7 @@ July 28th - End : Work on the technical Documentation of the sigmah-website proj
    * Planning a few modifications after getting in touch with Olivier
    * @Olivier : When can you give me a sql dump of the current Mantis Issue tracker database (Data obscured, ofcourse) , would help testing this feature.
 '  * @Olivier : to refer to issues, what convention exactly to use ? the most obvious would be of the form #<numbers> , but hash can naturally occur next to a number, again creating confusion, I have used the Ruby on Rails convention for inline variables, i.e. #{numbers} , but I am not sure, how comfertable would be people using it. Let me know if you have any paricular pattern in mind.
+
+4) Added a script to solve the issue number 303. Now whatever text to enter in the box before clicking on "Send" automatically appears within the appropriate text area in the Lightbox iframe that crops up. 
+  * Noticed the iframe is rendered by page-contact.tpl template file, and need to confirm, is there any other way the user of the website can directly access the contact form (instead of the Lightbox iframe as in the first page)
+  * Expected behaviour tested on local copy of the software !! Working Fine !!
