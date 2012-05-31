@@ -81,3 +81,36 @@ July 28th - End : Work on the technical Documentation of the sigmah-website proj
 4) Added a script to solve the issue number 303. Now whatever text to enter in the box before clicking on "Send" automatically appears within the appropriate text area in the Lightbox iframe that crops up. 
   * Noticed the iframe is rendered by page-contact.tpl template file, and need to confirm, is there any other way the user of the website can directly access the contact form (instead of the Lightbox iframe as in the first page)
   * Expected behaviour tested on local copy of the software !! Working Fine !!
+  
+ 5) Added a hook_menu or a URI access point to get JSON data about mantis issues.
+* URIs of the form 
+<base-address-of-site>/issue_tracker/%/[true/false] 
+would return the JSON data.
+The true/false is with respect to, if we want multiple matches / suggestions or not.
+
+So, if we have the last true/false value as false, then it will return info about only one issue.
+
+So, 
+    <base-address-of-site>/issue_tracker/12/false
+	will return JSON data for issue number 12, and the data will be of the form
+	{
+		'issueNumber' : "12",
+		'issueSummary' : "Sample SUmmary for the issue"
+	}
+
+and if there are no matches, then a JSON of the type:
+{ "issueNumber": "NaN", "issueSummary": "NaN" }
+is returned.
+
+
+If, we want multiple results, or suggestions, then two cases will be there,
+the % part of the URI, may hold a number or a string.
+If it holds a number, then all issues numbers (upto a limit of 10 issues) which match the number sequence will be returned, and if the % part has a string, then all issue Summaries which have the particular sequence of string somewhere in theme will be returned.
+
+The returned JSON data will be of the form :
+[ { "issueNumber": "1", "issueSummary": "Test Summary :" }, { "issueNumber": "2", "issueSummary": "my sample summary" }, { "issueNumber": "3", "issueSummary": "my test summary regarding a new issue" } ]
+
+These can be further utilised in any Client Side Utilites to create issue AutoComplete buttons, or issue suggestion buttons in the WYSIWYG editors, and also in the Integration of GitHub messages with the issue tracker.
+And all these access points are available to anyone with access content" permission
+
+@Olivier : If we can deploy this code on the live website, then I can work with the real Mantis issue tracker data when working on the GitHub integration and on the button on the CKE editor.
