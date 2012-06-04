@@ -21,7 +21,7 @@ CKEDITOR.editorConfig = function(config) {
   // side
   // (as does Drupal), so just leave this line as is.
   config.protectedSource.push(/<\?[\s\S]*?\?>/g); // PHP Code
-  config.extraPlugins = '';
+  config.extraPlugins = 'IssueTracker';
   if (Drupal.ckeditorCompareVersion('3.1')) {
     config.extraPlugins += (config.extraPlugins ? ',drupalbreaks' : 'drupalbreaks' );
   }
@@ -45,7 +45,7 @@ CKEDITOR.editorConfig = function(config) {
     ['Maximize', 'ShowBlocks'],
     '/',
     ['Format'],
-    ['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
+      ['Bold','Italic','Underline','Strike','-','Subscript','Superscript','insertIssueLink'],
     ['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
     ['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock','-','BidiRtl','BidiLtr'],
     ['Link','Unlink','Anchor','LinkToNode', 'LinkToMenu'],
@@ -57,7 +57,7 @@ CKEDITOR.editorConfig = function(config) {
   * if you change the name of DrupalBasic, you have to update
   * CKEDITOR_FORCE_SIMPLE_TOOLBAR_NAME in ckeditor.module
   */
-  config.toolbar_DrupalBasic = [ [ 'Format', '-', 'Bold', 'Italic', '-', 'NumberedList','BulletedList', '-', 'Link', 'Unlink', 'Image' ] ];
+    config.toolbar_DrupalBasic = [ [ 'Format', '-', 'Bold', 'Italic','insertIssueLink', '-', 'NumberedList','BulletedList', '-', 'Link', 'Unlink', 'Image' ] ];
 
   /*
    * This toolbar is dedicated to users with "Full HTML" access some of commands
@@ -70,7 +70,7 @@ CKEDITOR.editorConfig = function(config) {
       ['Undo','Redo','Find','Replace','-','SelectAll','RemoveFormat'],
       ['Image','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
       '/',
-      ['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
+      ['Bold','Italic','Underline','Strike','-','Subscript','Superscript','insertIssueLink'],
       ['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
       ['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock','-','BidiRtl','BidiLtr'],
       ['Link','Unlink','Anchor','LinkToNode', 'LinkToMenu'],
