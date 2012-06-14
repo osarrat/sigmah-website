@@ -189,4 +189,105 @@ WHERE module='book' and mlid NOT IN (SELECT mlid FROM drupal_book);
 } 
 
 
+/**
+ * Implementation of hook_menu 
+ */
+
+function sigmah_menu($may_cache){
+  // This deals with a single issue, and if the exact issue number is not present, it returns a NaN, else it returns the summary of the issue
+  $items['issue_tracker/%/%'] = array(
+				      'title' => t('Issue Tracker'),					       
+				      'page callback' => 'retrieve_issue_info',
+				      'page arguments' => array(1,2),
+				      'access arguments' => array('access content'), 
+				      'access' => TRUE,
+				      );
+  return $items;
+}
+
+/**
+ * Helper Function which returns the summary of the particular issue or suggestions for the autocomplete of summary or issue number depending upon the context
+ */
+function retrieve_issue_info($issueData , $multipleResults){
+  // $multipleResults can only be true or false :: Implementing the Check
+  if(!($multipleResults=="true" || $multipleResults=="false")){
+    return drupal_not_found();
+  }
+
+  // Case 1 : $issueData holds the issueNumber, and we extract and return the issue Summary as a JSON
+  if($multipleResults=="false") { 
+    if(!is_numeric($issueData)){ // Return a 404 Page not found, if it is not a number
+      return drupal_not_found();
+    }
+    // Connect to Mantis Database and execute the Query
+    connectToMantisDatabase();
+    $queryString = "SELECT summary FROM mantis_bug_table WHERE id='".$issueData."';";
+    $query = mysql_query($queryString);
+    $numResults = mysql_num_rows($query);
+    // The results are returnd as JSON
+    // the returned JSON has two fields,'issueNumber' and 'issueSumamry'
+
+    if($numResults>0){
+      $jsonResult = array();
+      while ($row = mysql_fetch_assoc($query)) {
+	$jsonResult['issueNumber']=$issueData;
+	$jsonResult['issueSummary']=$row['summary'];
+      }
+      drupal_json($jsonResult);
+    }
+    else{
+      $jsonResult['issueNumber']="NaN";
+      $jsonResult['issueSummary']="NaN";
+      drupal_json($jsonResult);
+    }
+  }
+
+  // Case 2 : $issueData may be the issueNumber or a part of text from any issue Summary, and in both the cases we returns a list of issues numbers and summaries as autoComplete Suggestions
+  if($multipleResults=="true"){
+    // Connect to the Mantis Database
+    connectToMantisDatabase();
+
+    if(is_numeric($issueData)){ // issueData holds the Issue Number
+      $queryString = "SELECT id,summary FROM mantis_bug_table WHERE id LIKE'%".$issueData."%' LIMIT 10;";
+    }
+    else{ // issueData holds  excerpt from some issue summary
+      $issueData = mysql_real_escape_string($issueData);
+      $queryString = "SELECT id,summary FROM mantis_bug_table WHERE summary LIKE'%".$issueData."%' LIMIT 10;";
+    }
+ 
+    $query = mysql_query($queryString);
+    $jsonResults = array();
+       
+    while ($row = mysql_fetch_assoc($query)) {
+      $jsonResult = array();
+      $jsonResult['issueNumber']=$row['id'];
+      $jsonResult['issueSummary']=$row['summary'];
+      $jsonResults[]=$jsonResult;
+    }
+    drupal_json($jsonResults);
+  }
+
+  exit();
+}
+
+/**
+ * Helper Function which Connects to the mantis database 
+ */
+function connectToMantisDatabase(){
+  // Database config details
+  $db = array(
+	      'server' => '127.0.01',
+	      'username' => 'root',
+	      'password' => '',
+	      'database' => 'mantis'
+	      );
+
+  $con = mysql_connect($db['server'],$db['username'],$db['password']);
+  if (!$con)
+    {
+      die('Could not connect: ' . mysql_error());
+    }
+  mysql_select_db($db['database']) or die(mysql_error());
+}
+
 ?>
