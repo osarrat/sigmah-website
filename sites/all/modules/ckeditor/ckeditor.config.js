@@ -41,7 +41,7 @@ CKEDITOR.editorConfig = function(config) {
     ['Source'],
     ['Cut','Copy','Paste','PasteText','PasteFromWord','-','SpellChecker', 'Scayt'],
     ['Undo','Redo','Find','Replace','-','SelectAll','RemoveFormat'],
-    ['Image','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
+    ['Image','IMCE','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
     ['Maximize', 'ShowBlocks'],
     '/',
     ['Format'],
@@ -57,7 +57,7 @@ CKEDITOR.editorConfig = function(config) {
   * if you change the name of DrupalBasic, you have to update
   * CKEDITOR_FORCE_SIMPLE_TOOLBAR_NAME in ckeditor.module
   */
-    config.toolbar_DrupalBasic = [ [ 'Format', '-', 'Bold', 'Italic','insertIssueLink', '-', 'NumberedList','BulletedList', '-', 'Link', 'Unlink', 'Image' ] ];
+    config.toolbar_DrupalBasic = [ [ 'Format', '-', 'Bold', 'Italic','insertIssueLink', '-', 'NumberedList','BulletedList', '-', 'Link', 'Unlink', 'Image','IMCE' ] ];
 
   /*
    * This toolbar is dedicated to users with "Full HTML" access some of commands
@@ -68,7 +68,7 @@ CKEDITOR.editorConfig = function(config) {
       ['Source'],
       ['Cut','Copy','Paste','PasteText','PasteFromWord','-','SpellChecker', 'Scayt'],
       ['Undo','Redo','Find','Replace','-','SelectAll','RemoveFormat'],
-      ['Image','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
+      ['Image','IMCE','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
       '/',
       ['Bold','Italic','Underline','Strike','-','Subscript','Superscript','insertIssueLink'],
       ['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
@@ -130,8 +130,9 @@ CKEDITOR.editorConfig = function(config) {
   //CKEDITOR.plugins.addExternal('mediaembed', Drupal.settings.ckeditor.module_path + '/plugins/mediaembed/');
 
   // 'IMCE' plugin. If IMCE module is enabled, you may uncomment lines below and add an 'IMCE' button to selected toolbar. 
-  //config.extraPlugins += (config.extraPlugins ? ',imce' : 'imce' );
-  //CKEDITOR.plugins.addExternal('imce', Drupal.settings.ckeditor.module_path + '/plugins/imce/');
+  config.extraPlugins += (config.extraPlugins ? ',imce' : 'imce' );
+  CKEDITOR.plugins.addExternal('imce', Drupal.settings.ckeditor.module_path + '/plugins/imce/');
+  
   if (Drupal.settings.ckeditor_link) {
     config.extraPlugins += (config.extraPlugins) ? ',drupal_path' : 'drupal_path';
     CKEDITOR.plugins.addExternal('drupal_path', Drupal.settings.ckeditor_link.module_path + '/plugins/link/');

@@ -11,14 +11,16 @@ Proposal :
    * issue : (0000373:Add discussion list management for Steering Cooperative mailing list)
    * This would not only allow mailing lists and private archives for the Steering Cooperative Committee, but also for any group/role present on the website (viz. Developers, Beta testers, Editors, and individual organic groups created by the users)
 4) Improvements to the usability of the current forum :
-   * issue : (0000418:Improve image insertion usability)
-   * ~~ issue : (0000328:Add a management of “blockquote” HTML tag) ~~
+   * ~~issue : (0000418:Improve image insertion usability)~~
+   * ~~issue : (0000328:Add a management of “blockquote” HTML tag)~~
    * ~~issue : (0000455: Better Integration of the Issues Tracker with the Sigmah-website project)~~
 5) Better Image integration with the WYSIWYG Editor.
-   * ~~ Add support for blockquotes, and other such HTML styling features which are currently not supported ~~
+   * ~~Add support for blockquotes, and other such HTML styling features which are currently not supported~~
    * Work on the theming of the current form, to give it a more aesthetic and engaging feel.
-   * ~~ Ability to insert title and link to issues just by typing a pattern in the wysiwyg editor (viz. say typing #_393_ would map to issue number 393 in the sigmah issue tracker and be replaced by 393:Sample Issue Title, and also automatically hyperlinked to the particular issue.~~
+   * ~~Ability to insert title and link to issues just by typing a pattern in the wysiwyg editor (viz. say typing #_393_ would map to issue number 393 in the sigmah issue tracker and be replaced by 393:Sample Issue Title, and also automatically hyperlinked to the particular issue.~~
+   
 	 (Also Added a CKE Editor toolbar button to directly search the Sigmah Issue Tracker through AJAX Requests and insert the respective Link)
+	 
 6) Improvements to the current Subscriptions system :
    * issue : (0000452:Notification/Subscriptions too complex for end user)
    * Implementation of the ability to follow Forum posts even without commenting in them
@@ -35,18 +37,19 @@ Proposal :
 
 ####Work Plan 
 
-May 21st - May 23rd : Automatic Revision for user Guide
-May 24th - May 26th : Diff between revisions of manual pages
-May 27th - May 28th : Fixing and debugging any code that might break after these two are set up, and theming to go well with the current custom theme : sigmah\_theme
+
+~~May 21st - May 23rd : Automatic Revision for user Guide~~
+~~May 24th - May 26th : Diff between revisions of manual pages~~
+~~May 27th - May 28th : Fixing and debugging any code that might break after these two are set up, and theming to go well with the current custom theme : sigmah\_theme~~
 may 29th - June 2nd : Setting up the Mailman server and configuring it for our own needs
 June 3rd - June 7th : Initial Integration of the mailman server with our Drupal setup, to expose mailman parameters to Drupal.
 June 8th - June 12th : Custom addition and deletion of users to mailing lists based on their Drupal user profile roles.
 June 13th - June 18th : Let Drupal users access mailman archives from within Drupal sigmah website
 June 19th - June 21st : Fixing and debugging any code that might break after the integration of the mailman server with Drupal, and theming the mail archives to go well with our current custom theme : sigmah\_theme
 
-June 23rd - June 29th : Integration of the Drupal WYSIWYG API for better Image integration
-June 30th - July 2nd : Support for blockquotes and other styling features which are currently not supported
-July 3rd - July 5th : Ability to insert title and link of issues from the Mantis database, just by typing a pattern in the WYSIWYG editor
+~~June 23rd - June 29th : Integration of the Drupal WYSIWYG API for better Image integration~~
+~~June 30th - July 2nd : Support for blockquotes and other styling features which are currently not supported~~
+~~July 3rd - July 5th : Ability to insert title and link of issues from the Mantis database, just by typing a pattern in the WYSIWYG editor~~
 July 6th - July 12th : Improvements to the current Subscriptions system : Ability to Follow posts not related to the user, proper theming of the new features, etc.
 July 13th - July 16th : User Dashboard
 July 17th - July 19th : User profile pictures, and gallery of community members
@@ -128,6 +131,14 @@ And all these access points are available to anyone with access content" permiss
 	* The location of the button in the CKE Editor toolar can be determined bu using the config.toolbar\_DrupalFiltered , config.toolbar\_DrupalBasic , config.toolbar\_DrupalFull arrays, in the sites/all/modules/ckeditor/ckeditor.config.js  file.
 	* Expected Behaviour tested on local copy of the software !! Working Fine !!
 	* Note : This is my first CKE Editor Plugin, so It has to be tested properly before being deployed on the LIVE website, and also, it doesnot have any database updates, so the revisioning should be easier :).
+
+7) Added an Direct Image/File Browse and Insert button in the CKE toolbar, as discussed in issue  #418, to directly browse the server and insert a file, or upload a file and then insert.
+  * The Image Auto Resize will be added, after I get the required resize dimensions from Olivier. 
+  * The Copy Paste Images feature as requested in the issue, seems to be a bit tough if not impossible, I will update about that, after I do my bit of research on that. As of now, postponing the feature towards the end of the programme, when we will have some extra time.
+  * nevertheless, the basic  problem which needed to be addressed in the issue, seems to be solved.
+  * A icon for the File Insert button on the CKE editor is now the default logo of the IMCE browser, that can be changed by changing the file : sites/all/modules/ckeditor/plugins/imce/images/icon.gif  to any othe image of dimensions (16x16px)
+  * The button is located just next to the deafult button for Image insertion on CKE toolbar.
+  * Expected Behaviour tested on local copy of the software !! Working Fine !!
 
 
 
