@@ -7,6 +7,13 @@
     <?php print $head; ?>
     <?php print $styles; ?>
     <?php print $scripts; ?>
+    <script type="text/javascript">
+    <!-- Background Discussion for adding this script present at :
+    http://www.sigmah.org/issues/view.php?id=303 -->
+    $(document).ready(function(){
+      $("#edit-message").val(parent.jQuery("#formulaire_send_textarea").val());
+    });
+    </script>
   </head>
 <body>
 	

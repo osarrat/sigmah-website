@@ -105,10 +105,10 @@ or apache2.conf file whichever is applicable, and add the following lines
 7. Now for the integration of the sigmah website with the issue tracker, the database config details are to be updated at :
 
 ```
-<your base url>/admin/settings/customfilter/1/1/edit
+sites/all/modules/sigmah/sigmah.module
 ```
 
-in the text box with heading replacement text, you will find an associtive array :
+in the function defination of connectToMantisDatabase(), you will find an associtive array :
 // Database config details
 $db = array(
 'server' => '127.0.01',
@@ -117,7 +117,7 @@ $db = array(
 'database' => 'mantis'
 );
 
-there you can replace the username,password,database name,server address, etc of the Mantis issue tracker, and then click save, and you are ready to go :)
+there you can replace the username,password,database name,server address, etc of the Mantis issue tracker, and you are ready to go :)
 
 
 

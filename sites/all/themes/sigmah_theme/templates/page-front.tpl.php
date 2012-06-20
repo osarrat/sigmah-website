@@ -79,7 +79,9 @@
                 <div class="formulaire_send">
                 <?php $translated_text_area_content=t("Write your question here..."); ?>
                 <textarea id="formulaire_send_textarea"><?php echo $translated_text_area_content; ?></textarea>
+
                 <script>
+                <!-- Background Discussion for this script and surrounding HTMl at http://www.sigmah.org/issues/view.php?id=450 -->
                 $(document).ready(function(){
                     $("#formulaire_send_textarea").click(function(){
                       if($(this).html()=="<?php echo $translated_text_area_content; ?>"){
@@ -92,10 +94,9 @@
                       }
                       });
                     });
-</script>
+                </script>
 
-                
-                <a class="envoyer button iframe" href="<?php echo 'contact';  ?>" id="send" ><?php echo t('Send');//see Site building > contact form & page-contact & sigmah.module?></a>
+                <a class="envoyer button iframe" href="<?php echo 'contact';  ?>" id="send" ><?php echo t('Send');//see Site building > contact form & page-contact & sigmah.module ?></a>
                 </div>
                 </div>
                 <ul class="lien_puce cancel_bg">
