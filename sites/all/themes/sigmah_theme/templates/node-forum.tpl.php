@@ -60,7 +60,7 @@
 		</div>
 	<div class="baseRow baseline">
 		<?php 
-			echo t('By').$name;			
+			echo t('By').' '.$name.' ';			
 			echo t('at').' '.date('j/m/Y H:i', $created);
 			echo ' | ';  
 			
