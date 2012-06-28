@@ -139,6 +139,3 @@ And all these access points are available to anyone with access content" permiss
   * A icon for the File Insert button on the CKE editor is now the default logo of the IMCE browser, that can be changed by changing the file : sites/all/modules/ckeditor/plugins/imce/images/icon.gif  to any othe image of dimensions (16x16px)
   * The button is located just next to the deafult button for Image insertion on CKE toolbar.
   * Expected Behaviour tested on local copy of the software !! Working Fine !!
-
-
-
