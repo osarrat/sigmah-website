@@ -1,0 +1,1160 @@
+<?php
+// $Id: user_mailman_register.module,v 1.30.2.21.2.47 2010/01/29 09:38:19 samuelet Exp $
+
+/**
+ * @file
+ * This is a module for mailman subscribing which extends the Mailman manager module features.
+ * The main feature is that, instead of sending user commands in mail format as Mailman Manager does,
+ * it sends url requests directly to the mailman web interface where admins manage lists members.
+ */
+
+/**
+ * Subscriptions status: do unsubscription
+ */
+define('USER_MAILMAN_REGISTER_DO_UNSUBSCRIBE', -1);
+
+/**
+ * Subscriptions status: unsubscribed
+ */
+define('USER_MAILMAN_REGISTER_UNSUBSCRIBED', 0);
+
+/**
+ * Subscriptions status: subscribed but temporarily disabled
+ */
+define('USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED', 1);
+
+/**
+ * Subscriptions status: subscribed, receive digests
+ */
+define('USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST', 2);
+
+/**
+ * Subscriptions status: subscribed, normal delivery
+ */
+define('USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL', 3);
+
+/**
+ * Implementation of hook_help().
+ */
+function user_mailman_register_help($path, $arg) {
+  switch ($path) {
+    case 'admin/modules#description':
+      return t('This is a module for mailman subscribing which extends the <a href="@mmanager">Mailman Manager</a> module features.', array('@mmanager' => url('admin/help/mailman_manager')));
+    case 'admin/help#user_mailman_register':
+      $output = '<p>'. t('The full documentation is accessibile in the drupal <a href="http://drupal.org/node/463508">handbook</a> site.') .'</p>';
+      $output .= '<p>'. t('<h3>Access control</h3>The <b><em>access user_mailman_register</em></b> permission controls the general access to the subscription form page, permitting in a quick way to filter roles that can or cannot manage own subscriptions for allowed lists.<br />The <b><em>can subscribe to</em></b> permission controls what previously created lists are displayed by a user in the subscription form page.') .'<p>';
+      return $output;
+  }
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function user_mailman_register_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'form':
+      if ($category == 'account' && !variable_get('user_mailman_register_ownform', 1) && user_access('access user_mailman_register')) {
+        return _user_mailman_register_form($edit, $account, FALSE);
+      }
+      break;
+    case 'view':
+      return _user_mailman_register_view($account);
+      break;
+    case 'insert':
+      if (variable_get('user_mailman_register_registerform', 0)) {
+        _user_mailman_register_subscribe($account, $edit);
+      }
+      break;
+    case 'delete':
+      _user_mailman_register_subscribe($account, $edit, TRUE);
+      db_query('DELETE FROM {mailman_users} WHERE uid = %d', $account->uid);
+      break;
+    case 'validate':
+      $dovalidate = FALSE;
+      if ($account->uid > 0) {
+        if ($category == 'account' && !variable_get('user_mailman_register_ownform', 1)) {
+          $dovalidate = TRUE;
+        }
+      }
+      elseif (variable_get('user_mailman_register_registerform', 0)) {
+        $dovalidate = TRUE;
+      }
+      if ($dovalidate) {
+        return _user_mailman_register_required_list($edit);
+      }
+      break;
+    case 'register':
+      if (variable_get('user_mailman_register_registerform', 0)) {
+        $fake_roles->roles[DRUPAL_AUTHENTICATED_RID] = 'authenticated user';
+        return _user_mailman_register_form($edit, $fake_roles, FALSE);
+      }
+      break;
+    case 'update':
+      // User mail is going to be changed
+      $mail_changed = (isset($edit['mail']) && $account->mail != $edit['mail']);
+      // User roles are going to be changed.
+      if (is_array($edit['roles']) && is_array($account->roles)) {
+        $edit_roles[DRUPAL_AUTHENTICATED_RID] = 'authenticated user';
+        $edit_roles += $edit['roles'];
+        $str_edit_roles = implode(",", array_keys($edit_roles));
+        $str_account_roles = implode(",", array_keys($account->roles));
+        if ($str_edit_roles != $str_account_roles) {
+          $roles_changed = TRUE;
+        }
+      }
+      if ($mail_changed || $roles_changed) {
+        $lists = _mailman_manager_get_lists();
+        if (!empty($lists)) {
+          foreach ($lists as $list) {
+	    $allow_new_role = _user_mailman_register_allowed_list($list, $edit_roles);
+            $allow_cur_role = _user_mailman_register_allowed_list($list, $account);
+            $unsubscribe_cur_status = FALSE;
+            $subscribe_new_status = FALSE;
+            if ((!$mail_changed && !$list['role_sync']) || ($mail_changed && !$roles_changed && !$allow_cur_role)) {
+              //Do nothing when mail is not changed and role has not to be checked, or when mail is changed but current role is not allowed to subscribe the list by role sync.
+              continue;
+            }
+            $subscription = _user_mailman_register_get_subscriptions($account, $list);
+            $user_status = array(
+              'lmod' => $subscription['lmod'],
+              'old_status' => $subscription['lstatus'],
+            );
+            //User is subscribed.
+            if ($subscription['lstatus'] > USER_MAILMAN_REGISTER_UNSUBSCRIBED) {
+              //Prepare to change the user email subscription.
+              if ($mail_changed) {
+                $unsubscribe_cur_status = TRUE;
+                $subscribe_new_status = $subscription['lstatus'];
+              }
+              //Check role permissions.
+              if ($list['role_sync']) {
+                //The role does not allow subscription.
+                if (($roles_changed && !$allow_new_role) || (!$roles_changed && !$allow_cur_role)) {
+                  // Unsubscribe user (and undo previous setting) when role doesn't allow to subscribe.
+                  $unsubscribe_cur_status = TRUE;
+                  $subscribe_new_status = FALSE;
+                }
+              }
+            }
+            else {
+              //Check role permissions.
+              if ($list['role_sync']) {
+                //The user role allows subscription.
+                if (($roles_changed && $allow_new_role) || (!$roles_changed && $allow_cur_role)) {
+                  $subscribe_new_status = USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL;
+                }
+              }
+            }
+            //Send the unsubscription command
+            if ($unsubscribe_cur_status) {
+              $user_status['new_status'] = USER_MAILMAN_REGISTER_DO_UNSUBSCRIBE;
+              _user_mailman_register_subscribe_update($account, $list, $user_status, $account->mail, NULL);
+            }
+            if ($subscribe_new_status) {
+              $user_status['old_status'] = USER_MAILMAN_REGISTER_UNSUBSCRIBED;
+              $user_status['new_status'] = $subscribe_new_status;
+              //Supposing that new email is not subscribed. To improve retrieving first the new email subscription status 
+              _user_mailman_register_subscribe_update($account, $list, $user_status, ($mail_changed) ? $edit['mail'] : $account->mail, $edit);
+            }
+          }
+        }
+      }
+      elseif ($category == 'account' && !variable_get('user_mailman_register_ownform', 1)) {
+          _user_mailman_register_subscribe($account, $edit);
+      }
+      break;
+  }
+}
+
+function _user_mailman_register_form(&$form_state, $account = NULL, $show_submit = TRUE) {
+  $lists = _mailman_manager_get_lists();
+  if (!empty($lists)) {
+    $lists_available = 0;
+    $form['user_mailman_register'] = array('#weight' => 0.9);
+    $form['user_mailman_register']['lists'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Mailing Lists Subscriptions'),
+      '#description' => t('Join a mailing list to receive or participate in its discussions via email.'),
+      '#collapsible' => FALSE,
+      '#attributes' => array('id' => 'user_mailman_register', 'class' => 'umr_list_fieldset'),
+    );
+    foreach ($lists as $list) {
+      if (!_user_mailman_register_allowed_list($list, $account)) {
+        continue;
+      }
+      $list_status = USER_MAILMAN_REGISTER_UNSUBSCRIBED;
+      $lists_available = 1;
+      $options = array();
+      $form['user_mailman_register']['lists']['list'. trim($list['lid'])] = array(
+        '#type' => 'fieldset',
+        '#title' => $list['name'],
+        '#description' => $list['description'],
+        '#collapsible' => TRUE,
+        '#attributes' => array('class' => 'umr_list_'.$list['lid']),
+      );
+      if (isset($account) && $account->uid > 0) {
+        $subscription = _user_mailman_register_get_subscriptions($account, $list);
+        if ($subscription['lmessage']) {
+          $form['user_mailman_register']['lists']['list'. trim($list['lid'])]['listmsg'] = array(
+            '#value' => '<div class="messages error">'. $subscription['lmessage'] ."</div>",
+          );
+        }
+        $list_status = $subscription['lstatus'];
+      }
+      if ($list_status == USER_MAILMAN_REGISTER_UNSUBSCRIBED) {
+        $title = t('Subscribe to ') . $list['name'] .'?';
+        if ($list['allow_unsubscribe']) {
+          $options[USER_MAILMAN_REGISTER_UNSUBSCRIBED] = t('No');
+        } 
+        $options[USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL] = t('Yes');
+        // Feeds specified default value into the form if allowed
+        if ($list['defaultnewreg'] || !$list['allow_unsubscribe']) {
+          $list_status = USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL;
+        }
+      }
+      else {
+        $title = t('Change your subscription');
+        if ($list['allow_unsubscribe']) {
+          $options[USER_MAILMAN_REGISTER_DO_UNSUBSCRIBE] = t('Unsubscribe');
+        }
+        if ($list['allow_temp_disable'] || $list_status == USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED) {
+          $options[USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED] = _user_mailman_register_t_status(USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED);
+        }
+        if ($list['allow_digest'] || $list_status == USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST) {
+          $options[USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST] = _user_mailman_register_t_status(USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST);
+        }
+        $options[USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL] =  _user_mailman_register_t_status(USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL);
+        //Display the moderation checkbox
+        if (user_access('administer mailman_manager')) {
+          $form['user_mailman_register']['lists']['list'. trim($list['lid'])]['mod'. trim($list['lid'])] = array(
+            '#type' => 'checkbox',
+            '#title' => t('Moderate'),
+            '#default_value' => $subscription['lmod'],
+            '#description' => t('If checked, member postings will be moderated.'),
+            '#weight' => 1,
+          );
+        }
+      }
+      $form['user_mailman_register']['lists']['list'. trim($list['lid'])]['options'. trim($list['lid'])] = array(
+        '#type' => 'radios',
+        '#title' => $title,
+        '#options' => $options,
+        '#default_value' => $list_status,
+      );
+    }
+    if (!$lists_available) {
+      $form['user_mailman_register']['lists']['#description'] = t('No mailing lists are avaiable.');
+      $form['user_mailman_register']['lists']['#attributes'] = array('class' => 'umr_list_nolists');
+    } 
+    elseif ($show_submit) {
+    //Anonymous user
+      if ($account && $account->uid === 0) {
+        $form['user_mailman_register']['lists']['reqaddress'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Email'),
+          '#size' => 15,
+          '#weight' => "-1",
+          '#required' => FALSE,
+        );
+      }
+      $form['user_mailman_register']['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save')
+      );
+    }
+    $form_state['mailman_account'] = $account;
+    return $form;
+  }
+}
+
+function _user_mailman_register_form_validate($form, &$form_state) {
+  if (isset($form['user_mailman_register']['lists']['reqaddress']) && !valid_email_address($form_state['values']['reqaddress'])) {
+    form_set_error('reqaddress', t('"%reqaddress" is not a valid email address', array('%reqaddress' => $form_state['values']['reqaddress'])));
+  }
+  return _user_mailman_register_required_list($form_state['values'], $form_state['mailman_account']);
+}
+
+function _user_mailman_register_form_submit($form, &$form_state) {
+  $account = $form_state['mailman_account'];
+  $user_mail = FALSE;
+  if (!is_numeric($account->uid)) {
+    return FALSE;
+  }
+  if (isset($form_state['values']['reqaddress'])) {
+    $user_mail = $form_state['values']['reqaddress'];
+  }
+  _user_mailman_register_subscribe($account, $form_state['values'], FALSE, $user_mail);
+}
+
+/**
+ * Subscribe according to form submission
+ */
+function _user_mailman_register_subscribe($account, $edit, $user_deleted = FALSE, $new_mail = FALSE) {
+  if (!$new_mail) {
+    $new_mail = $account->mail;
+  }
+  $lists = _mailman_manager_get_lists();
+  if (!empty($lists)) {
+    foreach ($lists as $list) {
+      //User is going to be deleted
+      if ($user_deleted) {
+        if (!_user_mailman_register_allowed_list($list, $account)) {
+          continue;
+        }
+        $requested_status = USER_MAILMAN_REGISTER_DO_UNSUBSCRIBE;
+      }
+      else {
+        if (!isset($edit['options'. trim($list['lid'])]) || $edit['options'. trim($list['lid'])] == USER_MAILMAN_REGISTER_UNSUBSCRIBED) {
+          continue;
+        }
+        $requested_status = $edit['options'. trim($list['lid'])];
+      }
+      $subscription = _user_mailman_register_get_subscriptions($account, $list, $new_mail);
+      //user subscription initialization
+      $user_status = array(
+        'old_status' => $subscription['lstatus'],
+        'new_status' => $requested_status,
+        'lmod' => $subscription['lmod'],
+      );
+      if (isset($edit['mod'. trim($list['lid'])])) {
+        $user_status['lmod'] = $edit['mod'. trim($list['lid'])];
+      }
+      //Subscribe only for new request status or for anonymous, if email is not already subscribed.
+      if (($subscription['lmod'] == $user_status['lmod'] && $subscription['lstatus'] == $requested_status) || ($account->uid == 0 && $subscription['lstatus'] > USER_MAILMAN_REGISTER_UNSUBSCRIBED)) {
+        if ($account->uid == 0) {
+          drupal_set_message(t('%email is already subscribed to %list list.', array('%email' => $new_mail, '%list' => $list['name'])), 'error');
+        }
+        continue;
+      }
+      //Limit subscription form submissions for anonymous user and list invitations. Bypass mailman administrators.
+      $isflood = (($list['user_invite'] || $account->uid == 0) && !user_access('administer mailman_manager'));
+      if ($isflood && !flood_is_allowed('user_mailman_register_list'.$list['lid'], variable_get('user_mailman_register_hourly_threshold', 1))) {
+        drupal_set_message(t("You can't send more than %number subscription requests per hour. Please try again later.", array('%number' => variable_get('user_mailman_register_hourly_threshold', 1))), 'error');
+        continue;
+      }
+      if (_user_mailman_register_subscribe_update($account, $list, $user_status, $new_mail, $edit) && $isflood) {
+        //Log event
+        flood_register_event('user_mailman_register_list'.$list['lid']);
+      }
+    }
+  }
+}
+
+function _user_mailman_register_subscribe_update($account, $list, $user_status, $user_mail, $edit, $show_msg = TRUE) {
+  $msg      = '';
+  $email    = urlencode($user_mail);
+  $regurl   = rtrim($list['webadmin'], '/') .'/members';
+  $action   = t('successfully completed for');
+  switch ($user_status['new_status']) {
+    // Unsubscribe
+    case USER_MAILMAN_REGISTER_DO_UNSUBSCRIBE:
+      $regurl .= '/remove?send_unsub_ack_to_this_batch='. $list['user_notify'];
+      $regurl .= '&send_unsub_notifications_to_list_owner='. $list['user_admin_notify'];
+      $regurl .= '&unsubscribees_upload='. $email;
+      $msg .= t('Unsubscription to ');
+      break;
+
+    case USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL:
+      // Mail address name
+      $mailname = _user_mailman_register_email_name($account, $edit);
+      // Changing from Unsubscribed status.
+      if ($user_status['old_status'] == USER_MAILMAN_REGISTER_UNSUBSCRIBED) {
+        // New subscription
+        if (!empty($mailname)) {
+          $email = urlencode($mailname .' <'. $user_mail .'>');
+        }
+        $regurl .= '/add?subscribe_or_invite='. $list['user_invite'];
+        $regurl .= '&send_welcome_msg_to_this_batch='. $list['user_notify'];
+        $regurl .= '&notification_to_list_owner='. $list['user_admin_notify'];
+        $regurl .= '&subscribees_upload='. $email;
+        if ($list['user_invite']) {
+          $msg .= t('Invitation to ');
+          $action = t('sent to');
+          //Save as unsubscribed when it's an invitation
+          if ($list['user_invite']) {
+            $user_status['new_status'] = USER_MAILMAN_REGISTER_UNSUBSCRIBED;
+          }
+        }
+        else {
+          $msg .= t('Subscription to ');
+        }
+        break;
+      }
+      // Changing from Nomail or Digest status
+      $digest = '';
+      $type = 'Normal';
+    case USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED:
+    case USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST:
+      if ($list['version']) {
+        $email = urlencode($email);
+      }
+      // It was not a Normal status request
+      if (!$type) {
+        $type = 'Digest';
+        $digest = '&'. $email .'_digest=1';
+        // Mail address name
+        $mailname = _user_mailman_register_email_name($account, $edit);
+        $first_status = $user_status;
+        $first_status['new_status'] = USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL;
+        //If user is not already subscribed, subscribe him first with Normal status as required by mailman web commands.
+        if ($user_status['old_status'] == USER_MAILMAN_REGISTER_UNSUBSCRIBED && !_user_mailman_register_subscribe_update($account, $list, $first_status, $user_mail, $edit, FALSE)) {
+          return FALSE;
+        }
+      }
+      $user_locale = user_preferred_language($account);
+      $regurl .= '?user='. $email;
+      $regurl .= $digest;
+      $regurl .= '&'. $email .'_nodupes=1';
+      $regurl .= '&'. $email .'_realname='. urlencode($mailname);
+      $regurl .= '&'. $email .'_plain=1';
+      if ($user_status['lmod']) {
+        $regurl .= '&'. $email .'_mod=1';
+      }
+      $regurl .= '&'. $email .'_language='. $user_locale->language;
+      $regurl .= '&allmodbit_val=0&setmemberopts_btn=Submit%20Your%20Changes';
+      if ($user_status['new_status'] == USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED) {
+        $regurl .= '&'. $email .'_nomail=1';
+        $msg .= t('Temporary no mails from ');
+      }
+      else {
+        $msg .= t('@type subscription to ', array('@type' => $type));
+      }
+      break;
+
+    default:
+      drupal_set_message(t('Unknown list subscription request.'), 'error');
+      return FALSE;
+  }
+  $regurl .= '&adminpw='. urlencode($list['webpass']);
+  $httpreq = _user_mailman_register_parse_http($regurl, $list);
+  if ($httpreq->umr_ok) {
+    $user_status['reset_time'] = 1;
+    $msg .= t('%name list %action %email', array('%name' => $list['name'], '%action' => $action, '%email' => $mailname .'<'. $user_mail .'>'));
+    //Save log
+    if (_user_mailman_register_save_status($list, $user_status, $account->uid, $user_mail) && $show_msg) {
+      watchdog('user mailman reg', $msg, NULL);
+    }
+    if ($show_msg) {
+      drupal_set_message($msg);
+    }
+  }
+  else {
+    watchdog('user mailman reg', "%admmesg Http error: %error", array('%admmesg' => $httpreq->umr_admmsg, '%error' => $httpreq->error ." (". $httpreq->code .")"), WATCHDOG_ERROR);
+    drupal_set_message($httpreq->umr_usrmsg, 'error');
+    $mailonerrors = variable_get('user_mailman_register_mailonerrors', '');
+    if (!empty($mailonerrors)) {
+      _user_mailman_register_mail_send($account, $list, $user_status, $user_mail, $mailonerrors, $httpreq);
+    }
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function user_mailman_register_menu() {
+  $items = array();
+
+  $items['user_mailman_register'] = array(
+    'title' => 'Mailing Lists',
+    'description' => 'Join a mailing list to receive or participate in its discussions via email.',
+    'page callback' => 'user_mailman_register_page',
+    'access arguments' => array('access user_mailman_register'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/settings/user_mailman_register'] = array(
+    'title' => 'User Mailman Register',
+    'access arguments' => array('administer mailman_manager'),
+    'description' => 'Allow users to subscribe and change their subscriptions to Mailman mailing lists.',
+    'page callback' => 'user_mailman_register_admin',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/settings/user_mailman_register/edit/%'] = array(
+    'title' => 'Edit Mailing list commands',
+    'access arguments' => array('administer mailman_manager'),
+    'description' => 'Edit Mailman mailing lists web commands.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('user_mailman_register_adminedit_form', 4),
+    'type' => MENU_CALLBACK,
+  );
+
+  if (variable_get('user_mailman_register_ownform', 1)) {
+    $items['user/%user/user_mailman_register'] = array(
+      'title' => 'Mailing Lists Subscriptions',
+      'type' => MENU_LOCAL_TASK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('_user_mailman_register_form', 1),
+      'access callback' => '_user_mailman_register_access',
+      'access arguments' => array(1),
+      'weight' => 10,
+    );
+  }
+
+  return $items;
+}
+
+/**
+ * Prepare the mailing list admin form.
+ */
+function user_mailman_register_admin() {
+  $output = '';
+
+  $headers = array(
+    array('data' => t('ID'), 'field' => 'lid', 'sort' => 'asc'),
+    array('data' => t('Name'), 'field' => 'name'),
+    array('data' => t('User invite'), 'field' => 'user_invite'),
+    array('data' => t('User notify'), 'field' => 'user_notify'),
+    array('data' => t('List admins notify'), 'field' => 'user_admin_notify'),
+    array('data' => t('Allow unsub'), 'field' => 'allow_unsubscribe'),
+    array('data' => t('Allow temp disable'), 'field' => 'allow_temp_disable'),
+    array('data' => t('Allow digest'), 'field' => 'allow_digest'),
+    array('data' => t('Default new reg'), 'field' => 'defaultnewreg'),
+    array('data' => t('Role sync'), 'field' => 'role_sync'),
+    array('data' => t('Actions')),
+  );
+
+  $query = 'SELECT * FROM {mailman_lists}'. tablesort_sql($headers);
+  $num_per_page = 15;
+  $result = pager_query($query, $num_per_page);
+  $lists = array();
+  while ($list = db_fetch_array($result)) {
+    $cmd = 'Edit';
+    if (!_user_mailman_register_allowed_list($list)) {
+      $cmd = 'Activate';
+    }
+    unset($list['web']);
+    unset($list['webarch']);
+    unset($list['admin']);
+    unset($list['webpass']);
+    unset($list['command']);
+    unset($list['description']);
+    unset($list['webadmin']);
+    unset($list['version']);
+    $list['manage'] = l(t('@cmd', array('@cmd' => $cmd)), 'admin/settings/user_mailman_register/edit/'. $list['lid']) .
+      '<br />' . l(t('Manage'), 'admin/settings/mailman_manager/edit/'. $list['lid']);
+    $lists[] = $list;
+  }
+
+  if (empty($lists)) {
+    $output .= t('There are no lists available for subscription.') ." ";
+  }
+  else {
+    $output .= drupal_get_form('user_mailman_register_adminlist_form');
+    $output .= theme('table', $headers, $lists);
+    $output .= theme('pager', array(), $num_per_page);
+  }
+
+  $output .= l(t('Add new mailing list'), 'admin/settings/mailman_manager/add', array('query' => drupal_get_destination()));
+
+  return $output;
+}
+
+function user_mailman_register_adminlist_form() {
+  $form['user_mailman_admin'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Settings'),
+    '#tree' => TRUE,
+  );
+  $form['user_mailman_admin']['checkinterval'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Mailman connection interval'),
+    '#size' => 5,
+    '#maxlength' => 5,
+    '#required' => TRUE,
+    '#default_value' => variable_get('user_mailman_register_checkinterval', 10800) / 60,
+    '#description' => t("How often (in minutes) the user subscription form can connect to the mailman server to check his subscription status. During this interval, subscription status will be retrived from the User Mailman Register stored status of the last connection to the mailman server. Set to 0 to connect everytime a user check his subscription form.")
+  );
+  $form['user_mailman_admin']['hourly_threshold'] = array(
+    '#type' => 'select',
+    '#title' => t('Hourly threshold'),
+    '#options' => drupal_map_assoc(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50)),
+    '#default_value' => variable_get('user_mailman_register_hourly_threshold', 1),
+    '#description' => t('The maximum number of subscription form submissions a user can perform per hour and per list. It affects only all submissions for anonymous user and list invitation submissions for every user.'),
+  );
+  $form['user_mailman_admin']['required'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('A subscription is required'),
+    '#default_value' => variable_get('user_mailman_register_required', 0),
+    '#description' => t('If checked, user must subscribe to at least one mailing list.'),
+  );
+  $form['user_mailman_admin']['register'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Visible in user registration form'),
+    '#default_value' => variable_get('user_mailman_register_registerform', 0),
+    '#description' => t('If checked, a "Mailing Lists Subscriptions" section will be displayed in the new user registration form. You will also have to grant %permission to "authenticated user" in the !permissions_url for each applicable mailing list', array('%permission' => 'can subscribe to ...', '!permissions_url' => l('User Mailman Register permissions', 'admin/user/permissions', array('fragment' => 'module-user_mailman_register')))),
+  );
+  $form['user_mailman_admin']['ownform'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display in own separate category'),
+    '#default_value' => variable_get('user_mailman_register_ownform', 1),
+    '#description' => t('If checked, mailing list subscription is displayed in a separate category on the <em>My account</em> page, otherwise it will be displayed in the user account edit form.'),
+  );
+  if (module_exists('profile')) {
+    $form['user_mailman_admin']['profilename'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Profile module'),
+      '#size' => 50,
+      '#default_value' => variable_get('user_mailman_register_profilename', ''),
+      '#description' => t('Enter the name(s) of the !profile-url field(s) from which to retrieve the display name for the user. You can enter multiple fields separated by commas; eg: profile_firstname, profile_lastname. Optional', array('!profile-url' => l(t('Profile'), 'admin/user/profile'))),
+    );
+  }
+  $form['user_mailman_admin']['mailonerrors'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Mail on errors'),
+    '#size' => 50,
+    '#default_value' => variable_get('user_mailman_register_mailonerrors', ''),
+    '#description' => t('If not empty, a warning mail will be sent to these addresses when a user can not modify his subscriptions because of a mailman server connection failure. Multiple emails have to be comma separated. Optional.'),
+  );
+
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+  return $form;
+}
+
+function user_mailman_register_adminlist_form_validate($form, &$form_state) {
+  if (!is_numeric($form_state['values']['user_mailman_admin']['checkinterval'])) {
+    form_set_error('user_mailman_admin][checkinterval', 'Not a valid number.');
+  }
+}
+
+function user_mailman_register_adminlist_form_submit($form, &$form_state) {
+  if (!user_access('administer mailman_manager')) {
+    drupal_access_denied();
+    return;
+  }
+  $required      = $form_state['values']['user_mailman_admin']['required'];
+  $register      = $form_state['values']['user_mailman_admin']['register'];
+  $ownform       = $form_state['values']['user_mailman_admin']['ownform'];
+  $profilename   = $form_state['values']['user_mailman_admin']['profilename'];
+  $mailonerrors  = $form_state['values']['user_mailman_admin']['mailonerrors'];
+  $hourly_threshold = $form_state['values']['user_mailman_admin']['hourly_threshold'];
+  $checkinterval = (int) $form_state['values']['user_mailman_admin']['checkinterval'] * 60;
+  if (is_numeric($required) && is_numeric($register)) {
+    variable_set('user_mailman_register_required', $required);
+    variable_set('user_mailman_register_registerform', $register);
+    variable_set('user_mailman_register_ownform', $ownform);
+    variable_set('user_mailman_register_profilename', $profilename);
+    variable_set('user_mailman_register_checkinterval', $checkinterval);
+    variable_set('user_mailman_register_hourly_threshold', $hourly_threshold);
+    if (isset($mailonerrors)) {
+      variable_set('user_mailman_register_mailonerrors', $mailonerrors);
+    }
+    menu_rebuild();
+    drupal_set_message(t('Mailing list settings updated.'));
+  }
+}
+
+function user_mailman_register_admin_edit($id = FALSE) {
+  if (!$id) {
+    drupal_goto('admin/settings/user_mailman_register');
+    return;
+  }
+  return drupal_get_form('user_mailman_register_adminedit_form', $id);
+}
+
+function user_mailman_register_adminedit_form($form, $id) {
+  $form = array();
+  _user_password_dynamic_validation();
+  $list = mailman_manager_get_list($id);
+  $headers = array(
+    array('data' => t('ID')),
+    array('data' => t('Name')),
+    array('data' => t('Address')),
+    array('data' => t('Status')),
+  );
+
+  $items = array();
+  $items[] = array(
+    'lid' => $list->lid,
+    'name' => $list->name,
+    'command' => $list->command,
+    'status' => (_user_mailman_register_allowed_list($list)) ? t('Enabled') : t('Disabled'),
+  );
+  $form['list'] = array('#value' => theme('table', $headers, $items));
+  $form['mailman_admin'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Mailman settings'),
+    '#tree' => TRUE,
+  );
+
+  // Mailman list managment
+  $form['mailman_admin']['webadmin'] = array(
+    '#title' => t('Admin web page'),
+    '#default_value' => $list->webadmin,
+    '#description' => t("Mailman admin web page. The url has to be avaiable from your drupal web server ip. It's highly recommended to use the https protocol if your server supports it. Set empty to disable this list. Example: https://www.mysite.com/cgi-bin/mailman/admin/mylist ."),
+    '#type' => 'textfield',
+    '#required' => FALSE,
+  );
+  $form['mailman_admin']['webpass'] = array(
+    '#title' => t('Admin web password'),
+    '#description' => t('Mailman administrator web password.'),
+    '#type' => 'password_confirm',
+    '#size' => 15,
+  );
+  $form['mailman_admin']['version'] = array(
+    '#title' => t('Mailman version'),
+    '#description' => t('Select your mailman software version (it should be displayed on the mailman web interface footer). Try different settings if you realize that digest and nomail subscription does not work correctly.'),
+    '#type' => 'radios',
+    '#required' => TRUE,
+    '#default_value' => $list->version,
+    '#options' => array(t('2.1.9 or prior'), t('2.1.10 or later')),
+  );
+  $form['mailman_admin']['user_invite'] = array(
+    '#title' => t('Only invite users'),
+    '#default_value' => $list->user_invite,
+    '#description' => t('Just invite new users instead of subscribing them?'),
+    '#type' => 'checkbox',
+  );
+  $form['mailman_admin']['user_notify'] = array(
+    '#title' => t('Notify users'),
+    '#default_value' => $list->user_notify,
+    '#description' => t('Send welcome messages to the new subscribee?'),
+    '#type' => 'checkbox',
+  );
+  $form['mailman_admin']['user_admin_notify'] = array(
+    '#title' => t('Notify mailman administrators'),
+    '#default_value' => $list->user_admin_notify,
+    '#description' => t('Send notifications of new subscription to the list owner?'),
+    '#type' => 'checkbox',
+  );
+  // Drupal list managment
+  $form['drupal_admin'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('List interface settings'),
+    '#tree' => TRUE,
+  );
+  $form['drupal_admin']['role_sync'] = array(
+    '#title' => t('Sync with roles'),
+    '#default_value' => $list->role_sync,
+    '#description' => t('Subscribe/unsubscribe users to this list according to their current role and list permissions. This action will be performed everytime a user role is changed.'),
+    '#type' => 'checkbox',
+  );
+  $form['drupal_admin']['defaultnewreg'] = array(
+    '#type' => 'radios',
+    '#title' => t('Default choice'),
+    '#options' => array(0 => t('No'), 1 => t('Yes')),
+    '#default_value' => $list->defaultnewreg,
+    '#description' => t('This will be the default choice in the user subscription form.'),
+  );
+  $form['drupal_admin']['allow_unsubscribe'] = array(
+    '#title' => t('Allow unsubscribe'),
+    '#default_value' => $list->allow_unsubscribe,
+    '#description' => t('Allow users to unsubscribe from the list? Unchecked will set <b>Default choice</b> option to <em>Yes</em> and force subscription to this list.'),
+    '#type' => 'checkbox',
+  );
+  $form['drupal_admin']['allow_temp_disable'] = array(
+    '#title' => t('Allow temporary disable'),
+    '#default_value' => $list->allow_temp_disable,
+    '#description' => t('Allow users to temporarily disable delivery?'),
+    '#type' => 'checkbox',
+  );
+  $form['drupal_admin']['allow_digest'] = array(
+    '#title' => t('Allow digest'),
+    '#default_value' => $list->allow_digest,
+    '#description' => t('Allow users to subscribe in digest mode?'),
+    '#type' => 'checkbox',
+  );
+  $form['drupal_admin']['description'] = array(
+    '#title' => t('Description'),
+    '#default_value' => $list->description,
+    '#description' => t('A brief description of this mailing list. This text will be displayed in the subscriptions page.'),
+    '#type' => 'textarea',
+  );
+
+  $form['lid'] = array(
+    '#type' => 'hidden',
+    '#value' => $id,
+  );
+  $form['name'] = array(
+    '#type' => 'hidden',
+    '#value' => $list->name,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  return $form;
+}
+
+function user_mailman_register_adminedit_form_validate($form, &$form_state) {
+  $weburl = $form_state['values']['mailman_admin']['webadmin'];
+  if (!empty($weburl) && !valid_url($weburl, 1)) {
+    form_set_error('webadmin', t('%webadmin is not a valid url', array('%webadmin' => $weburl)));
+  }
+}
+
+function user_mailman_register_adminedit_form_submit($form, &$form_state) {
+  if (!user_access('administer mailman_manager')) {
+    drupal_access_denied();
+    return;
+  }
+  // Update existing
+  $values = array(
+    $form_state['values']['mailman_admin']['webadmin'],
+    $form_state['values']['mailman_admin']['version'],
+    $form_state['values']['mailman_admin']['user_invite'],
+    $form_state['values']['mailman_admin']['user_notify'],
+    $form_state['values']['mailman_admin']['user_admin_notify'],
+    $form_state['values']['drupal_admin']['allow_unsubscribe'],
+    $form_state['values']['drupal_admin']['allow_temp_disable'],
+    $form_state['values']['drupal_admin']['allow_digest'],
+    $form_state['values']['drupal_admin']['description'],
+    $form_state['values']['drupal_admin']['defaultnewreg'],
+    $form_state['values']['drupal_admin']['role_sync'],
+    $form_state['values']['lid'],
+  );
+  $query = 'UPDATE {mailman_lists} SET ';
+  if (!empty($form_state['values']['mailman_admin']['webpass'])) {
+    $query .= "webpass = '%s', ";
+    array_unshift($values, $form_state['values']['mailman_admin']['webpass']);
+  }
+  $query .= "webadmin = '%s', version = '%s', user_invite = '%s', user_notify = '%s', user_admin_notify = '%s', allow_unsubscribe = '%s', allow_temp_disable = '%s', allow_digest = '%s', description = '%s', defaultnewreg = %d, role_sync = %d WHERE lid = %d";
+  $result = db_query($query, $values);
+
+  if ($result) {
+    $log = '%form-name list settings updated';
+    $msg = t($log, array('%form-name' => $form_state['values']['name']));
+    watchdog('user mailman reg', $log, array('%form-name' => $form_state['values']['name']), WATCHDOG_NOTICE);
+  }
+  else {
+    $log = '%form-name list settings not updated';
+    $msg = t($log, array('%form-name' => $form_state['values']['name']));
+    watchdog('user mailman reg', $log, array('%form-name' => $form_state['values']['name']), WATCHDOG_ERROR);
+  }
+  drupal_set_message($msg);
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function user_mailman_register_perm() {
+  $permissions = array('access user_mailman_register');
+  $lists = _mailman_manager_get_lists();
+  if (!empty($lists)) {
+    foreach ($lists as $list) {
+      $filter = '![^abcdefghijklmnopqrstuvwxyz0-9-_ ]+!s';
+      $list_clean = preg_replace($filter, '-', drupal_strtolower($list['name']));
+      $permissions[] = 'can subscribe to '. $list_clean;
+    }
+  }
+  return $permissions;
+}
+
+/**
+ * Subscription form page. Forwards request to hook_user or show anonymous subscription form
+ */
+function user_mailman_register_page() {
+  if (!user_access('access user_mailman_register')) {
+    drupal_access_denied();
+    return;
+  }
+  else {
+    global $user;
+    if ($user->uid > 0) {
+      drupal_goto('user/'. $user->uid . (variable_get('user_mailman_register_ownform', 1) ? '/user_mailman_register' : '/edit'), NULL, 'user_mailman_register');
+    }
+    else {
+      return drupal_get_form('_user_mailman_register_form', $user);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_link().
+ */
+function user_mailman_register_link($type, $node = NULL, $teaser = FALSE) {
+  $links = array();
+
+  if ($type == 'page' && user_access('access content')) {
+    $links[] = l(t('Mailing lists'), 'user_mailman_register', array('title' => t('Subscribe to mailing lists')));
+  }
+
+  return $links;
+}
+
+/**
+ * Send a detailed email when subscription fails because of the mailman web server is unreachable. 
+ */
+function _user_mailman_register_mail_send($account, $list, $user_status, $user_mail, $mailonerrors, $http_request) {
+  $params['subject'] = t('User Mailman Register error for !name', array('!name' => $account->name));
+  $params['body']    = t("User !name failed to change his list subscription.\nThe following details could help to debug the problem.\n\nUser mail: !umail\nList name: !list\nUrl: !url\nOld subscription status: !ostatus\nRequested subscription status: !nstatus\nModule message: !admmesg\nHttp message: !error (!code)", array('!name' => $account->name, '!umail' => $user_mail, '!list' => $list['name'], '!url' => $list['webadmin'], '!ostatus' => _user_mailman_register_t_status($user_status['old_status']), '!nstatus' => _user_mailman_register_t_status($user_status['new_status']), '!admmesg' => $http_request->umr_admmsg, '!error' => $http_request->error, '!code' => $http_request->code));
+  $mail_success      = drupal_mail('user_mailman_register', 'error', wordwrap($mailonerrors), language_default(), $params);
+  $watchdog_params   = array('@name' => $account->name, '@to' => "<$mailonerrors>");
+  if ($mail_success) {
+    watchdog('user mailman reg', 'Mailman error notification for @name at @to', $watchdog_params);
+  }
+  else {
+    watchdog('user mailman reg', 'Error mailing Mailman error notification for @name at @to', $watchdog_params, WATCHDOG_ERROR);
+  }
+}
+
+/**
+ * Implementation of hook_mail().
+ */
+function user_mailman_register_mail($key, &$message, $params) {
+  $message['subject'] = $params['subject'];
+  $message['body'][] = $params['body'];
+}
+
+/**
+ * Check if a user has permission to subscribe a list.
+ */
+function _user_mailman_register_allowed_list($list, $account = NULL) {
+  if (is_array($list)) {
+    $list = (object) $list;
+  }
+  
+  if (!$list->webadmin || !$list->webpass) {
+    return FALSE;
+  }
+  $filter = '![^abcdefghijklmnopqrstuvwxyz0-9-_ ]+!s';
+  $list_clean = preg_replace($filter, '-', drupal_strtolower($list->name));
+  //Account is an array of roles to check
+  if (is_array($account) && !empty($account)) {
+    $list_roles = user_roles(FALSE, 'can subscribe to '. $list_clean);
+    foreach ($account as $role => $value) {
+      if (isset($list_roles[$role])) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+  return user_access('can subscribe to '. $list_clean, $account);
+}
+
+/**
+ * Check if a user can access the list subscription form.
+ */
+function _user_mailman_register_access($account) {
+  global $user;
+  return $account && $account->uid &&
+    (
+      // Always let users view their own profile.
+      ($user->uid == $account->uid && user_access('access user_mailman_register')) ||
+      // Mailman administrators are allowed to change subscriptions.
+      user_access('administer mailman_manager')
+    );
+}
+
+/**
+ * Validatation for list subscription required.
+ */
+function _user_mailman_register_required_list($form, $account = NULL) {
+  global $user;
+  if (variable_get('user_mailman_register_required', 0) && !user_access('administer mailman_manager')) {
+    $no_lists = TRUE;
+    $lists = _mailman_manager_get_lists();
+    if (!empty($lists)) {
+      foreach ($lists as $list) {
+        $edit_list = $form['options'. trim($list['lid'])];
+        //Check all allowed lists except for those with the unsubscribe option disabled
+        if (isset($edit_list) && _user_mailman_register_allowed_list($list, $account) && $list['allow_unsubscribe']) {
+          $no_lists = FALSE;  
+          if ($edit_list > USER_MAILMAN_REGISTER_UNSUBSCRIBED) {
+            return TRUE;
+          }
+        }
+      }
+    }
+    if (!$no_lists) {
+      form_set_error('user_mailman_register', t('At least one mailing list subscription is required'));
+    }
+    return $no_lists;
+  }
+}
+
+/**
+ * Save last subscription list in the mailman manager user table.
+ */
+function _user_mailman_register_save_status($list, $user_status, $uid, $mail) {
+  //Don't save anonymous users status
+  if ($uid == 0) {
+    return TRUE;
+  }
+  if (!isset($user_status['new_status']) || !isset($user_status['old_status'])) {
+    return FALSE;
+  }
+  if ($user_status['new_status'] == USER_MAILMAN_REGISTER_DO_UNSUBSCRIBE) {
+    $user_status['new_status'] = USER_MAILMAN_REGISTER_UNSUBSCRIBED;
+  }
+
+  $query = "UPDATE {mailman_users} SET lmail = '%s', lstatus = %d, lchecktime = %d, lmod= %d";
+  //UMR is not able to set or retrive a user password. Set it empty for new subscriptions.
+  if ($user_status['old_status'] < USER_MAILMAN_REGISTER_SUBSCRIBE_NORMAL) {
+      $query .= ", lpass=''";
+  }
+  $query .= " WHERE uid = %d AND lid = %d";
+  //Reset the checked status time to force a new check as soon as possible.
+  if ($user_status['reset_time']) {
+    $time = 0;
+  }
+  else {
+    $time = time();
+  }
+  $ret = db_query($query, $mail, $user_status['new_status'], $time, (int) $user_status['lmod'], $uid, $list['lid']);
+  return $ret;
+}
+
+/**
+ * Connect to mailman server and retrive user subscription status if last checked status is old.
+ */
+function _user_mailman_register_get_subscriptions($account, $list, $user_mail = FALSE) {
+  if (!$account->mail && !$user_mail) {
+    return USER_MAILMAN_REGISTER_UNSUBSCRIBED;
+  }
+  if (!$user_mail) {
+    $user_mail = $account->mail;
+  }
+  $encoded_email = urlencode(preg_quote($user_mail));
+  $regurl = rtrim($list['webadmin'], '/') .'/members?findmember='. $encoded_email;
+  $regurl .= "&setmemberopts_btn&adminpw=". urlencode($list['webpass']);
+  //Get stored subscription only for authenticated users
+  if ($account->uid > 0) {
+    $subscription = _mailman_manager_get_subscriptions($account->uid, $list['lid']);
+  }
+  else {
+    $subscription['lchecktime'] = 0;
+    $subscription['lstatus'] = USER_MAILMAN_REGISTER_UNSUBSCRIBED;
+  }
+  $interval = variable_get('user_mailman_register_checkinterval', 10800);
+  if ($interval >= 0 && $subscription['lchecktime'] < time() - $interval) {
+    if ($list['version']) {
+      $str_email = urlencode($user_mail);
+    }
+    else {
+      $str_email = $user_mail;
+    }
+    $str_email = preg_quote($str_email);
+    $httpreq = _user_mailman_register_parse_http($regurl, $list);
+
+    if ($httpreq->umr_ok) {
+      $subscription['lmod'] = 0;
+      $old_status = $subscription['lstatus'];
+      $subscription['lstatus'] = USER_MAILMAN_REGISTER_UNSUBSCRIBED;
+      if (preg_match('/INPUT .*name="'. $str_email .'_unsub"/i', $httpreq->data)) {
+        $subscription['lstatus'] = USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL;
+        if (preg_match('/INPUT .*name="'. $str_email .'_digest".* value="on"/i', $httpreq->data)) {
+          $subscription['lstatus'] = USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST;
+        }
+        if (preg_match('/INPUT .*name="'. $str_email .'_mod".* value="on"/i', $httpreq->data)) {
+          $subscription['lmod'] = 1;
+        }
+        if (preg_match('/INPUT .*name="'. $str_email .'_nomail".* value="on" CHECKED >(\[\w\])/i', $httpreq->data, $match)) {
+          $subscription['lstatus'] = USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED;
+          if ($match[1] != t("[A]")) {
+            $subscription['lmessage'] = t("Delivery for %name was disabled by the system probably due to excessive bouncing from the member's address", array('%name' => $list['name']));
+          }
+        }
+      }
+      //Store only authenticated users status
+      if ($account->uid > 0) {
+        $user_status = array(
+          'old_status' => $old_status,
+          'new_status' => $subscription['lstatus'],
+          'lmod' => $subscription['lmod'],
+        );
+        $msg = t('Subscription updating from mailman server to ').t('%name list completed successfully for %email', array('%name' => $list['name'], '%email' => $user_mail));
+        _user_mailman_register_save_status($list, $user_status, $account->uid, $user_mail);
+        //Log only changed status
+        if ($subscription['lstatus'] != $old_status) {
+          watchdog('user mailman reg', $msg, NULL);
+        }
+      }
+    }
+    else {
+      if (user_access('administer mailman_manager')) {
+        $subscription['lmessage'] = $httpreq->umr_admmsg;
+      }
+      else {
+        $subscription['lmessage'] = $httpreq->umr_usrmsg;
+      }
+      $subscription['lmessage'] .=  ' '. t('The displayed subscription is the last known state dated at %time.',  array('%name' => $list['name'], '%time' => format_date($subscription['lchecktime'])));
+    }
+  }
+  return $subscription;
+}
+
+function _user_mailman_register_email_name($account, $edit) {
+  $mailname = '';
+  $profile_string = variable_get('user_mailman_register_profilename', '');
+  $profile_array = explode(',', $profile_string);
+  if (!empty($profile_string) && !empty($profile_array) && module_exists('profile')) {
+    profile_load_profile($account);
+    foreach ($profile_array as $name) {
+      $item = isset($account->$name) ? $account->$name : $edit[$name];
+      if ($item) {
+        $mailname .= $item .' ';
+      }
+    }
+    $mailname = rtrim($mailname);
+  }
+  return $mailname;
+}
+
+function _user_mailman_register_parse_http($regurl, $list) {
+  //Debug
+  //  drupal_set_message($regurl);
+  $httpobj = drupal_http_request($regurl);
+  $httpobj->umr_ok = 1;
+  $httpobj->umr_msg = "";
+  if ($httpobj->code <> 200 || !preg_match('/INPUT .*name="(findmember|setmemberopts)_btn"/i', $httpobj->data)) {
+    $httpobj->umr_ok = 0;
+    $httpobj->umr_usrmsg = t('Sorry, %name mailing list registration is currently unavailable. Please, try again shortly.', array('%name' => $list['name']));
+    if (preg_match('/<input type="password".* name="adminpw"/i', $httpobj->data)) {
+      $httpobj->umr_admmsg = t('The administrator web password for !name list is invalid.', array('!name' => $list['name']));
+    }
+    else {
+      $httpobj->umr_admmsg = t('No mailman web interface for !name list.', array('!name' => $list['name']));
+    }
+  }
+  return $httpobj;
+}
+
+function _user_mailman_register_view(&$account) {
+  if (user_access('administer mailman_manager') || $GLOBALS['user']->uid == $account->uid) {
+    $account->content['user_mailman_register'] = array(
+      '#type' => 'user_profile_category',
+      '#title' => 'Mailing Lists Subscriptions',
+    );
+    $lists = _mailman_manager_get_lists();
+    if (!empty($lists)) {
+      foreach ($lists as $list) {
+        if (!_user_mailman_register_allowed_list($list, $account)) {
+          continue;
+        }
+        $subscription = _mailman_manager_get_subscriptions($account->uid, $list['lid']);
+        $value = _user_mailman_register_t_status($subscription['lstatus']);
+        $account->content['user_mailman_register'][$list['lid']] = array(
+          '#type' => 'user_profile_item',
+          '#title' => $list['name'],
+          '#value' => $value,
+          '#attributes' => array('class' => 'umr_profile_list_'. $list['lid']),
+        );
+      }
+      if (!isset($value)) {
+        $account->content['user_mailman_register']['nolists'] = array(
+          '#type' => 'user_profile_item',
+          '#title' => t('No mailing lists are available.'),
+          '#attributes' => array('class' => 'umr_profile_nolists'),
+        );
+      }
+    }
+  }
+}
+
+function _user_mailman_register_t_status($status) {
+  switch ($status) {
+    case USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED:
+      $ret = t('No mail (temporarily disable delivery)');
+      break;
+    case USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST:
+      $ret = t('Subscribe for digest (receive emails in a bundle)');
+      break;
+    case USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL:
+      $ret = t('Subscribe for all mail (normal delivery)');
+      break;
+    default:
+      $ret = t('Unsubscribed');
+  }
+  return $ret;
+}

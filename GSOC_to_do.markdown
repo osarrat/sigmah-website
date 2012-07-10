@@ -154,3 +154,4 @@ And all these access points are available to anyone with access content" permiss
 9) Added the Mailing List archives,  with permission only for the Steering Cooperative Role members to access the archives
   * The mail box from which the archives will be drawn can be found at node/524/edit
   * The idea is, one email inbox is subscribed to the steering cooperative mailing list, and we simply collect all the messages delivered to it, and archive a copy on out website in a threaded form.
+  * Added the steering cooperative role based auto subscription of the users to the mailing list, and removed the manual subscription tabs from the user accounts page.
