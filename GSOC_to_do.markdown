@@ -151,3 +151,6 @@ And all these access points are available to anyone with access content" permiss
   * Enabled picture support, and added a default picture for all user profiles
   * User picture has a max size of 85 x 85 pixels
   * Using the User_Stats module to obtain the user statistic of post count (this can be further extended in the future with whatever user stats deemed necessary, like days registered, login count, days since last login, etc)
+9) Added the Mailing List archives,  with permission only for the Steering Cooperative Role members to access the archives
+  * The mail box from which the archives will be drawn can be found at node/524/edit
+  * The idea is, one email inbox is subscribed to the steering cooperative mailing list, and we simply collect all the messages delivered to it, and archive a copy on out website in a threaded form.

@@ -1303,3 +1303,12 @@ width : 100%;
 -moz-border-radius: 15px;
 border-radius: 15px;
 }
+
+/** Handles the wraping of text in the mail archives **/
+.mailarchive {
+white-space: pre-wrap;
+white-space: -moz-pre-wrap !important;
+white-space: -pre-wrap;
+white-space: -o-pre-wrap;
+word-wrap: break-word;
+}

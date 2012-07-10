@@ -1,0 +1,45 @@
+<?php
+// $Id: mailarchive_stats.install,v 1.1.4.2 2010/09/20 22:44:06 taniwha Exp $
+
+/**
+ * Mailarchive Statistics module database schema.
+ * Copyright (c) 2007 Jeremy Andrews <jeremy@kerneltrap.org>.
+ * All rights reserved.
+ */
+function mailarchive_stats_install() {
+  drupal_install_schema('mailarchive_stats');
+}
+
+function mailarchive_stats_schema() {
+  $schema['mailarchive_statistics'] = array(
+    'fields' => array(
+        'msid' => array('type' => 'serial'),
+        'mid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'date' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'count' => array('type' => 'int','unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'thread_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'year' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'month' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'day' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      ),
+      'primary key' => array('msid'),
+      'indexes' => array(
+        'sid' => array('sid'),
+        'mid' => array('mid'),
+        'year' => array('year'),
+        'month' => array('month'),
+        'day' => array('day'),
+        'month' => array('date'),
+      )
+      );
+  return $schema;
+}
+
+function mailarchive_stats_uninstall() {
+  drupal_uninstall_schema('mailarchive_stats');
+}
+
+/**
+ * Add thread_id to the info we track so we can list "popular threads".
+ */

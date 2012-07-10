@@ -1,0 +1,160 @@
+<?php
+// $Id: mailarchive.install,v 1.12.4.5 2010/09/26 22:33:48 taniwha Exp $
+
+/**
+ * Mailarchive module database schema.
+ * Copyright (c) 2007-2009 Jeremy Andrews <jeremy@tag1consulting.com>.
+ * All rights reserved.
+ */
+
+function mailarchive_schema() {
+   $schema['mailarchive_subscriptions'] = array(
+    'fields' => array('sid' => array('type' => 'serial', 'not null' => TRUE),
+        'nid' => array('type' => 'int', 'unique' => TRUE, 'not null' => TRUE),
+        'created' => array('type' => 'int', 'not null' => TRUE),
+        'urlname' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+        'server_name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' =>''),
+        'server_username' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' =>''),
+        'server_password' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' =>''),
+        'mailbox' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' =>''),
+        'protocol' => array('type' => 'int', 'not null' => TRUE),
+        'port' => array('type' => 'int', 'not null' => TRUE),
+        'delete_read' => array('type' => 'int', 'length' => 1, 'default' => 0),
+        'message_count' => array('type' => 'int', 'unsigned'=> TRUE, 'not null' => TRUE, 'default' => 0),
+        'last_message' => array('type' => 'int', 'unsigned'=> TRUE, 'not null' => TRUE, 'default' => 0),
+         'last_attempt' => array('type' => 'int', 'unsigned'=> TRUE, 'not null' => TRUE, 'default' => 0),
+        'subscription_status' => array('type' => 'int', 'unsigned'=> TRUE, 'not null' => TRUE, 'default' => 0),
+        'dedicated_table' => array('type' => 'int', 'unsigned'=> TRUE, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('sid'),
+    'indexes' => array(
+        'mailarchive_last_message' => array('last_message'),
+        'mailarchive_urlname' => array('urlname'),
+	'mailarchive_message_count' => array('message_count'),
+    )	
+  );
+//       // The actual mailing list messages.
+  $schema['mailarchive_messages'] = array(
+    'fields' => array(
+        'mid' => array('type'=> 'serial'),
+        'sid' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'status' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'created' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'received' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'year' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'month' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'day' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'headers' => array('type' => 'text', 'not null' => TRUE),
+        'message_id' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,'default' => 0),
+	'reference' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,'default' => 0),
+        'in_reply_to' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,'default' => 0),
+        'multiple_in_reply_to' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'thread_id' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'sub_thread_id' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,),
+        'mailfrom' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,),
+        'subject' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,'default' => 0),
+        'body' => array('type'=> 'text', 'not null' => TRUE),
+        'attachments' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'attachments_path' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,'default' => 0),
+    ),
+    'primary keys' => array('mid'),
+    'unique keys' => array(
+      'sid_message_id' => array('mid', 'sid', 'message_id'),
+    ),
+    'indexes' => array(
+      'mailarchive_messages_status' => array('status'),
+      'mailarchive_messages_created' => array('created'),
+      'mailarchive_messages_received' => array('received'),
+      'mailarchive_messages_year' => array('year'),
+      'mailarchive_messages_month' => array('month'),
+      'mailarchive_messages_day' => array('day'),
+      'mailarchive_messages_message_id' => array('message_id'),
+      'mailarchive_messages_thread_id' => array('thread_id'),
+      'mailarchive_messages_sub_thread_id' => array('sub_thread_id'),
+      'mailarchive_messages_subject' => array('subject')
+
+    ),
+  );
+//       // Attachment index.  Actual attachments stored in filesystem.
+    $schema['mailarchive_messages_attachments'] = array(
+      'fields' => array(
+	'aid' => array('type'=> 'serial', 'not null' => TRUE),
+        'sid' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'mid' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'name' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,),
+        'bytes' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+        'part' => array('type'=> 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'default' => 0),
+      ),
+      'primary key' => array('aid'),
+      'unique keys' => array(
+	'sid_mid_part' => array('sid', 'mid', 'part'),
+	),
+	'indexes' => array(
+	  'mma_name' => array('name'),
+	  'mma_mid' => array('mid'),
+	)
+    );
+//       // Address index.
+    $schema['mailarchive_messages_addresses'] = array(
+      'fields' => array(
+	'aid' => array('type' => 'serial'),
+        'sid' => array('type' => 'int', 'unsigned' => TRUE),
+        'mid' => array('type' => 'int', 'unsigned' => TRUE),
+        'name' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,),
+        'mailbox' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,),
+        'host' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE,),
+        'address' => array('type'=> 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => '0'),
+        'address_type' => array('type'=> 'varchar', 'length' => 64, 'not null' => TRUE,),
+      ),
+      'primary key' => array('aid'),
+      'unique keys' => array(
+	'mma_smaa' => array('sid', 'mid', 'address', 'address_type'),
+      ),
+      'keys' => array(
+	'mma_mid' => array('mid'),
+	'mma_name' => array('name'),
+	'mma_mailbox' => array('mailbox'),
+	'mma_host' => array('host'),
+        'mma_address' => array('address'),
+        'mma_address_type' => array('address_type')
+      )
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function mailarchive_install() {
+  drupal_install_schema('mailarchive');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+
+function mailarchive_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'mailarchive_%'");
+  $result = db_query('SELECT nid FROM {mailarchive_subscriptions}');
+  while ($subscription = db_fetch_object($result)) {
+    node_delete($subscription->nid);
+  }
+  drupal_uninstall_schema('mailarchive');
+}
+/**
+ * Add support for storing mail archives in dedicated tables.
+ */
+function mailarchive_update_6001() {
+  $ret = array();
+  db_add_field($ret, 'mailarchive_subscriptions', 'dedicated_table',
+    array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'default' => 0,
+      'description' => 'Determine if archives live in shared or dedicated table.',
+    ),
+    array()
+  );
+  return $ret;
+}

@@ -1,0 +1,13 @@
+; $Id: mailarchive.info,v 1.5.4.2 2009/07/22 01:58:40 jeremy Exp $
+name = Mail Archive
+description = Online mailing list archives.
+dependencies[] = taxonomy
+package = Mail Archive
+
+core = 6.x
+; Information added by drupal.org packaging script on 2010-09-26
+version = "6.x-1.4"
+core = "6.x"
+project = "mailarchive"
+datestamp = "1285543274"
+
