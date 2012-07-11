@@ -533,7 +533,36 @@ function theme_mailarchive_view_thread($mailarchive, $year = NULL, $month = NULL
     }
   }
 
-  $sql_range = "year = $year AND month = $month AND day = $day";
+  // Custom addition by spM
+  // These define the sql range query, replacing 100 by a true statement, so basically giving us the ability mor specifically select dates and months and year, using 100 in place of wild cards.
+  $sql_range ="";
+
+  if($year=="00"){
+    $sql_range.= "1=1";
+  }
+  else {
+    $sql_range.= "year = $year";
+  }
+  $sql_range.=" AND ";
+
+  if($month=="00"){
+    $sql_range.= "1=1";
+  }
+  else {
+    $sql_range.= "month = $month";
+  }
+  $sql_range.=" AND ";
+
+  if($day=="00"){
+    $sql_range.= "1=1";
+  }
+  else {
+    $sql_range.= "day = $day";
+  }
+  
+  //$sql_range = "year = $year AND month = $month AND day = $day";
+
+
   $messages_per_page = ((int)$_GET['messages_per_page'] ? (int)$_GET['messages_per_page'] : 50);
   if ($messages_per_page > 100) {
     $messages_per_page = 100;
@@ -543,6 +572,11 @@ function theme_mailarchive_view_thread($mailarchive, $year = NULL, $month = NULL
   }
 
   $output = "<div class=\"mailarchive\"><div class=\"message-list\" id=\"message-list-$mailarchive\">\n";
+
+  // spM custom code, adding code for the date selection here
+  $output.= _dateSelectionHTML(); 
+  // code for date selection added here
+
 
   if ($thread) {
     $header = array(
@@ -663,8 +697,9 @@ function theme_mailarchive_view_thread($mailarchive, $year = NULL, $month = NULL
   $output .= theme('table', $header, $rows);
   $output .= theme('pager', NULL, $messages_per_page, 0, NULL);
 
-  $output .= theme('table', array(t('previous day'), t('today'), t('next day')), array(array(mailarchive_view_day_nav($mailarchive, $year, $month, $day, '<'), mailarchive_view_format_month($month) ." $day, $year", mailarchive_view_day_nav($mailarchive, $year, $month, $day, '>'))));
-
+  if($year!="00" && $month!="00" && $day!="00"){
+    $output .= theme('table', array(t('previous day'), t('today'), t('next day')), array(array(mailarchive_view_day_nav($mailarchive, $year, $month, $day, '<'), mailarchive_view_format_month($month) ." $day, $year", mailarchive_view_day_nav($mailarchive, $year, $month, $day, '>'))));
+  }
   $output .= '</div></div>';
   $additions = module_invoke_all('mailarchive_api', 'view thread', $mailarchive, $year, $month, $day);
   if (is_array($additions)) {
@@ -1766,4 +1801,80 @@ function mailarchive_view_lkml($text, $strip = 0) {
   }
   $text = preg_replace($search, $replace, $text);
   return $text;
+}
+
+
+function _dateSelectionHTML(){
+  $htmlCode="<div id='gotoToAnyDate'>";
+
+  $htmlCode .= "<form id='dateSelectorForm' name='dateSelector' action='javascript:var curUrl = document.URL;document.location.href = (\"http://\"+window.location.hostname+Drupal.settings.basePath+\"mailarchive/steeringCooperativeArchive/\"+dateSelector.archiveYear.value+\"/\"+dateSelector.archiveMonth.value+\"/\"+dateSelector.archiveDate.value);'>";
+  $htmlCode .= '
+Goto Archives of a particular date, or select "All" for the parameter(s) to get archives of a range.
+
+Year / Month / Date 
+<select name="archiveYear">
+<option value="00" selected="selected">All</option>
+<option value="2005">2005</option>
+<option value="2006">2006</option>
+<option value="2007">2007</option>
+<option value="2008">2008</option>
+<option value="2009">2009</option>
+<option value="2010">2010</option>
+<option value="2011">2011</option>
+<option value="2012">2012</option>
+<option value="2013">2013</option>
+<option value="2014">2014</option>
+<option value="2015">2015</option>
+</select>/<select name="archiveMonth">
+	<option value="00" selected="selected">All</option>
+	<option value="01">January</option>
+	<option value="02">Febuary</option>
+	<option value="03">March</option>
+	<option value="04">April</option>
+	<option value="05">May</option>
+	<option value="06">June</option>
+	<option value="07">July</option>
+	<option value="08">August</option>
+	<option value="09">September</option>
+	<option value="10">October</option>
+	<option value="11">November</option>
+	<option value="12">December</option>
+</select>/<select name="archiveDate">
+	<option value="00" selected="selected">All</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+	<option value="3">3</option>
+	<option value="4">4</option>
+	<option value="5">5</option>
+	<option value="6">6</option>
+	<option value="7">7</option>
+	<option value="8">8</option>
+	<option value="9">9</option>
+	<option value="10">10</option>
+	<option value="11">11</option>
+	<option value="12">12</option>
+	<option value="13">13</option>
+	<option value="14">14</option>
+	<option value="15">15</option>
+	<option value="16">16</option>
+	<option value="17">17</option>
+	<option value="18">18</option>
+	<option value="19">19</option>
+	<option value="20">20</option>
+	<option value="21">21</option>
+	<option value="22">22</option>
+	<option value="23">23</option>
+	<option value="24">24</option>
+	<option value="25">25</option>
+	<option value="26">26</option>
+	<option value="27">27</option>
+	<option value="28">28</option>
+	<option value="29">29</option>
+	<option value="30">30</option>
+	<option value="31">31</option>
+</select>';
+  $htmlCode .= '<input type="submit" value="Filter" />';
+  $htmlCode .= "</form>";
+  $htmlCode .="</div>";
+  return $htmlCode;
 }
