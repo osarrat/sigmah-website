@@ -1312,3 +1312,11 @@ white-space: -pre-wrap;
 white-space: -o-pre-wrap;
 word-wrap: break-word;
 }
+
+/** Handles the overriding of the labels on the IssueTracket popup **/
+#cke_81_label {
+display:inline !important;
+}
+#cke_84_label {
+display:inline !important;
+}

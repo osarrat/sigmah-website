@@ -1074,3 +1074,38 @@ html.js fieldset.collapsed legend a {
 div.admin {
   padding-top:0;
 }
+
+/** Custom CSS addition by spM **/
+
+/** Handling Blockquote rendering as discussed in issue : http://www.sigmah.org/issues/view.php?id=328 **/
+
+blockquote {
+background: #fff4D8;
+padding-left : 3px;
+padding-right : 3px;
+padding-top : 1px;
+padding-bottom : 1px;
+border-left : #f6b034 1px solid;
+border-right : #f6b034 1px solid;
+width : 100%;
+-webkit-border-radius: 15px;
+-moz-border-radius: 15px;
+border-radius: 15px;
+}
+
+/** Handles the wraping of text in the mail archives **/
+.mailarchive {
+white-space: pre-wrap;
+white-space: -moz-pre-wrap !important;
+white-space: -pre-wrap;
+white-space: -o-pre-wrap;
+word-wrap: break-word;
+}
+
+/** Handles the overriding of the labels on the IssueTracket popup **/
+#cke_81_label {
+display:inline !important;
+}
+#cke_84_label {
+display:inline !important;
+}
