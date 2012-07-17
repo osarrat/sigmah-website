@@ -1292,13 +1292,23 @@ text-decoration:none;
 
 blockquote {
 background: #fff4D8;
-padding : 1px 20px;
-padding-top : 15px;
-padding-botton : 15px;
+padding-left : 3px;
+padding-right : 3px;
+padding-top : 1px;
+padding-bottom : 1px;
 border-left : #f6b034 1px solid;
 border-right : #f6b034 1px solid;
 width : 100%;
 -webkit-border-radius: 15px;
 -moz-border-radius: 15px;
 border-radius: 15px;
+}
+
+/** Handles the wraping of text in the mail archives **/
+.mailarchive {
+white-space: pre-wrap;
+white-space: -moz-pre-wrap !important;
+white-space: -pre-wrap;
+white-space: -o-pre-wrap;
+word-wrap: break-word;
 }

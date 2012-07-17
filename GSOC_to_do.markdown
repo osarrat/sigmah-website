@@ -122,15 +122,15 @@ And all these access points are available to anyone with access content" permiss
 * The Database Settings have to be updated in the sigmah.module file inside sites/all/modules/sigmah/ folder , inside the funciton named connectToMantisDatabase() .
 
 6) ####Added a CKE editor plugin to have a custom SIgmah Button in the CKE editor toolbar to insert links to Issues on the Sigmah Issue Tracker
-	* I have included Auto Suggestion Feature, which would start suggesting issues as you type, similar to the feature we have in the Google Search , and we can also select multiple Issues at a time similar to the Multiple Friends Selection Feature we have on Facebook.
-	 * The Auto Suggestion Feature talks with the Issue Tracker Database with AJAX calls to the URI access point set up in drupal in Note Number 5.
-	 * User is provided with options to Configure the Link as it would be inserted in terms of, if the user wants to insert the Issue Summary along with the Issue Summary or not, and also if he wants the link to open in a new window or not.
-	* I have NOT USED the default Autocomplete.js file drupal comes with, because that needed us to change the JSON format defination as done in point number 5 , and also it did not give as much flexibility as we needed for this particular task !
-	* The location of the SIgmah Issue Tracker has been hard coded in a variable named linkURL  in the plugin.js file, which can be found in the sites/all/modules/ckeditor/ckeditor/plugins/IssueTracker folder. Assuming this will be a constant over time, that is why not creating any overhead form elements to take the input from the GUI interface.
-	* I have used the sigmah logo for the button image in the CKE Editor toolbar, and it can be changed by using any other 16x16 img and replacing the sites/all/modules/ckeditor/ckeditor/plugins/IssueTracker/images/IssueTracker.png file with it.
-	* The location of the button in the CKE Editor toolar can be determined bu using the config.toolbar\_DrupalFiltered , config.toolbar\_DrupalBasic , config.toolbar\_DrupalFull arrays, in the sites/all/modules/ckeditor/ckeditor.config.js  file.
-	* Expected Behaviour tested on local copy of the software !! Working Fine !!
-	* Note : This is my first CKE Editor Plugin, so It has to be tested properly before being deployed on the LIVE website, and also, it doesnot have any database updates, so the revisioning should be easier :).
+  * I have included Auto Suggestion Feature, which would start suggesting issues as you type, similar to the feature we have in the Google Search , and we can also select multiple Issues at a time similar to the Multiple Friends Selection Feature we have on Facebook.
+  * The Auto Suggestion Feature talks with the Issue Tracker Database with AJAX calls to the URI access point set up in drupal in Note Number 5.
+  * User is provided with options to Configure the Link as it would be inserted in terms of, if the user wants to insert the Issue Summary along with the Issue Summary or not, and also if he wants the link to open in a new window or not.
+  * I have NOT USED the default Autocomplete.js file drupal comes with, because that needed us to change the JSON format defination as done in point number 5 , and also it did not give as much flexibility as we needed for this particular task !
+  * The location of the SIgmah Issue Tracker has been hard coded in a variable named linkURL  in the plugin.js file, which can be found in the sites/all/modules/ckeditor/ckeditor/plugins/IssueTracker folder. Assuming this will be a constant over time, that is why not creating any overhead form elements to take the input from the GUI interface.
+  * I have used the sigmah logo for the button image in the CKE Editor toolbar, and it can be changed by using any other 16x16 img and replacing the sites/all/modules/ckeditor/ckeditor/plugins/IssueTracker/images/IssueTracker.png file with it.
+  * The location of the button in the CKE Editor toolar can be determined bu using the config.toolbar\_DrupalFiltered , config.toolbar\_DrupalBasic , config.toolbar\_DrupalFull arrays, in the sites/all/modules/ckeditor/ckeditor.config.js  file.
+  * Expected Behaviour tested on local copy of the software !! Working Fine !!
+  * Note : This is my first CKE Editor Plugin, so It has to be tested properly before being deployed on the LIVE website, and also, it doesnot have any database updates, so the revisioning should be easier :).
 
 7) Added an Direct Image/File Browse and Insert button in the CKE toolbar, as discussed in issue  #418, to directly browse the server and insert a file, or upload a file and then insert.
   * The Image Auto Resize will be added, after I get the required resize dimensions from Olivier. 
@@ -140,5 +140,19 @@ And all these access points are available to anyone with access content" permiss
   * The button is located just next to the deafult button for Image insertion on CKE toolbar.
   * Expected Behaviour tested on local copy of the software !! Working Fine !!
 
-
-
+7) Added SEO friendly URLS for all pages
+  * The new content created will have an automatic alias setup
+  * I have manually updated the alias of all the old content
+  * the old links of the form node/123 will still work, because we are only setting up an alias
+  * an user can override the automatic alias by going to "URL path settings" in the content creation page, and unchecking the checkbox saying "Automatic alias" and then fill in the desired alias in the box below
+  
+  
+8) Added the Community Page of all Users
+  * Enabled picture support, and added a default picture for all user profiles
+  * User picture has a max size of 85 x 85 pixels
+  * Using the User_Stats module to obtain the user statistic of post count (this can be further extended in the future with whatever user stats deemed necessary, like days registered, login count, days since last login, etc)
+9) Added the Mailing List archives,  with permission only for the Steering Cooperative Role members to access the archives
+  * The mail box from which the archives will be drawn can be found at node/524/edit
+  * The idea is, one email inbox is subscribed to the steering cooperative mailing list, and we simply collect all the messages delivered to it, and archive a copy on out website in a threaded form.
+  * Added the steering cooperative role based auto subscription of the users to the mailing list, and removed the manual subscription tabs from the user accounts page.
+  * Added a custom filter to filter archived emails using drop down select boxes.

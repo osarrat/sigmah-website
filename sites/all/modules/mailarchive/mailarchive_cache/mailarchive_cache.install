@@ -1,0 +1,68 @@
+<?php
+// $Id: mailarchive_cache.install,v 1.1.4.2 2010/08/20 01:37:26 taniwha Exp $
+
+/**
+ * Mailarchive cache.
+ * Copyright (c) 2007 Jeremy Andrews <jeremy@kerneltrap.org>.
+ * All rights reserved.
+ */
+function mailarchive_cache_install() {
+    drupal_install_schema('mailarchive_cache');
+}
+function mailarchive_cache_schema() {
+  $schema = array();
+  $schema['cache_mailarchive_overview'] = array(
+    'fields' => array(
+        'cid' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+        'data' => array('type' => 'blob', 'size' => 'big'),
+        'dirty' => array('type' => 'int', 'length' => 1, 'not null' => TRUE, 'default' => 0),
+        'timestamp' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+        'sid' => array('type' => 'int', 'length' => 11, 'not null' => TRUE, 'default' => 0),
+        'year' => array('type' => 'int', 'length' => 3, 'not null' => TRUE, 'default' => 0),
+        'month' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+        'day' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+    ),
+    'primay key' => array('cid'),
+    'indexes' => array(
+        'cmao_dirty' => array('dirty'),
+        'cmao_timestamp' => array('timestamp'),
+        'cmao_sid' => array('sid'),
+        'cmao_year' => array('year'),
+        'cmao_month' => array('month'),
+        'cmao_day' => array('day')
+      ),
+    );
+
+  $schema['cache_mailarchive_message'] = array(
+    'fields' => array(
+        'cid' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+        'data' => array('type' => 'blob', 'size' => 'big'),
+        'dirty' => array('type' => 'int', 'length' => 1, 'not null' => TRUe, 'default' => 0),
+        'timestamp' => array('type' => 'int', 'length' => 11, 'not null' => TRUe, 'default' => 0),
+//         'sid' => array('type' => ' INT(11) UNSIGNED NOT NULL DEFAULT '0',
+//         'mid' => array('type' => ' INT(11) UNSIGNED NOT NULL DEFAULT '0',
+//         'thread_id' => array('type' => ' INT(11) UNSIGNED NOT NULL DEFAULT '0',
+//         'year' => array('type' => ' INT(4) UNSIGNED NOT NULL DEFAULT '0',
+//         'month' => array('type' => ' INT(4) UNSIGNED NOT NULL DEFAULT '0',
+//         'day' => array('type' => ' INT(4) UNSIGNED NOT NULL DEFAULT '0',
+    ),
+    'primary key' => array('cid'),
+    'indexes' => array(
+//         KEY (dirty),
+//         KEY (timestamp),
+//         KEY (sid),
+//         KEY (mid),
+//         KEY (thread_id),
+//         KEY (year),
+//         KEY (month),
+//         KEY (day)
+    )		
+      );
+  
+  return $schema;
+}
+
+function mailarchive_cache_uninstall() {
+  drupal_uninstall_schema('mailarchive_cache');
+}
+

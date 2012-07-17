@@ -1,0 +1,12 @@
+; $Id: mailarchive_rss.info,v 1.1 2007/09/22 21:37:48 jeremy Exp $
+name = Mail Archive RSS
+description = Provide RSS feeds for mail archives.
+dependencies = mailarchive
+package = Mail Archive
+
+; Information added by drupal.org packaging script on 2010-09-26
+version = "6.x-1.4"
+core = "6.x"
+project = "mailarchive"
+datestamp = "1285543274"
+

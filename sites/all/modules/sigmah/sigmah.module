@@ -290,4 +290,14 @@ function connectToMantisDatabase(){
   mysql_select_db($db['database']) or die(mysql_error());
 }
 
+/**
+ * Aletring the MyAccounts page to hide the Mailing Lists tabs.
+ */
+
+
+function sigmah_menu_alter(&$items) {
+
+  $items['user/%user/mailman_manager']['type'] = MENU_CALLBACK;
+  $items['user/%user/user_mailman_register']['type'] = MENU_CALLBACK;
+}
 ?>

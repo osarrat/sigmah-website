@@ -1,0 +1,269 @@
+<?php
+
+/**
+ * @file
+ * Provides RSS feeds for mail archives.
+ * Copyright (c) 2007.
+ *   Jeremy Andrews <jeremy@kerneltrap.org>.  All rights reserved.
+ */
+
+/**
+ * Implementation of Drupal's hook_menu().
+ */
+function mailarchive_rss_menu($may_cache) {
+  $items = array();
+
+  if (!$may_cache) {
+    if ($sid = _mailarchive_sid(arg(1))) {
+      $mailarchive = arg(1);
+      if (is_numeric($mid = arg(3))) {
+        // Validate that this $mid is really part of the specified $sid.
+        if (db_result(db_query("SELECT sid FROM {mailarchive_messages} WHERE mid = %d and sid = %d AND status = %d", $mid, $sid, MAILARCHIVE_MESSAGE_PUBLISHED))) {
+          $items[] = array(
+            'path' => "mailarchive/$mailarchive/feed/$mid/from/name",
+            'title' => 'from name RSS feed',
+            'type' => MENU_CALLBACK,
+            'callback' => 'mailarchive_rss_feed_fromname',
+            'callback arguments' => array($mailarchive, $mid),
+            'access' => user_access('access content'),
+          );
+          $items[] = array(
+            'path' => "mailarchive/$mailarchive/feed/$mid/from/address",
+            'title' => 'from address RSS feed',
+            'type' => MENU_CALLBACK,
+            'callback' => 'mailarchive_rss_feed_fromname',
+            'callback arguments' => array($mailarchive, $mid),
+            'access' => user_access('access content'),
+          );
+          $items[] = array(
+            'path' => "mailarchive/$mailarchive/feed/$mid/subject",
+            'title' => 'subject RSS feed',
+            'type' => MENU_CALLBACK,
+            'callback' => 'mailarchive_rss_feed_subject',
+            'callback arguments' => array($mailarchive, $mid),
+            'access' => user_access('access content'),
+          );
+        }
+      }
+      else {
+        $items[] = array(
+          'path' => "mailarchive/$mailarchive/feed",
+          'title' => 'RSS feed',
+          'type' => MENU_CALLBACK,
+          'callback' => 'mailarchive_rss_feed',
+          'callback arguments' => array($mailarchive),
+          'access' => user_access('access content'),
+        );
+      }
+    }
+  }
+
+  return $items;
+}
+
+/**
+ * Output mailarchive RSS feed.
+ *
+ * Borrowed heavily from node_feed in node.module. This could surely use some
+ * cleanup.
+ */
+function mailarchive_rss_feed($mailarchive) {
+  $sid = _mailarchive_sid($mailarchive);
+  $result = pager_query("SELECT received, subject, body, year, month, day, mid FROM {mailarchive_messages} WHERE sid = $sid AND status = ". MAILARCHIVE_MESSAGE_PUBLISHED .' ORDER BY received DESC', 25);
+
+  $items = mailarchive_rss_items($mailarchive, $result);
+
+  $channel_name = "$mailarchive mailing list";
+
+  $node = db_fetch_object(db_query('SELECT nid FROM {mailarchive_subscriptions} WHERE sid = %d', $sid));
+  $node = node_load($node);
+  $channel_description = $node->body;
+
+  mailarchive_rss_display_feed($items, $channel_name, $channel_description);
+}
+
+/**
+ * Build a feed of messages from a specified author name.
+ * TODO: Narrow down search to improve performance.  Caching?
+ */
+function mailarchive_rss_feed_fromname($mailarchive, $mid) {
+  $sid = _mailarchive_sid($mailarchive);
+  $name = db_result(db_query("SELECT mailfrom FROM {mailarchive_messages} WHERE mid = %d AND sid = %d AND status = %d", $mid, $sid, MAILARCHIVE_MESSAGE_PUBLISHED));
+  $result = pager_query("SELECT received, subject, body, year, month, day, mid FROM {mailarchive_messages} WHERE mailfrom = '". addslashes($name) ."' AND sid = $sid AND status = ". MAILARCHIVE_MESSAGE_PUBLISHED .' ORDER BY received DESC', 25);
+
+  $items = mailarchive_rss_items($mailarchive, $result);
+
+  $channel_name = "$name - $mailarchive";
+  $channel_description = "Messages posted to $mailarchive by $name.";
+
+  mailarchive_rss_display_feed($items, $channel_name, $channel_description);
+}
+
+/**
+ * Build a feed of messages from a specified author name.
+ * TODO: Narrow down search to improve performance.  Caching?
+ */
+function mailarchive_rss_feed_fromaddress($mailarchive, $mid) {
+  $sid = _mailarchive_sid($mailarchive);
+  $from = db_fetch_object(db_query("SELECT mailbox, address FROM {mailarchive_messages} WHERE mid = %d AND address_type = 'from' AND sid = %d AND status = %d", $mid, $sid, MAILARCHIVE_MESSAGE_PUBLISHED));
+  $result = pager_query("SELECT m.received, m.subject, m.body, m.year, m.month, m.day, m.mid, m.mailfrom FROM {mailarchive_messages} m JOIN {mailarchive_messages_addresses} a ON a.mid = m.mid WHERE mailfrom = '". addslashes($from->address) ."' AND address_type = 'from' m.sid = $sid AND m.status = ". MAILARCHIVE_MESSAGE_PUBLISHED .' ORDER BY m.received DESC', 25);
+
+  $items = mailarchive_rss_items($mailarchive, $result);
+
+  $channel_name = "&lt;$from->mailbox@...&gt; - $mailarchive";
+  $channel_description = "Messages posted to $mailarchive by &lt;$from->mailbox...&gt;.";
+
+  mailarchive_rss_display_feed($items, $channel_name, $channel_description);
+}
+
+/**
+ * Build a feed of messages from a specified author name.
+ * TODO: Narrow down search to improve performance.  Caching?
+ */
+function mailarchive_rss_feed_subject($mailarchive, $mid) {
+  $sid = _mailarchive_sid($mailarchive);
+  $subscription = _mailarchive_subscription_load($sid);
+
+  $subjects = _mailarchive_view_get_subjects($sid, $mid);
+  $result = _mailarchive_view_search_subjects($sid, $subjects, 25);
+
+  $items = mailarchive_rss_items($mailarchive, $result);
+
+  $channel_name = "$subjects[0] - $mailarchive";
+  $channel_description = "Messages posted to $mailarchive with subject ". $subjects[0] .'.';
+
+  mailarchive_rss_display_feed($items, $channel_name, $channel_description);
+}
+
+/**
+ * Build an array of items for mailarchive RSS feeds.
+ */
+function mailarchive_rss_items($mailarchive, $result) {
+  $items = '';
+  while ($message = db_fetch_object($result)) {
+    $link = url("mailarchive/$mailarchive/$message->year/$message->month/$message->day/$message->mid", NULL, NULL, 1);
+
+    // From:
+    $from = db_fetch_object(db_query("SELECT name, mailbox, host FROM {mailarchive_messages_addresses} WHERE mid = %d AND address_type = 'from'", $message->mid));
+    if ($from->name) {
+      $item = "From: $from->name &lt;$from->mailbox@...&gt;<br />\n";
+    }
+    else {
+      $item = "From: &lt;$from->mailbox@...&gt;<br />\n";
+    }
+
+    // Subject:
+    if ($message->subject) {
+      $item .= "Subject: $message->subject<br />\n";
+    }
+
+    // Date:
+    if ($message->received) {
+      $item .= 'Date: '. format_date($message->received, 'custom', 'M j, g:i a Y') ."<br />\n";
+    }
+
+    $item .= "<br />\n";
+
+    // Convert "\n" to "<br />" so emails are readable.
+    $body = preg_replace("/\n/", "<br />", $message->body);
+    if (strlen($message->body) > 2048) {
+      $item .= substr($body, 0, 2048) .' ['. l(t('message continues'), $link) .']';
+    }
+    else {
+      $item .= $body;
+    }
+
+    $item .= '<p>'. l(t('read more'), $link, NULL, NULL, NULL, TRUE);
+
+    $extra = module_invoke_all('mailarchive_api', 'rss item', $mailarchive, $item, $message);
+    if (is_array($extra)) {
+      foreach ($extra as $e) {
+        $item .= $e;
+      }
+    }
+    $item .= '</p>';
+
+    $items .= format_rss_item($message->subject, $link, $item);
+  }
+  return $items;
+}
+
+/**
+ * Code to output mailarchive RSS feeds.
+ *
+ * @param $items
+ *  An array of items to be displayed in the feed.
+ * @param $channel_name
+ *  The name of the channel being displayed.
+ * @param $channel_description
+ *  A description of the channel being displayed.
+ */
+function mailarchive_rss_display_feed($items, $channel_name, $channel_description) {
+  global $base_url, $locale;
+
+  $channel = array(
+    'version'     => '2.0',
+    'title'       => "$channel_name - ". variable_get('site_name', 'Drupal'),
+    'link'        => $base_url,
+    'description' => $channel_description,
+    'language'    => $locale
+  );
+
+  $namespaces = array('xmlns:dc="http://purl.org/dc/elements/1.1/"');
+
+  $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+  $output .= "<rss version=\"". $channel["version"] ."\" xml:base=\"". $base_url ."\" ". implode(' ', $namespaces) .">\n";
+  $output .= format_rss_channel($channel['title'], $channel['link'], $channel['description'], $items, $channel['language']);
+  $output .= "</rss>\n";
+
+  drupal_set_header('Content-Type: application/rss+xml; charset=utf-8');
+  print $output;
+}
+
+/**
+ * Implementation of mailarchive_api() hook.  Add mailarchive RSS feeds.
+ */
+function mailarchive_rss_mailarchive_api($op, $mailarchive, $arg1 = NULL, $arg2 = NULL, $arg3 = NULL) {
+  switch ($op) {
+    case 'list overview':
+    case 'view thread':
+      $url = url("mailarchive/$mailarchive/feed", NULL, NULL, TRUE);
+      $description = t('%mailarchive RSS', array('%mailarchive' => $mailarchive));
+      return mailarchive_rss_feed_icon($url, $description);
+
+    case 'search subject':
+      // Two quick database queries give us a common RSS path no matter which
+      // message in a given thread is clicked.  This improves caching.
+      $thread = db_fetch_object(db_query('SELECT sid, subject FROM {mailarchive_messages} WHERE mid = %d AND status = %d', $arg1, MAILARCHIVE_MESSAGE_PUBLISHED));
+      $min = db_result(db_query("SELECT MIN(mid) FROM {mailarchive_messages} WHERE sid = %d AND subject = '%s' AND status = %d", $thread->sid, addslashes($thread->subject), MAILARCHIVE_MESSAGE_PUBLISHED));
+      $url = url("mailarchive/$mailarchive/feed/$min/subject", NULL, NULL, TRUE);
+      $description = t('%mailarchive subject RSS', array('%mailarchive' => $mailarchive));
+      return mailarchive_rss_feed_icon($url, $description);
+
+    case 'search from name':
+      // Two quick database queries give us a common RSS path no matter which
+      // message in a given thread is clicked.  This improves caching.
+      $thread = db_fetch_object(db_query('SELECT sid, mailfrom FROM {mailarchive_messages} WHERE mid = %d AND status = %d', $arg1, MAILARCHIVE_MESSAGE_PUBLISHED));
+      $min = db_result(db_query("SELECT MIN(mid) FROM {mailarchive_messages} WHERE sid = %d AND mailfrom = '%s' AND status = %d", $thread->sid, $thread->mailfrom, MAILARCHIVE_MESSAGE_PUBLISHED));
+      $url = url("mailarchive/$mailarchive/feed/$min/from/name", NULL, NULL, TRUE);
+      $description = t('%mailarchive from name RSS', array('%mailarchive' => $mailarchive));
+      return mailarchive_rss_feed_icon($url, $description);
+
+    case 'search from address':
+      // TODO: Reduce mid to improve caching.
+      $url = url("mailarchive/$mailarchive/feed/$arg1/from/address", NULL, NULL, TRUE);
+      $description = t('%mailarchive from address RSS', array('%mailarchive' => $mailarchive));
+      return mailarchive_rss_feed_icon($url, $description);
+  }
+}
+
+/**
+ * Add auto-detectable feed and return a linked icon.
+ */
+function mailarchive_rss_feed_icon($url, $description) {
+  drupal_add_feed($url, $description);
+  // TODO: Remove this hard-coded "<br />", replacing with a <div> for themers.
+  $output = '<br />'. theme('feed_icon', $url);
+  return $output;
+}
+
