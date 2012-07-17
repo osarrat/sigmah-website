@@ -122,6 +122,7 @@ function imce_upload_form(&$form_state, $ref) {
     '#title' => t('File'),
     '#size' => 30,
   );
+  /**
   if (!empty($imce['thumbnails'])) {
     $form['thumbnails'] = array(
       '#type' => 'checkboxes',
@@ -129,6 +130,7 @@ function imce_upload_form(&$form_state, $ref) {
       '#options' => imce_thumbnail_options($imce['thumbnails']),
     );
   }
+  **/
   $form['upload'] = array(
     '#type' => 'submit',
     '#value' => t('Upload'),

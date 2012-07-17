@@ -41,7 +41,7 @@ CKEDITOR.editorConfig = function(config) {
     ['Source'],
     ['Cut','Copy','Paste','PasteText','PasteFromWord','-','SpellChecker', 'Scayt'],
     ['Undo','Redo','Find','Replace','-','SelectAll','RemoveFormat'],
-    ['Image','IMCE','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
+    ['IMCE','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
     ['Maximize', 'ShowBlocks'],
     '/',
     ['Format'],
@@ -57,7 +57,7 @@ CKEDITOR.editorConfig = function(config) {
   * if you change the name of DrupalBasic, you have to update
   * CKEDITOR_FORCE_SIMPLE_TOOLBAR_NAME in ckeditor.module
   */
-    config.toolbar_DrupalBasic = [ [ 'Format', '-', 'Bold', 'Italic','insertIssueLink', '-', 'NumberedList','BulletedList', '-', 'Link', 'Unlink', 'Image','IMCE' ] ];
+    config.toolbar_DrupalBasic = [ [ 'Format', '-', 'Bold', 'Italic','insertIssueLink', '-', 'NumberedList','BulletedList', '-', 'Link', 'Unlink','IMCE' ] ];
 
   /*
    * This toolbar is dedicated to users with "Full HTML" access some of commands
@@ -68,7 +68,7 @@ CKEDITOR.editorConfig = function(config) {
       ['Source'],
       ['Cut','Copy','Paste','PasteText','PasteFromWord','-','SpellChecker', 'Scayt'],
       ['Undo','Redo','Find','Replace','-','SelectAll','RemoveFormat'],
-      ['Image','IMCE','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
+      ['IMCE','Flash','Table','HorizontalRule','Smiley','SpecialChar'],
       '/',
       ['Bold','Italic','Underline','Strike','-','Subscript','Superscript','insertIssueLink'],
       ['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
