@@ -1,0 +1,1862 @@
+<?php
+
+/**
+ * @file
+ * A module providing online mailing list archives.
+ * Copyright (c) 2007-2009.
+ *   Jeremy Andrews <jeremy@tag1consulting.com>.  All rights reserved.
+ */
+
+define('MAILARCHIVE_SUBSCRIPTION_DISABLED', 0);
+define('MAILARCHIVE_SUBSCRIPTION_ENABLED', 1);
+
+define('MAILARCHIVE_PROTOCOL_POP3', 0);
+define('MAILARCHIVE_PROTOCOL_POP3S', 1);
+define('MAILARCHIVE_PROTOCOL_IMAP', 2);
+define('MAILARCHIVE_PROTOCOL_IMAPS', 3);
+define('MAILARCHIVE_PROTOCOL_FILE', 4);
+
+define('MAILARCHIVE_MESSAGE_PUBLISHED', 0);
+define('MAILARCHIVE_MESSAGE_UNPUBLISHED', 1);
+
+/**
+ * Drupal _help hook.  Provides help and informational text about the
+ * mailarchive module.
+ *
+ * @param $path
+ *  The current path.
+ *
+ * @return
+ *  Help text appropriate to the current path.
+ */
+function mailarchive_help($path, $arg) {
+  switch ($path) {
+    case 'node/add#mailarchive':
+      return t('Configure a mailing list to enable an online archive.');
+  }
+}
+
+/**
+ * Drupal _perm hook.  Defines permissions utilized by this module and its
+ * API.
+ *
+ * @return
+ *  An array of permissions.
+ */
+function mailarchive_perm() {
+  return array(
+           'create mailing list archives', 
+           'maintain mailing list archives', 
+           'edit own mailing list archives'
+         );
+}
+
+/**
+ * Drupal _access hook.  Determines whether or not the current user has
+ * permissions to perform operation $op on the current $node.
+ *
+ * @param $op
+ * @param $node
+ *
+ * @return
+ *  TRUE if does have permission, false if does not.
+ */
+function mailarchive_access($op, $node, $account) {
+
+  if ($op == 'create') {
+    return user_access('create mail archives', $account);
+  }
+  if ($op == 'update') {
+    if (user_access('maintain mail archives', $account) || ($node->uid == $account->uid && user_acces('edit own mail archives')))  {
+      return TRUE;
+    }
+  }
+}
+
+/**
+ * Configuration page for mail archive module.
+ *
+ * @return
+ *  A settings page form.
+ */
+function mailarchive_admin_settings() {
+  $form = array();
+
+  $form['general'] = array('#type' => 'fieldset',
+    '#title' => t('General settings'),
+    '#collapsible' => TRUE,
+  );
+
+  $number = drupal_map_assoc(array(100, 500, 1000, 5000, 10000, 50000));
+  $form['general']['mailarchive_download_limit'] = array('#type' => 'select',
+    '#title' => t('Messages to download at a time'),
+    '#default_value' => variable_get('mailarchive_download_limit', 1000),
+    '#options' => $number,
+    '#description' => t('Specify how many messages should be downloaded at a time.  This number needs to be kept low enough that your browser doesn\'t timeout while messages are being downloaded.')
+  );
+
+  $form['general']['mailarchive_filter_format'] = filter_form(variable_get('mailarchive_filter_format', FILTER_FORMAT_DEFAULT));
+
+  $form['attachments'] = array('#type' => 'fieldset',
+    '#title' => t('Attachment settings'),
+    '#collapsible' => TRUE,
+  );
+
+  $form['attachments']['mailarchive_save_attachments'] = array('#type' => 'radios',
+    '#options' => array(t('Do not save attachments.'), t('Save attachments.')),
+    '#default_value' => variable_get('mailarchive_save_attachments', 0),
+    '#description' => t('If you do not save attachments, messages with attachments will be downloaded but the attachments will be discarded.  If you do save attachments, the attachments will be saved to the filesystem as configured below.')
+  );
+
+  $form['attachments']['mailarchive_attachments_path'] = array('#type' => 'textfield',
+    '#title' => t('Attachment subdirectory'),
+    '#default_value' => variable_get('mailarchive_attachments_path', 'mailarchive'),
+    '#description' => t('If you enable the mailarchive module to save attachments, you need to specify the subdirectory where these attachments should be saved.  The attachment subdirectory requires that your Drupal file system settings are properly configured.  Based on your currently configured file system path, the attachment subdirectory will be created within the <em>%path</em> directory.', array('%path' => file_directory_path()))
+  );
+
+  $form['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+/**
+ * Validate the mailing list archive module configuration page.
+ */
+function mailarchive_admin_settings_validate($form, &$form_state) {
+  if ($form_state['values']['mailarchive_save_attachments']) {
+    if ($form_state['values']['mailarchive_attachments_path'] == '') {
+      form_set_error('mailarchive_attachments_path', t('If you enable the saving of attachments, you must specify an attachment subdirectory.'));
+    }
+    else {
+      $attachments_path = file_directory_path() .'/'. $form_state['values']['mailarchive_attachments_path'];
+      if (!file_check_directory($attachments_path, FILE_CREATE_DIRECTORY)) {
+        form_set_error('mailarchive_attachments_path', t('The attachment subdirectory you have entered does not exist or is not writeable.  Please verify that your Drupal file system settings are properly configured, then try again.'));
+      }
+    }
+  }
+}
+
+/**
+ * Save the mailing list archive module settings.
+ */
+function mailarchive_admin_settings_submit($form, &$form_state) {
+  variable_set('mailarchive_download_limit', $form_state['values']['mailarchive_download_limit']);
+  variable_set('mailarchive_save_attachments', $form_state['values']['mailarchive_save_attachments']);
+  variable_set('mailarchive_attachments_path', $form_state['values']['mailarchive_attachments_path']);
+  variable_set('mailarchive_filter_format', $form_state['values']['format']);
+  drupal_set_message('Mailing list archive settings saved.');
+}
+
+/**
+ * Drupal _menu hook. 
+ *
+ * @param $may_cache
+ *  A boolean that's either TRUE or FALSE
+ *
+ * @return
+ *  An array of menu items.
+ */
+function mailarchive_menu() {
+  $items = array();
+
+  $items['admin/content/mailarchive'] = array(
+    'title' => 'Mailing list archives',
+    'access arguments' => array('maintain mailing list archives'),
+    'page callback' => 'mailarchive_admin_overview');
+  $items['admin/content/mailarchive/list'] = array(
+    'title' => 'List',
+    'access arguments' => array('maintain mailing list archives'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10);
+  $items['admin/content/mailarchive/add/category'] = array(
+    'title' => 'Add category',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mailarchive_admin_category_form'),
+    'access arguments' => array('maintain mailing list archives'),
+    'type' => MENU_LOCAL_TASK);
+  $items['admin/content/mailarchive/configure'] = array(
+    'title' => 'Configure',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mailarchive_admin_settings'),
+    'access arguments' => array('maintain mailing list archives'),
+    'type' => MENU_LOCAL_TASK);
+  $items['admin/content/mailarchive/edit/category/%'] = array(
+    'title' => 'Edit category',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mailarchive_admin_category_form', 5),
+    'access arguments' => array('maintain mailing list archives'),
+    'type' => MENU_CALLBACK);
+  $items['mailarchive/%/%/rethread'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => '_mailarchive_rethread',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('maintain mailing list archives'));
+  $items['admin/content/mailarchive/%/fetch'] = array(
+    'type' => MENU_SUGGESTED_ITEM,
+    'page callback' => 'mailarchive_admin_fetch',
+    'page arguments' => array(3),
+    'access arguments' => array('maintain mailing list archives')
+  );
+  $items['admin/content/mailarchive/%/mailarchive/update'] = array(
+    'type' => MENU_SUGGESTED_ITEM,
+    'page callback' => 'mailarchive_admin_update',
+    'page arguments' => array(3),
+    'access arguments' => array('maintain mailing list archives')
+  );
+
+  return $items;
+}
+
+/**
+ * Drupal _cron hook.  Automatically downloads new messages from all conifgured
+ * mailing list subscriptions.
+ */
+function mailarchive_cron() {
+  $result = db_query('SELECT sid, subscription_status FROM {mailarchive_subscriptions} WHERE subscription_status = 1');
+  while ($subscription = db_fetch_object($result)) {
+    // To prevent cron abuse, we only try to automatically download new 
+    // messages from any one mailing list no more than once every minute.
+    if (time() - variable_get('mailarchive_last_download_'. $subscription->sid, 0) >= variable_get('mailarchive_download_frequency', 60)) {
+      if (_mailarchive_fetch($subscription->sid) != -1) {
+        variable_set('mailarchive_last_download_'. $subscription->sid, time());
+      }
+      sleep (1);
+    }
+  }
+}
+
+/**
+ * Drupal _node_info hook
+ *
+ * @return
+ *  An array that defines the new mailarchive node type, allowing 
+ *  node/add#mailarchive to work.
+ */
+function mailarchive_node_info() {
+  return array('mailarchive' => array(
+    'name' => t('mailing list archive'), 
+    'module' => 'mailarchive',
+    'description' => t('Subscribe to mailing lists to be archived.'),
+    'help' => t('Once you subscribe to mailing lists, messages sent to the list will be archived and displayed to visitors of your website.')));
+}
+
+/**
+ * Drupal _node_form hook.
+ * 
+ * @param $node
+ *  The node object.
+ *
+ * @return
+ *  The form to display when creating a mailing list subscription.
+ */
+function mailarchive_form(&$node) {
+  global $base_url;
+  $edit = $_POST['edit'];
+  $form = array();
+
+  $form['title'] = array('#type' => 'textfield',
+    '#title' => t('Title'),
+    '#required' => TRUE,
+    '#default_value' => $node->title,
+    '#description' => t('Enter the full name of the mailing list you are archiving.')
+  );
+
+  $form['urlname'] = array('#type' => 'textfield',
+    '#title' => t('URL name'),
+    '#required' => TRUE,
+    '#default_value' => $node->urlname,
+    '#description' => t('The URL name will be used in the path when browsing your mailing list archive.  You may only use alphanumerics and the <em>-</em> and <em>_</em> characters in your mailing list archive URL name. For example, if you enter <em>linux-kernel</em>, users will browse your mailing list archives at <em>%baseurl/mailarchive/linux-kernel</em>.', array('%baseurl' => $base_url))
+  );
+
+  $form['body'] = array('#type' => 'textarea',
+    '#title' => t('Description'),
+    '#default_value' => $node->body,
+    '#description' => t('Enter a description of the mailing list you are archiving.')
+  );
+
+ // Mailing list status.
+ $form['status'] = array('#type' => 'fieldset',
+    '#title' => t('Subscription status'),
+    '#collapsible' => TRUE
+  );
+
+  $form['status']['subscription_status'] = array('#type' => 'radios',
+    '#options' => array(1 => t('enabled'), 0 => t('disabled')),
+    '#default_value' => isset($node->subscription_status) ? $node->subscription_status : 1,
+    '#description' => t('An enabled subscription will actively download and archive new messages.  A disabled subscription will no longer download and archive new messages but old messages will remain available.')
+  );
+
+ // Server configuration information
+  $form['server'] = array('#type' => 'fieldset',
+    '#title' => t('Mail server'),
+    '#collapsible' => TRUE
+  );
+
+  $form['server']['server_name'] = array('#type' => 'textfield',
+    '#title' => t('Server name'),
+    '#default_value' => $node->server_name,
+    '#required' => FALSE, // 'local file' does not require mail server
+    '#description' => t('Enter the fully qualified domain name of your mail server.  For example, <em>mail.sample.com</em>.  This field can be left blank only if you will be obtaining mailing list messages from a local file.')
+  );
+
+  $form['server']['server_username'] = array('#type' => 'textfield',
+    '#title' => t('Server username'),
+    '#default_value' => $node->server_username,
+    '#required' => FALSE, // 'local file' does not require a username
+    '#description' => t('Enter the username for logging into the mail server and downloading mailing list messages.  This field can be left blank only if you will be obtaining mailing list messages from a local file.')
+  );
+
+  $form['server']['server_password'] = array('#type' => 'textfield',
+    '#title' => t('Server password'),
+    '#default_value' => $node->server_password,
+    '#required' => FALSE, // 'local file' does not require a password
+    '#description' => t('Enter the password for logging into the mail server and downloading mailing list messages.  This field can be left blank only if you will be obtaining mailing list messages from a local file.')
+  );
+
+  $form['server']['mailbox'] = array('#type' => 'textfield',
+    '#title' => t('Mailbox'),
+    '#default_value' => isset($node->mailbox) ? $node->mailbox : 'INBOX',
+    '#required' => TRUE,
+    '#description' => t('Enter the full path to your mailbox.  If connecting to a mail server with POP3 or IMAP the mailbox path will usually be <em>INBOX</em>.  If obtaining mail from a local file you should enter the absolute path to your mailbox, for example <em>/var/spool/mail/sample</em>. (NOTE: Some versions of PHP\'s IMAP support are configured to not allow paths starting with <em>/</em> or containing <em>..</em> or <em>~</em>.  If you get an error about a file not existing that clearly does, try using paths relative to your mail directory.)')
+  );
+
+  $form['server']['protocol'] = array('#type' => 'radios',
+    '#title' => t('Connection protocol'),
+    '#default_value' => isset($node->protocol) ? $node->protocol : MAILARCHIVE_PROTOCOL_POP3,
+    '#options' => array(MAILARCHIVE_PROTOCOL_POP3 => 'pop3', MAILARCHIVE_PROTOCOL_POP3S => 'secure pop3', MAILARCHIVE_PROTOCOL_IMAP => 'imap', MAILARCHIVE_PROTOCOL_IMAPS => 'secure imap', MAILARCHIVE_PROTOCOL_FILE => 'local file'),
+    '#required' => TRUE,
+    '#description' => t('Select the protocol used to obtain mailing list messages from your mail server.')
+  );
+
+  $form['server']['port'] = array('#type' => 'textfield',
+    '#title' => t('Connection port'),
+    '#default_value' => isset($node->port) ? $node->port : 110,
+    '#required' => FALSE, // 'local file' does not require a port
+    '#description' => t('The remote port on the mail server that we connect to when downloading mailing list messages.  If connecting with POP3 this is usally port 110.  If connecting with Secure POP3 (pop3s) this is sually port 995.  If connecting with IMAP this is usually port 143.  If connecting with Secure IMAP (imaps) this is usually port 993.  This field can be left blank only if you will be obtaining mailing list messages from a local file.')
+  );
+
+  $form['server']['delete_read'] = array('#type' => 'radios',
+    '#title' => t('Delete messages'),
+    '#default_value' => isset($node->delete_read) ? $node->delete_read : 1,
+    '#options' => array(1 => t('Delete messages after downloading.'), 0 => t('Do not delete messages after downloading.')),
+    '#description' => t('Select whether or not messages should be deleted from the mail server after they have been downloaded and archived.')
+  );
+
+  $form['performance'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Performance'),
+    '#collapsible' => TRUE,
+  );
+  $form['performance']['dedicated_table'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Dedicated table'),
+    '#description' => t('Check this box to move all of the message for this mailing list into their own table.  This action may take a long time to complete if there are already a lot of messages in this mailing list.  This action can not be undone -- once an archive is moved into its own table it can not be moved back into the shared table.'),
+    '#default_value' => isset($node->dedicated_table) ? $node->dedicated_table : FALSE,
+    '#disabled' => isset($node->dedicated_table) && $node->dedicated_table ? TRUE : FALSE,
+  );
+
+  return $form;
+}
+
+/**
+ * Perform validation on new mailing list archive subscriptions.
+ * 
+ * @param $form_id
+ * @param $edit
+ *  The node array.
+ */
+function mailarchive_node_form_validate($form, &$form_state) {
+  $node = (object)$edit;
+
+  if (preg_replace('/[^0-9a-zA-Z-_]/', '', $node->urlname) != $node->urlname) {
+    form_set_error('urlname', t('You have entered unsupported characters in the URL name.  You are only allowed to use 0-9, a-Z, - and _ in your URL name.'));
+  }
+
+  if ($node->protocol != MAILARCHIVE_PROTOCOL_FILE) {
+    // Server name is required for non-local files.
+    if (!$node->server_name) {
+      form_set_error('server_name', t('The connection protocol you have enabled requires that you specify a server name.'));
+    }
+    // Make sure we can resolve the hostname, and that a valid IP is entered.
+    elseif (gethostbyname($node->server_name) == $node->server_name) {
+      $converted_ip = ip2long($node->server_name);
+      if (long2ip($converted_ip) != $node->server_name) {
+        form_set_error('server_name', t('Unable to resolve mail server name <em>%server_name</em>, please verify that you have entered the name correctly.', array('%server_name' => $node->server_name)));
+      }
+    }
+    // Server username is required for non-local files.
+    if (!$node->server_username) {
+      form_set_error('server_username', t('The connection protocol you have enabled requires that you specify a server username.'));
+    }
+    // Server password is required for non-local files.
+    if (!$node->server_password) {
+      form_set_error('server_password', t('The connection protocol you have enabled requires that you specify a server password.'));
+    }
+    // Server port is required for non-local files.
+    if (!$node->port) {
+      form_set_error('port', t('The connection protocol you have enabled requires that you specify a connection port.'));
+    }
+    // Display warnings if user configures non-standard port.
+    else {
+      switch ($node->protocol) {
+        case MAILARCHIVE_PROTOCOL_POP3:
+          if ($node->port != 110) {
+            drupal_set_message(t('Note that you have enabled the <em>pop3</em> connection protocol and specified a non-standard connection port <em>%port</em>.  The <em>pop3</em> protocol usually connects to port <em>110</em>.', array('%port' => $node->port)));
+          }
+          break;
+        case MAILARCHIVE_PROTOCOL_POP3S:
+          if ($node->port != 995) {
+            drupal_set_message(t('Note that you have enabled the <em>secure pop3</em> connection protocol and specified a non-standard connection port <em>%port</em>.  The <em>secure pop3</em> protocol usually connects to port <em>995</em>.', array('%port' => $node->port)));
+          }
+          break;
+        case MAILARCHIVE_PROTOCOL_IMAP:
+          if ($node->port != 143) {
+            drupal_set_message(t('Note that you have enabled the <em>imap</em> connection protocol and specified a non-standard connection port <em>%port</em>.  The <em>imap</em> protocol usually connects to port <em>443</em>.', array('%port' => $node->port)));
+          }
+          break;
+        case MAILARCHIVE_PROTOCOL_IMAPS:
+          if ($node->port != 993) {
+            drupal_set_message(t('Note that you have enabled the <em>secure imap</em> connection protocol and specified a non-standard connection port <em>%port</em>.  The <em>secure imap</em> protocol usually connects to port <em>993</em>.', array('%port' => $node->port)));
+          }
+          break;
+      }
+    }
+  }
+
+  // Display warning if user disables mailing list subscription.
+  if (!$node->subscription_status) {
+    drupal_set_message(t('This mailing list subscription is currently disabled, thus no new mailing list messages will be downloaded.'));
+  }
+}
+
+/**
+ * Drupal nodeapi _insert hook.  Saves mailarchive subscription information 
+ * into database when a new subscription is created.
+ *
+ * @param $node
+ *  The node object.
+ */
+function mailarchive_insert($node) {
+  db_query("INSERT INTO {mailarchive_subscriptions} (nid, created, urlname, server_name, server_username, server_password, mailbox, protocol, port, delete_read, subscription_status, dedicated_table) VALUES (%d, %d, '%s', '%s', '%s', '%s', '%s', %d, %d, %d, %d, %d)", $node->nid, time(), $node->urlname, $node->server_name, $node->server_username, $node->server_password, $node->mailbox, $node->protocol, $node->port, $node->delete_read, $node->subscription_status, $node->dedicated_table);
+  mailarchive_validate_dedicated_table($node);
+}
+
+/**
+ * Drupal nodeapi _load hook.  Loads mailarchive subscription information 
+ * from database.
+ *
+ * @param $node
+ *  The node object.
+ *
+ * @return
+ *  The subscription object.
+ */
+function mailarchive_load($node) {
+  return db_fetch_object(db_query('SELECT * FROM {mailarchive_subscriptions} WHERE nid = %d', $node->nid));
+}
+
+/**
+ * Drupal nodeapi _update hook.  Updates mailarchive subscription information 
+ * in database.
+ *
+ * @param $node
+ *  The node object.
+ */
+function mailarchive_update($node) {
+  db_query("UPDATE {mailarchive_subscriptions} SET urlname = '%s',server_name = '%s', server_username = '%s', server_password = '%s', mailbox = '%s', protocol = %d, port = %d, delete_read = %d, subscription_status = %d, dedicated_table = %d WHERE nid = %d", $node->urlname, $node->server_name, $node->server_username, $node->server_password, $node->mailbox, $node->protocol, $node->port, $node->delete_read, $node->subscription_status, $node->dedicated_table, $node->nid);
+  mailarchive_validate_dedicated_table($node);
+}
+
+/**
+ * Drupal nodeapi _delete hook.  Delete mailarchive subscription information 
+ * from database.
+ *
+ * @param $node
+ *  The node object.
+ */
+function mailarchive_delete($node) {
+  $result = db_query('SELECT sid, nid FROM {mailarchive_subscriptions} WHERE nid = %d', $node->nid);
+  while ($subscription = db_fetch_object($result)) {
+    _mailarchive_delete_subscription($subscription->sid);
+  }
+}
+
+/**
+ * Drupal _form_alter() hook.
+ */
+function mailarchive_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'taxonomy_form_vocabulary') {
+    // Remove taxonomy form options not applicable for mailing list archives.
+    if ($form['vid']['#value'] == _mailarchive_get_vid()) {
+      $form['help_mailarchive_vocab'] = array(
+        '#value' => t('This vocabulary was automatically created for use with mailing list archives.  Only applicable options are available.'),
+        '#weight' => -1
+      );
+      $form['nodes']['mailarchive'] = array('#type' => 'checkbox',
+        '#title' => t('mailing list archive'),
+        '#value' => 1,
+        '#attributes' => array('disabled' => ''),
+        '#description' => t('Type <em>mailing list archive</em> is required to use this vocabulary.')
+      );
+      $form['hierarchy'] = array('#type' => 'value', '#value' => 1);
+      $form['required'] = array('#type' => 'value', '#value' => 1);
+      unset($form['relations']);
+      unset($form['tags']);
+      unset($form['multiple']);
+    }
+    else {
+      unset($form['nodes']['mailarchive']);
+    }
+  }
+  else if ($form_id == 'mailarchive_admin_settings') {
+    $form['general']['mailarchive_filter_format']['#title'] = t('Message body format');
+    $form['general']['mailarchive_filter_format']['#description'] = t('Select which format filter you wish to apply when displaying mail archive message bodies.');
+  }
+}
+
+/********************************/
+
+/**
+ * Display the mailarachive administrative overview page, listing all
+ * configured mailing list subscriptions.
+ *
+ * @return
+ *  A table with all mailing list subscriptions.
+ */
+function mailarchive_admin_overview() {
+  $header = array(t('name'), t('messages'), t('last message'), t('last attempt'), t('status'), t('Operations'));
+  $tree = taxonomy_get_tree(_mailarchive_get_vid());
+  if ($tree) {
+    foreach ($tree as $term) {
+      if (in_array($term->tid, variable_get('mailarchive_categories', array()))) {
+        $rows[] = array(str_repeat('-', $term->depth) .' '. check_plain($term->name), '', '', '', '', l(t('edit category'), "admin/content/mailarchive/edit/category/$term->tid"));
+        $result = db_query('SELECT s.sid, n.nid, n.title, s.message_count, s.last_message, s.last_attempt, s.subscription_status, s.urlname, t.tid FROM {term_node} t INNER JOIN {node} n ON t.nid = n.nid INNER JOIN {mailarchive_subscriptions} s ON n.nid = s.nid WHERE t.tid = %d', $term->tid);
+        while ($subscription = db_fetch_object($result)) {
+          $rows[] = array(
+            str_repeat('-', $term->depth + 1) .' '. l(htmlspecialchars($subscription->title), "mailarchive/$subscription->urlname"),
+            (int)$subscription->message_count,
+            $subscription->last_message ? t('%time ago', array('%time' => _mailarchive_time_since($subscription->last_message))) : t('no messages'),
+            $subscription->last_attempt ? t('%time ago', array('%time' => _mailarchive_time_since($subscription->last_attempt))) : t('none'),
+            $subscription->subscription_status ? t('enabled') : t('disabled'),
+            l(t('edit'), "node/$subscription->nid/edit") .' | '.
+            l(t('fetch mail'), "admin/content/mailarchive/$subscription->urlname/fetch") .' | '.
+            l(t('update'), "admin/content/mailarchive/$subscription->urlname/update")
+          );
+        }
+      }
+    }
+  }
+  else {
+    drupal_set_message('The mailarchive module currently requires that you create a taxonomy vocabulary for use with mailing list archives.');
+  }
+  return theme('table', $header, $rows);
+}
+
+/**
+ * Returns a form for adding a mailing list category.
+ */
+function mailarchive_admin_category_form($form_state, $tid = NULL) {
+  if ($_POST['op'] == t('Delete') || $_POST['edit']['confirm']) {
+    return (_mailarchive_confirm_category_delete($category['tid']));
+  }
+
+  if (isset($tid) && $tid) {
+    $category = (array)taxonomy_get_term($tid);
+  }
+
+  $form = array();
+
+  $form['name'] = array('#type' => 'textfield',
+    '#title' => t('Category name'),
+    '#default_value' => $category['name'],
+    '#maxlength' => 64,
+    '#required' => TRUE,
+    '#description' => t('Specify a mailing list archive category name.')
+  );
+
+  $form['description'] = array('#type' => 'textarea',
+    '#title' => t('Description'),
+    '#default_value' => $category['description'],
+    '#description' => t('Optionally describe this mailing list category.  This description will be displayed to users browsing your categorized mailing lists.')
+  );
+    
+  $form['parent']['#tree'] = TRUE;
+  $form['parent'][0] = _mailarchive_parent_select($category['tid'], t('Parent'));
+
+  $form['weight'] = array('#type' => 'weight',
+    '#title' => t('Weight'),
+    '#default_value' => $category['weight'],
+    '#description' => t('When listing categories, those with lighter (smaller) weights get listed before categories with heavier (larger) weights.  Categories with equal weights are sorted alphabetically.')
+  );
+
+  $form['vid'] = array('#type' => 'hidden',
+    '#value' => _mailarchive_get_vid());
+
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Submit'));
+
+  if ($category['tid']) {
+    $form['delete'] = array('#type' => 'submit', '#value' => t('Delete'));
+    $form['tid'] = array('#type' => 'value', '#value' => $category['tid']);
+  }
+
+  return $form;
+}
+
+function mailarchive_admin_category_form_submit($form, &$form_state) {
+  $status = taxonomy_save_term($form_state['values']);
+  switch ($status) {
+    case SAVED_NEW:
+      $categories = variable_get('mailarchive_categories', array());
+      $categories[] = $form_state['values']['tid'];
+      variable_set('mailarchive_categories', $categories);
+      drupal_set_message(t('Created new category %term.', array('%term' => $form_state['values']['name'])));
+      break;
+    case SAVED_UPDATED:
+      drupal_set_message(t('The category @term has been updated.', array('@term' => theme('placeholder', $form_state['values']['name']))));
+  }
+  return 'admin/content/mailarchive';
+}
+
+/**
+ * Update statistics about mailing list.
+ */
+function mailarchive_admin_update() {
+  $urlname = arg(3);
+  $sid = (int)db_result(db_query("SELECT sid FROM {mailarchive_subscriptions} WHERE urlname = '%s'", $urlname));
+  if ($sid) {
+    $node = db_fetch_object(db_query('SELECT nid FROM {mailarchive_subscriptions} WHERE sid = %d', $sid));
+    $node = node_load($node->nid);
+    if ($node->dedicated_table) {
+      $table = 'ma__'. str_replace('-', '_', $node->urlname);
+      $count = db_result(db_query('SELECT COUNT(*) FROM {'. $table .'}'));
+      $last = db_result(db_query('SELECT MAX(received) FROM {'. $table .'} WHERE received < %d', time()));
+    }
+    else {
+      $count = db_result(db_query('SELECT COUNT(*) FROM {mailarchive_messages} WHERE sid = %d', $sid));
+      $last = db_result(db_query('SELECT MAX(received) FROM {mailarchive_messages} WHERE sid = %d AND received < %d', $sid, time()));
+    }
+    db_query('UPDATE {mailarchive_subscriptions} SET message_count = %d, last_message = %d WHERE sid = %d', $count, $last, $sid);
+    drupal_set_message(t('Mailing list %list updated.', array('%list' => $urlname)));
+  }
+  else {
+    drupal_set_message(t('Mailing list %list does not exist.', array('%list' => $urlname)), 'error');
+  }
+  drupal_goto('admin/content/mailarchive');
+}
+
+/**
+ * Wrapper for fetching messages from administrative interface, provide
+ * access control.
+ */
+function mailarchive_admin_fetch($urlname) {
+  $sid = (int)db_result(db_query("SELECT sid FROM {mailarchive_subscriptions} WHERE urlname = '%s'", $urlname));
+  if ($sid) {
+    _mailarchive_fetch($sid);
+  }
+  else {
+    drupal_set_message(t('Mailing list %list does not exist.', array('%list' => arg(3))), 'error');
+  }
+  drupal_goto('admin/content/mailarchive');
+}
+
+/****** helper functions ******/
+
+/**
+ * Load all subscription information.
+ * 
+ * @param $sid
+ *  Subscription id.
+ *
+ * @return
+ *  Subscription object.
+ */
+function _mailarchive_subscription_load($sid) {
+  static $subscriptions = array();
+  if (!isset($subscriptions[$sid])) {
+    $subscriptions[$sid] = db_fetch_object(db_query('SELECT s.*, n.title FROM {mailarchive_subscriptions} s INNER JOIN {node} n ON s.nid = n.nid WHERE sid = %d', $sid));
+  }
+  return $subscriptions[$sid];
+}
+
+/**
+ * Retrieve the sid
+ */
+function _mailarchive_sid($mailarchive) {
+  static $sids = array();
+  if (!isset($sids[$mailarchive])) {
+    $sids[$mailarchive] = db_result(db_query("SELECT sid FROM {mailarchive_subscriptions} WHERE urlname = '%s'", $mailarchive));
+  }
+  return $sids[$mailarchive];
+}
+
+/**
+ * Returns a select box with all available parent terms.
+ */
+function _mailarchive_parent_select($tid, $title) {
+  $parents = taxonomy_get_parents($tid);
+  if ($parents) {
+    $parent = array_shift($parents);
+    $parent = $parent->tid;
+  }
+  else {
+    $parent = 0;
+  }
+
+  $children = taxonomy_get_tree(_mailarchive_get_vid(), $tid);
+
+  // A term can't be a child of itself, nor of one if its children.
+  foreach ($children as $child) {
+    $exclude[] = $child->tid;
+  }
+  $exclude[] = $tid;
+
+  $tree = taxonomy_get_tree(_mailarchive_get_vid());
+  $options[0] = '<'. t('root') .'>';
+  if ($tree) {
+    foreach ($tree as $term) {
+      if (!in_array($term->tid, $exclude)) {
+        $options[$term->tid] = str_repeat('-', $term->depth) . $term->name;
+      }
+    }
+  }
+
+  return array('#type' => 'select',
+    '#title' => $title,
+    '#default_value' => $parent,
+    '#options' => $options,
+    '#description' => t('Mailing list categories can be placed at the top (root) level or within another category.'),
+    '#required' => TRUE
+  );
+}
+
+/**
+ * Returns the vocabulary id used by mailing list archives, creating it if
+ * necessary.
+ */
+function _mailarchive_get_vid() {
+  $vid = variable_get('mailarchive_vid', '');
+  if (empty($vid)) {
+    // No vid stored in the variables table, check if one even exists.
+    $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE module = '%s'", 'mailarchive'));
+    if (!$vid) {
+      // No vid, so we create one.
+      $edit = array('name' => 'Mailing list archives', 'multiple' => 0, 'required' => 1, 'hierarchy' => 1, 'relations' => 0, 'module' => 'mailarchive', 'nodes' => array('mailarchive' => 1));
+      taxonomy_save_vocabulary($edit);
+      $vid = $edit['vid'];
+    }
+    // Save the vid for next time.
+    variable_set('mailarchive_vid', $vid);
+  }
+
+  return $vid;
+}
+
+/**
+ * Returns a confirmation page when deleting a category and all of its mailing
+ * list archives.
+ */
+function _mailarchive_confirm_category_delete($tid) {
+  $term = taxonomy_get_term($tid);
+
+  $form['tid'] = array('#type' => 'value', '#value' => $tid);
+  $form['name'] = array('#type' => 'value', '#value' => $term->name);
+
+  return confirm_form('mailarchive_confirm_category_delete', $form, t('Are you sure you want to delete the category %name?', array('%name' => theme('placeholder', $term->name))), 'admin/content/mailarchive', t('Deleting a category will delete all of the mailing list archives within the category and their messages.  This action may take a while, and cannot be undone.'), t('Delete'), t('Cancel'));
+}
+
+/**
+ * Delete category and all contained mailing lists and their messages.
+ */
+function mailarchive_confirm_category_delete_submit($form, &$form_state) {
+  $result = db_query('SELECT s.sid, n.nid, n.title, t.tid FROM {term_node} t INNER JOIN {node} n ON t.nid = n.nid INNER JOIN {mailarchive_subscriptions} s ON n.nid = s.nid WHERE t.tid = %d', $form_state['values']['tid']);
+  while ($subscription = db_fetch_object($result)) {
+    _mailarchive_delete_subscription($subscription->sid);
+    drupal_set_message(t('The mailing list archive %archive and all its messages have been deleted.', array('%archive' => $subscription->title)));
+  }
+
+  taxonomy_del_term($form_state['values']['tid']);
+  drupal_set_message(t('The category %term and all contained mailing lists have been deleted.', array('%term' => theme('placeholder', $form_state['values']['name']))));
+  watchdog('mailarchive', 'mailarchive: deleted %term category.', array('%term' => theme('placeholder', $form_state['values']['name'])));
+
+  return 'admin/content/mailarchive';
+}
+
+/**
+ * Delete a subscription and all its messages.
+ */
+function _mailarchive_delete_subscription($sid) {
+  $node = db_fetch_object(db_query('SELECT nid FROM {mailarchive_subscriptions} WHERE sid = %d', $subscription->sid));
+  $node = node_load($node->nid);
+  $table = 'ma__'. str_replace('-', '_', $node->urlname);
+  $subtable = $table .'_addresses';
+  $subtable2 = $table .'_attachments';
+
+  // Delete all attachments.
+  if ($node->dedicated_table) {
+    $result = db_query('SELECT mid, sid, attachments, attachments_path FROM {'. $subtable2 .'} WHERE attachments > 0');
+  }
+  else {
+    $result = db_query('SELECT mid, sid, attachments, attachments_path FROM {mailarchive_messages} WHERE sid = %d AND attachments > 0', $sid);
+  }
+  while ($message = db_fetch_object($result)) {
+    if ($message->attachments) {
+      if ($node->dedicated_table) {
+        $result2 = db_query('SELECT name FROM {'. $subtable2 .'} WHERE mid = %d', $message->mid);
+      }
+      else {
+        $result2 = db_query('SELECT name FROM {mailarchive_messages_attachments} WHERE sid = %d AND mid = %d', $sid, $message->mid);
+      }
+      while ($attachment = db_fetch_object($result2)) {
+        @unlink($message->attachments_path .'/'. $attachment->name);
+        @rmdir($message->attachments_path);
+        // TODO: delete the rest of the empty directories
+        // It might just be better to recursively delete from the top
+      }
+    }
+  }
+
+  if ($node->dedicated_table) {
+    db_query('DROP TABLE {'. $table .'}');
+    db_query('DROP TABLE {'. $subtable .'}');
+    db_query('DROP TABLE {'. $subtable2 .'}');
+    db_query('DELETE FROM {mailarchive_subscriptions} WHERE sid = %d', $sid);
+  }
+  else {
+    db_query('DELETE FROM {mailarchive_messages_attachments} WHERE sid = %d', $sid);
+    db_query('DELETE FROM {mailarchive_messages_addresses} WHERE sid = %d', $sid);
+    db_query('DELETE FROM {mailarchive_messages} WHERE sid = %d', $sid);
+    db_query('DELETE FROM {mailarchive_subscriptions} WHERE sid = %d', $sid);
+  }
+}
+
+/**
+ * Save message to mailing list archive.
+ * 
+ * @param $subscription
+ * @param $stream
+ * @param $header
+ * @param $message
+ *
+ * @return
+ *  If successfully saved, the message id if the new message.
+ */
+function _mailarchive_message_save($subscription, $stream, $header, $message) {
+  // TODO: lock mailarchive_messages table
+  
+  // Gather some data for optimizing queries that don't need to span the entire subscription but can instead be limited to the
+  // current week.
+  $year = date('Y', $header->udate);
+  $month = date('m', $header->udate);
+  $day = date('d', $header->udate);
+  $spans_year = $spans_month = FALSE;
+  if (($day - 7) < 1) {
+    if (($month -1) < 1) {
+      $spans_year = TRUE;
+    }
+    else {
+      $spans_month = TRUE;
+    }
+  }
+
+  // Attempt to grab the message reference, if existing
+  $reference = rtrim(ltrim(substr(strrchr($header->reference, '<'), 0), '<'), '>');
+
+  // Attempt to grab the message_id (everything within the first set of <>'s)
+  preg_match("/<[^<^>]*/", $header->message_id, $message_id);
+  $message_id = ltrim($message_id[0], '<');
+
+  // The in_reply_to header line can contain multiple tags that look like a
+  // message ID, but only one of them will be valid.  We grab all of them,
+  // holding onto them until we figure out which one is actually valid.
+  // If it's not immediately obvious which one is valid (for example, if
+  // the current message arrived before the message it was replying to) we
+  // save all possible matches in the database as a comma seperated list and
+  // set the multiple_in_reply_to bit.
+  preg_match_all("/<[^<^>]*/", $header->in_reply_to, $in_reply_tos);
+  $in_reply_to = array();
+  foreach ($in_reply_tos[0] as $irt) {
+    $in_reply_to[] = ltrim($irt, '<');
+  }
+  if (count($in_reply_to) > 1) {
+    $multiple_in_reply_to = 1;
+  }
+  else {
+    // There's only one in_reply_to (or none)
+    $multiple_in_reply_to = 0;
+    $in_reply_to = implode(',', $in_reply_to);
+  }
+
+  $node = db_fetch_object(db_query('SELECT nid FROM {mailarchive_subscriptions} WHERE sid = %d', $subscription->sid));
+  $node = node_load($node->nid);
+  $table = 'ma__'. str_replace('-', '_', $node->urlname);
+  $subtable = $table .'_addresses';
+  if ($node->dedicated_table) {
+    $duplicate_message = db_result(db_query('SELECT message_id FROM {'. $table ."} WHERE message_id = '%s'", $message_id));
+  }
+  else {
+    $duplicate_message = db_result(db_query("SELECT sid FROM {mailarchive_messages} WHERE message_id = '%s' AND sid = %d", $message_id, $subscription->sid));
+  }
+  if ($duplicate_message) {
+    // We've downloaded this message before, maybe we're re-indexing.  Ignore.
+    return 0;
+  }
+
+  // Calculate the current thread_id -- see comment_render() in the comment
+  // module for details on how this works.
+  if ($reference || $in_reply_to) {
+    if ($multiple_in_reply_to) {
+      foreach ($in_reply_to as $reply_message_id) {
+        // We were doing a max() on the thread_id and sub_thread_id which seems
+        // odd -- and was also very inefficient.  On the off chance that we see
+        // a duplicate message_id, we'll just use LIMIT 1.
+        if ($node->dedicated_table) {
+          $parent = db_fetch_object(db_query('SELECT thread_id, sub_thread_id FROM {'. $table ."} WHERE message_id = '%s' LIMIT 1", $reply_message_id));
+        }
+        else {
+          $parent = db_fetch_object(db_query("SELECT thread_id, sub_thread_id FROM {mailarchive_messages} WHERE sid = %d and message_id = '%s' LIMIT 1", $subscription->sid, $reply_message_id));
+        }
+        if ($parent->thread_id) {
+          // We found a valid parent that we are in_reply_to.
+          $in_reply_to = $reply_message_id;
+          $multiple_in_reply_to = 0;
+        }
+      }
+    }
+    else if ($in_reply_to) {
+      // Look for parent referenced in in_reply_to.
+      if ($node->dedicated_table) {
+        $parent = db_fetch_object(db_query('SELECT thread_id, sub_thread_id FROM {'. $table ."} WHERE message_id = '%s' LIMIT 1", $in_reply_to));
+      }
+      else {
+        $parent = db_fetch_object(db_query("SELECT thread_id, sub_thread_id FROM {mailarchive_messages} WHERE sid = %d AND message_id = '%s' LIMIT 1", $subscription->sid, $in_reply_to));
+      }
+    }
+    else {
+      // Look for parent referenced in reference.
+      // TODO: This one is going to be expensive... we should query a smaller section first, then slowly expand.
+      drupal_set_message('TODO: We hit an expensive query, optimize it! A22C');
+      if ($node->dedicated_table) {
+        $parent = db_fetch_object(db_query("SELECT thread_id, sub_thread_id FROM {". $table. "} WHERE message_id LIKE '%%%s%%'", $reference));
+      }
+      else {
+        $parent = db_fetch_object(db_query("SELECT thread_id, sub_thread_id FROM {mailarchive_messages} WHERE sid = %d AND message_id LIKE '%%%s%%'", $subscription->sid, $reference));
+      }
+    }
+  }
+
+  if ($parent->thread_id) {
+    $thread_id = $parent->thread_id;
+    $parent_subid = (string)rtrim((string)$parent->sub_thread_id, '/');
+    // We know the last subid at the parent level, find it at our level.
+    if ($node->dedicated_table) {
+      $previous = db_result(db_query('SELECT MAX(sub_thread_id) FROM {'. $table ."} WHERE thread_id = '%s' AND sub_thread_id LIKE '%s.%%'", $thread_id, $parent_subid));
+    }
+    else {
+      $previous = db_result(db_query("SELECT MAX(sub_thread_id) FROM {mailarchive_messages} WHERE sid = %d AND thread_id = '%s' AND sub_thread_id LIKE '%s.%%'", $subscription->sid, $thread_id, $parent_subid));
+    }
+    if ($previous == '') {
+      // We're the first subid at our level.
+      $sub_thread_id = $parent_subid .'.1/';
+    }
+    else {
+      // The general idea is explained in function comment_render() in the
+      // core comment module.  We modify the logic by adding a sub_thread_id
+      // which significantly increase the number of threads that can be
+      // tracked.
+      $previous = rtrim($previous, '/');
+      $parts = explode('.', $previous);
+      $parent_depth = count(explode('.', $parent_subid));
+      $last = $parts[$parent_depth];
+
+      $decimals = (string)substr($last, 0, strlen($last) - 1);
+      $units = substr($last, -1, 1);
+      $units++;
+      if ($units == 10) {
+        $units = '90';
+      }
+      $sub_thread_id = "$parent_subid.". $decimals.$units .'/';
+    }
+  }
+  else {
+    // This message has no parent.
+    if ($spans_year) {
+      // We're less than 7 days into the month of January, so search all of this
+      // January, and all of December the previous year.
+      if ($node->dedicated_table) {
+        $previous_id = db_result(db_query('SELECT MAX(thread_id) FROM {'. $table .'} WHERE (year = %d AND month = %d) OR (year = %d AND month = 12)', $year, $month, $year - 1));
+      }
+      else {
+        $previous_id = db_result(db_query('SELECT MAX(thread_id) FROM {mailarchive_messages} WHERE sid = %d AND ((year = %d AND month = %d) OR (year = %d AND month = 12))', $subscription->sid, $year, $month, $year - 1));
+      }
+    }
+    else if ($spans_month) {
+      // We're less than 7 days into the current months, so search all of this
+      // month and the previous month.
+      if ($node->dedicated_table) {
+        $previous_id = db_result(db_query('SELECT MAX(thread_id) FROM {'. $table .'} WHERE year = %d AND (month = %d OR month = %d)', $year, $month, $month - 1));
+      }
+      else {
+        $previous_id = db_result(db_query('SELECT MAX(thread_id) FROM {mailarchive_messages} WHERE sid = %d AND year = %d AND (month = %d OR month = %d)', $subscription->sid, $year, $month, $month - 1));
+      }
+    }
+    else {
+      // We're more than 7 days into the current month, so search only this month.
+      if ($node->dedicated_table) {
+        $previous_id = db_result(db_query('SELECT MAX(thread_id) FROM {'. $table .'} WHERE year = %d AND month = %d', $year, $month));
+      }
+      else {
+        $previous_id = db_result(db_query('SELECT MAX(thread_id) FROM {mailarchive_messages} WHERE sid = %d AND year = %d AND month = %d', $subscription->sid, $year, $month));
+      }
+    }
+    $thread_id = (int)++$previous_id;
+    $sub_thread_id = '1/';
+  }
+
+  if ($multiple_in_reply_to) {
+    // in_reply_to is an array, collapse it into a comma seperated list so we
+    // can store it in the database.
+    if (is_array($in_reply_to)) {
+      $in_reply_to = implode(',', $in_reply_to);
+    }
+    else {
+      $multiple_in_reply_to = 0;
+    }
+  }
+
+  // Grab the message body.
+  $structure = imap_fetchstructure($stream, $message);
+  $body = _mailarchive_get_message_body($stream, $message, $structure);
+
+  $mailfrom = $header->from;
+  if ($mailfrom[0]->personal) {
+    $mailfrom = _mailarchive_mime_decode($mailfrom[0]->personal);
+  }
+  else {
+    $mailfrom = _mailarchive_mime_decode($mailfrom[0]->mailbox);
+  }
+
+  // Save the new message.
+  if ($node->dedicated_table) {
+    db_query('INSERT INTO {'. $table ."} (created, received, year, month, day, headers, message_id, reference, in_reply_to, multiple_in_reply_to, thread_id, sub_thread_id, mailfrom, subject, body, attachments) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d, %d, '%s', '%s', '%s', '%s', %d)", time(), $header->udate, $year, $month, $day, serialize($header), $message_id, $reference, $in_reply_to, $multiple_in_reply_to, $thread_id, $sub_thread_id, $mailfrom, _mailarchive_mime_decode(substr($header->subject, 0, 255)), $body, 0);
+  }
+  else {
+    db_query("INSERT INTO {mailarchive_messages} (sid, created, received, year, month, day, headers, message_id, reference, in_reply_to, multiple_in_reply_to, thread_id, sub_thread_id, mailfrom, subject, body, attachments) VALUES (%d, %d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d, %d, '%s', '%s', '%s', '%s', %d)", $subscription->sid, time(), $header->udate, $year, $month, $day, serialize($header), $message_id, $reference, $in_reply_to, $multiple_in_reply_to, $thread_id, $sub_thread_id, $mailfrom, _mailarchive_mime_decode(substr($header->subject, 0, 255)), $body, 0);
+  }
+  if ($node->dedicated_table) {
+    $mid = db_last_insert_id($table, 'mid');
+  }
+  else {
+    $mid = db_last_insert_id('mailarchive_messages', 'mid');
+  }
+  if (module_exists('mailarchive_cache')) {
+    mailarchive_cache_dirty(array('sid' => $subscription->sid, 'mid' => $mid, 'thread_id' => $thread_id, 'year' => $year, 'month' => $month, 'day' => $day));
+  }
+
+  // If enabled, download any attachments.
+  if (variable_get('mailarchive_save_attachments', 0)) {
+    $parts = count($structure->parts);
+    if ($parts >= 2) {
+      $attachments = _mailarchive_extract_attachments($subscription, $mid, $stream, $message, $structure, $parts);
+    }
+  }
+
+  // Save header information to allow for searching
+  foreach (array('from', 'to', 'cc') as $header_type) {
+    if ($header->$header_type) {
+      foreach ($header->$header_type as $id => $address) {
+        if ($node->dedicated_table) {
+          $existing = db_result(db_query('SELECT mid FROM {'. $subtable ."} WHERE mid = %d AND mailbox = '%s' AND host = '%s' AND address_type = '%s'", $mid, _mailarchive_mime_decode($address->mailbox), _mailarchive_mime_decode($address->host), $header_type));
+        }
+        else {
+          $existing = db_result(db_query("SELECT sid FROM {mailarchive_messages_addresses} WHERE sid = %d AND mid = %d AND mailbox = '%s' AND host = '%s' AND address_type = '%s'", $subscription->sid, $mid, _mailarchive_mime_decode($address->mailbox), _mailarchive_mime_decode($address->host), $header_type));
+        }
+        if (!$existing) {
+          // Prevent duplicates.
+          if ($node->dedicated_table) {
+            db_query('INSERT INTO {'. $subtable ."} (mid, name, mailbox, host, address, address_type) VALUES(%d, '%s', '%s', '%s', '%s', '%s')", $mid, _mailarchive_mime_decode($address->personal), _mailarchive_mime_decode($address->mailbox), _mailarchive_mime_decode($address->host), _mailarchive_mime_decode($address->mailbox) .'@'. _mailarchive_mime_decode($address->host) , $header_type);
+          }
+          else {
+            db_query("INSERT INTO {mailarchive_messages_addresses} (sid, mid, name, mailbox, host, address, address_type) VALUES(%d, %d, '%s', '%s', '%s', '%s', '%s')", $subscription->sid, $mid, _mailarchive_mime_decode($address->personal), _mailarchive_mime_decode($address->mailbox), _mailarchive_mime_decode($address->host), _mailarchive_mime_decode($address->mailbox) .'@'. _mailarchive_mime_decode($address->host) , $header_type);
+          }
+        }
+      }
+    }
+  }
+
+  // Check if replies to this messages are already archived, message may have
+  // arrived out of order.  To optimize query, we only search 1-5 weeks worth
+  // of data (a minimum of 7 days).
+  if ($spans_year) {
+    // We're less than 7 days into the month of January, so search all of this
+    // January, and all of December the previous year.
+    if ($node->dedicated_table) {
+      $child = db_fetch_object(db_query('SELECT thread_id FROM {'. $table ."} WHERE (reference LIKE '%%%s%%' OR in_reply_to LIKE '%%%s%%') AND ((year = %d AND month = %d) OR (year = %d AND month = 12))", $message_id, $message_id, $year, $month, $year - 1));
+    }
+    else {
+      $child = db_fetch_object(db_query("SELECT thread_id FROM {mailarchive_messages} WHERE sid = %d AND (reference LIKE '%%%s%%' OR in_reply_to LIKE '%%%s%%') AND ((year = %d AND month = %d) OR (year = %d AND month = 12))", $subscription->sid, $message_id, $message_id, $year, $month, $year - 1));
+    }
+  }
+  else if ($spans_month) {
+    // We're less than 7 days into the current months, so search all of this
+    // month and the previous month.
+    if ($node->dedicated_table) {
+      $child = db_fetch_object(db_query('SELECT thread_id FROM {'. $table ."} WHERE (reference LIKE '%%%s%%' OR in_reply_to LIKE '%%%s%%') AND year = %d AND (month = %d OR month = %d)", $message_id, $message_id, $year, $month, $month - 1));
+    }
+    else {
+      $child = db_fetch_object(db_query("SELECT thread_id FROM {mailarchive_messages} WHERE sid = %d AND (reference LIKE '%%%s%%' OR in_reply_to LIKE '%%%s%%') AND year = %d AND (month = %d OR month = %d)", $subscription->sid, $message_id, $message_id, $year, $month, $month - 1));
+    }
+  }
+  else {
+    // We're more than 7 days into the current month, so search only this
+    // month.  We're assuming that a message won't get lost for more than 7
+    // days.
+    if ($node->dedicated_table) {
+      $child = db_fetch_object(db_query('SELECT thread_id FROM {'. $table ."} WHERE (reference LIKE '%%%s%%' OR in_reply_to LIKE '%%%s%%') AND year = %d AND month = %d", $message_id, $message_id, $year, $month));
+    }
+    else {
+      $child = db_fetch_object(db_query("SELECT thread_id FROM {mailarchive_messages} WHERE sid = %d AND (reference LIKE '%%%s%%' OR in_reply_to LIKE '%%%s%%') AND year = %d AND month = %d", $subscription->sid, $message_id, $message_id, $year, $month));
+    }
+  }
+  
+  if ($child->thread_id) {
+    _mailarchive_rethread($subscription->sid, $child->thread_id);
+  }
+
+  return $mid;
+}
+
+/**
+ * When an email arrives out of order, we have to reindex the thread so that
+ * the resulting email thread is displayed in the proper order.
+ *
+ * @param $sid
+ *  The mailing list subscription id.
+ * @param $thread_id
+ *  The thread that needs to be rebuilt.
+ */
+function _mailarchive_rethread($sid, $thread_id) {
+  $node = db_fetch_object(db_query('SELECT nid FROM {mailarchive_subscriptions} WHERE sid = %d', $sid));
+  $node = node_load($node->nid);
+  $table = 'ma__'. str_replace('-', '_', $node->urlname);
+  // Find the parent of this thread, if it exists.
+  if ($node->dedicated_table) {
+    $parent = db_fetch_object(pager_query('SELECT mid, message_id, reference, in_reply_to, multiple_in_reply_to, thread_id, sub_thread_id FROM {'. $table ."} WHERE AND thread_id = $thread_id", 1));
+  }
+  else {
+    $parent = db_fetch_object(pager_query("SELECT mid, message_id, reference, in_reply_to, multiple_in_reply_to, thread_id, sub_thread_id FROM {mailarchive_messages} WHERE sid = $sid AND thread_id = $thread_id", 1));
+  }
+  if (!$parent->mid) {
+    // No message exists with this thread_id, it must have been deleted 
+    // underneath us.
+    return;
+  }
+
+  $child = $parent;
+  while ($child->in_reply_to || $child->reference) {
+    if ($child->multiple_in_reply_to) {
+      $in_reply_to = explode(',', $child->in_reply_to);
+      foreach ($in_reply_to as $i) {
+        if ($node->dedicated_table) {
+          $parent = db_fetch_object(db_query('SELECT mid, message_id, reference, in_reply_to, multiple_in_reply_to, thread_id, sub_thread_id, year, month, day FROM {'. $table .'} WHERE thread_id = %d', $i));
+        }
+        else {
+          $parent = db_fetch_object(db_query('SELECT mid, message_id, reference, in_reply_to, multiple_in_reply_to, thread_id, sub_thread_id, year, month, day FROM {mailarchive_messages} WHERE sid = %d AND thread_id = %d', $sid, $i));
+        }
+        if ($parent->thread_id) {
+          // We've located the valid in_reply_to.
+          if ($node->dedicated_table) {
+            db_query('UPDATE {'. $table ."} SET in_reply_to = '%s', multiple_in_reply_to = 0 WHERE mid = %d", $i, $parent->mid);
+          }
+          else {
+            db_query("UPDATE {mailarchive_messages} SET in_reply_to = '%s', multiple_in_reply_to = 0 WHERE sid = %d AND mid = %d", $i, $sid, $parent->mid);
+          }
+          if (module_exists('mailarchive_cache')) {
+            mailarchive_cache_dirty(array('sid' => $sid, 'mid' => $parent->mid, 'thread_id' => $parent->thread_id, 'year' => $parent->year, 'month' => $parent->month, 'day' => $parent->day));
+          }
+          break;
+        }
+      }
+    }
+    elseif ($child->in_reply_to) {
+      if ($node->dedicated_table) {
+        $parent = db_fetch_object(db_query('SELECT mid, message_id, reference, in_reply_to, thread_id, sub_thread_id FROM {'. $table ."} WHERE message_id = '%s'", $child->in_reply_to));
+      }
+      else {
+        $parent = db_fetch_object(db_query("SELECT mid, message_id, reference, in_reply_to, thread_id, sub_thread_id FROM {mailarchive_messages} WHERE sid = %d AND message_id = '%s'", $sid, $child->in_reply_to));
+      }
+    }
+    else {  // $child->reference
+      if ($node->dedicated_table) {
+        $parent = db_fetch_object(db_query('SELECT mid, message_id, reference, in_reply_to, thread_id, sub_thread_id FROM {'. $table ."} WHERE message_id = '%s'", $child->reference));
+      }
+      else {
+        $parent = db_fetch_object(db_query("SELECT mid, message_id, reference, in_reply_to, thread_id, sub_thread_id FROM {mailarhive_messages} WHERE sid = %d AND message_id = '%s'", $sid, $child->reference));
+      }
+    }
+
+    if ($parent->message_id) {
+      // TODO: What's the point of this?  $child isn't used anywhere...
+      $child = $parent;
+    }
+    else {
+      // We found the top of the thread.
+      $parent = $child;
+      $child = NULL;
+    }
+  }
+
+  // Rebuild the entire thread, use the parent's thread_id and start with a
+  // sub_thread_id of 1.
+  _mailarchive_rethread_recursive($sid, $parent->thread_id, '1', $parent);
+}
+
+/**
+ *  Recursively rebuild a mailing list thread.
+ *
+ * @param $sid
+ *   The subscription id.
+ * @param $thread_id
+ *   The thread id.
+ * @param $sub_thread_id
+ *   The sub-thread id.
+ * @param $parent
+ *   The parent object.
+ */
+function _mailarchive_rethread_recursive($sid, $thread_id, $sub_thread_id, $parent) {
+  static $history = array();
+
+  $node = db_fetch_object(db_query('SELECT nid FROM {mailarchive_subscriptions} WHERE sid = %d', $sid));
+  $node = node_load($node->nid);
+  $table = 'ma__'. str_replace('-', '_', $node->urlname);
+
+  if ($history[$parent->mid] == $sub_thread_id) {
+    // There's something wrong with this thread, it's pointing back to itself,
+    // we exit now as there's no good algorithm for threading an infinite loop.
+    return;
+  }
+  else {
+    $history[$parent->mid] = $sub_thread_id;
+  }
+
+  if ($node->dedicated_table) {
+    db_query("UPDATE {". $table ."} SET thread_id = %d, sub_thread_id = '%s/' WHERE message_id = '%s'", $thread_id, $sub_thread_id, $parent->message_id);
+  }
+  else {
+    db_query("UPDATE {mailarchive_messages} SET thread_id = %d, sub_thread_id = '%s/' WHERE sid = %d AND message_id = '%s'", $thread_id, $sub_thread_id, $sid, $parent->message_id);
+  }
+  if (module_exists('mailarchive_cache')) {
+    mailarchive_cache_dirty(array('sid' => $sid, 'mid' => $parent->mid, 'thread_id' => $thread_id, 'year' => $parent->year, 'month' => $parent->month, 'day' => $parent->day));
+  }
+
+  watchdog('mailarchive', "Finding children of: " . $sid);
+  // Find all children of the current parent.
+  $parent_subid = $sub_thread_id;
+  $sub_thread_id = $sub_thread_id .'.1';
+  $match = FALSE;
+  if ($node->dedicated_table) {
+    $queries = array('SELECT mid, message_id FROM {'. $table ."} WHERE reference LIKE '%%%s%%'", 'SELECT mid, message_id FROM {'. $table ."} WHERE in_reply_to LIKE '%%%s%%'");
+  }
+  else {
+    $queries = array("SELECT mid, message_id FROM {mailarchive_messages} WHERE sid = %d AND reference LIKE '%%%s%%'", "SELECT mid, message_id FROM {mailarchive_messages} WHERE sid = %d AND in_reply_to LIKE '%%%s%%'");
+  }
+  foreach ($queries as $sql) {
+    if ($node->dedicated_table) {
+      $result = db_query($sql, $parent->message_id);
+    }
+    else {
+      $result = db_query($sql, $sid, $parent->message_id);
+    }
+    // Rethread all children of the current parent.
+    while ($child = db_fetch_object($result)) {
+      $match = TRUE;
+      _mailarchive_rethread_recursive($sid, $thread_id, $sub_thread_id, $child);
+      $parts = explode('.', $sub_thread_id);
+      $parent_depth = count(explode('.', $parent_subid));
+      $last = $parts[$parent_depth];
+
+      $decimals = (string)substr($last, 0, strlen($last) - 1);
+      $units = substr($last, -1, 1) + 1;
+      if ($units == 10) {
+        $units = '90';
+      }
+      $sub_thread_id = "$parent_subid.". $decimals.$units;
+    }
+    if ($match) {
+      // we found the children, we're finished
+      break;
+    }
+  }
+}
+
+/**
+ * Extract text element from header object.
+ *
+ * @param $mime
+ *  The mime-encoded header to decode.
+ * 
+ * @return
+ *  The decoded mime header.
+ */
+function _mailarchive_mime_decode($mime) {
+  $decoded = imap_mime_header_decode($mime);
+  for ($i = 0; $i < count($decoded); $i++) {
+    if ($decoded[$i]->charset != 'default') {
+      return drupal_convert_to_utf8($decoded[$i]->text, $decoded[$i]->charset);
+    }
+    else {
+      return $decoded[$i]->text;
+    }
+  }
+}
+
+/**
+ * Extract attachments from message, save to filesystem.
+ *
+ * @param $stream
+ *  The imap stream resource.
+ * @param $message
+ *  The message number.
+ * @param $structure
+ * @param $parts
+ *
+ * @return
+ *  The number of attachments successfully extracted.
+ */
+function _mailarchive_extract_attachments($subscription, $mid, $stream, $message, $structure, $parts) {
+
+  $node = db_fetch_object(db_query('SELECT nid FROM {mailarchive_subscriptions} WHERE sid = %d', $subscription->sid));
+  $node = node_load($node->nid);
+  $table = 'ma__'. str_replace('-', '_', $node->urlname);
+  $subtable2 = $table .'_attachments';
+
+  // Attachments are stored in the following directory, created if necessary:
+  //    <files>/<mailarchive>/<sid>/<year>/<month>/<day>/<mid>
+  $dirs = array(file_directory_path(), variable_get('mailarchive_attachments_path', 'mailarchive'), $subscription->sid, format_date(time(), 'custom', 'Y'), format_date(time(), 'custom', 'm'), format_date(time(), 'custom', 'd'), $mid);
+  $attachments_path = NULL;
+  foreach ($dirs as $dir) {
+    if (empty($attachments_path)) {
+      $attachments_path = $dir;
+    }
+    else {
+      $attachments_path .= '/'. $dir;
+    }
+    // If subdirectory doesn't exist, try and create it.
+    if (!file_check_directory($attachments_path, FILE_CREATE_DIRECTORY)) {
+      drupal_set_message(t('Failed to save attachments, the path <em>%path</em> does not exist or is not writeable.', array('%path' => $attachments_path)));
+      watchdog('mailarchive', 'Failed to save attachments, the path <em>%path</em> does not exist or is not writeable.', array('%path' => $attachments_path));
+      return -1;
+    }
+  }
+
+  // Extract and save all attachments.
+  $attachments = 0;
+  for ($part = 2; $part <= $parts; $part++) {
+    $attachment = imap_fetchbody($stream, $message, $part);
+    $details = imap_bodystruct($stream, $message, $part);
+    if ($details->encoding != 0) {
+      // Non-text attachment, decode it.
+      $attachment = imap_base64($attachment);
+    }
+    if (file_save_data($attachment, "$attachments_path/attachment.$part")) {
+      $attachments++;
+    }
+    // Add attachment details to database.
+    if ($node->dedicated_table) {
+      db_query('INSERT INTO {'. $subtable2 ."} (mid, name, bytes, part) VALUES(%d, '%s', %d, %d)", $mid, "attachment.$part", $details->bytes, $part);
+    }
+    else {
+      db_query("INSERT INTO {mailarchive_messages_attachments} (sid, mid, name, bytes, part) VALUES(%d, %d, '%s', %d, %d)", $subscription->sid, $mid, "attachment.$part", $details->bytes, $part);
+    }
+  }
+  if ($node->dedicated_table) {
+    db_query('UPDATE {'. $table ."} SET attachments = %d, attachments_path = '%s' WHERE mid = %d", $attachments, $attachments_path, $mid);
+  }
+  else {
+    db_query("UPDATE {mailarchive_messages} SET attachments = %d, attachments_path = '%s' WHERE sid = %d AND mid = %d", $attachments, $attachments_path, $subscription->sid, $mid);
+  }
+  if (module_exists('mailarchive_cache')) {
+    mailarchive_cache_dirty(array('mid' => $mid));
+  }
+  return $attachments;
+}
+
+/**
+ * Retrieve the specified part number of a message.  Properly decode if
+ * necessary, and recursively walk multipart messages as necessary.
+ * 
+ * @param $stream
+ *  IMAP stream.
+ * @param $message
+ *  The message number.
+ * @param $structure.
+ * @param $part
+ *
+ * @return
+ *  The requested message text.
+ */
+function _mailarchive_get_message_body($stream, $message, $structure, $part = 1) {
+  if (!empty($structure)) {
+    $body = imap_fetchbody($stream, $message, $part);
+    foreach ($structure->parameters as $parameter) {
+      if (strtoupper($parameter->attribute) == 'CHARSET') {
+        $encoding = $parameter->value;
+        break;
+      }
+    }
+    switch ($structure->encoding) {
+      case 3: // base64
+        $decoded = drupal_convert_to_utf8(imap_base64($body), $encoding);
+        break;
+      case 4: // quoted-printable
+        $decoded = drupal_convert_to_utf8(quoted_printable_decode($body), $encoding);
+        break;
+      default:
+        $decoded = drupal_convert_to_utf8($body, $encoding);
+        break;
+    }
+
+    if ($decoded) {
+      return ($decoded);
+    }
+    else {
+      watchdog('mailarchive', "Failed to convert message to utf8 -- using unconverted message.  To fix this, try installing iconv, GNU recode, or mbstring for PHP.");
+      return ($body);
+    }
+
+  }
+  return NULL;
+}
+
+/**
+ * Display time since input time.
+ *
+ * @time
+ *  A unix time
+ *
+ * @return
+ *  How long since the passed in time.
+ */
+function _mailarchive_time_since($time) {
+  $now = time();
+  $since = $now - $time;
+
+  $lookup_table = array(
+    array(60 * 60 * 24 * 365 , 'year'),
+    array(60 * 60 * 24 * 30 , 'month'),
+    array(60 * 60 * 24 * 7, 'week'),
+    array(60 * 60 * 24 , 'day'),
+    array(60 * 60 , 'hour'),
+    array(60 , 'minute'),
+    array(1 , 'second')
+  );
+
+  $lookup_table_size = count($lookup_table);
+
+  for ($i = 0; $i < $lookup_table_size; $i++) {
+    $seconds = $lookup_table[$i][0];
+    $name = $lookup_table[$i][1];
+
+    // Lookup the biggest time that matches, then break.
+    if (($count = floor($since / $seconds)) != 0) {
+      break;
+    }
+  }
+
+  $output = format_plural($count, "1 $name", "@count $name".'s');
+
+  if ($i + 1 < $lookup_table_size) {
+    // There's more pieces we can grab from the lookup table.
+    $seconds2 = $lookup_table[$i + 1][0];
+    $name2 = $lookup_table[$i + 1][1];
+
+    // Add second piece only if it's more than 0 seconds.
+    if (($count2 = floor(($since - ($seconds * $count)) / $seconds2)) != 0) {
+      $output .= ($count2 == 1) ? ', 1 '.$name2 : ", $count2 {$name2}s";
+    }
+  }
+  return $output;
+}
+
+/**
+ * Download new messages from mailing list subscription.
+ *
+ * @param $sid
+ *  The subscription id.
+ */
+function _mailarchive_fetch($sid) {
+  $subscription = _mailarchive_subscription_load($sid);
+
+  // Attempt to increase the allowed amount of time for downloading messages
+  // from the default of 30 seconds to a full 5 minutes.
+  //set_time_limit(300);
+  set_time_limit(0);
+
+  // Prepare a connection to the mail server
+  $username = $subscription->server_username;
+  $password = $subscription->server_password;
+  switch ($subscription->protocol) {
+    case MAILARCHIVE_PROTOCOL_POP3:
+      $connect = '{'. $subscription->server_name .':'. $subscription->port .'/pop3/novalidate-cert}'. $subscription->mailbox;
+      break;
+    case MAILARCHIVE_PROTOCOL_POP3S:
+      $connect = '{'. $subscription->server_name .':'. $subscription->port .'/pop3/ssl/novalidate-cert}'. $subscription->mailbox;
+      break;
+    case MAILARCHIVE_PROTOCOL_IMAP:
+      $connect = '{'. $subscription->server_name .':'. $subscription->port .'}'. $subscription->mailbox;
+      break;
+    case MAILARCHIVE_PROTOCOL_IMAPS:
+      $connect = '{'. $subscription->server_name .':'. $subscription->port .'/imap/ssl}'. $subscription->mailbox;
+      break;
+    case MAILARCHIVE_PROTOCOL_FILE:
+      $connect = $subscription->mailbox;
+      $username = '';
+      $password = '';
+      // Some quick sanity tests.
+      if (!file_exists($connect)) {
+        drupal_set_message(t('Mail file <em>%connect</em> does not exist.', array('%connect' => $connect)), 'error');
+      }
+      else if (!is_readable($connect)) {
+        drupal_set_message(t('Mail file <em>%connect</em> is not readable.', array('%connect' => $connect)), 'error');
+      }
+      else if (!is_writable($connect)) {
+        drupal_set_message(t('Mail file <em>%connect</em> is not writable.', array('%connect' => $connect)));
+      }
+      break;
+  }
+
+  // Make a connection to the mail server.
+  if (!function_exists('imap_open')) {
+    drupal_set_message(t('PHP Imap extensions are missing. These must be enabled before the mailarachive module can read imap'), 'error');
+    watchdog('mailarchive', t('PHP Imap extensions are missing. These must be enabled before the mailarachive module can read imap'), array(), WATCHDOG_ERROR);
+     return;
+  }
+  $stream = imap_open($connect, $username, $password);
+  if ($stream === FALSE) {
+    drupal_set_message(t('Failed to download messages for <em>%list</em>, connection to mail server failed.  Please verify your mailing list archive configuration.', array('%server' => $subscription->server_name, '%list' => $subscription->title)), 'error');
+    if ($alerts = imap_alerts()) {
+      foreach ($alerts as $alert) {
+        drupal_set_message(t('Imap alert: <em>%alert</em>', array('%alert' => $alert)), 'error');
+      }
+    }
+    if ($errors = imap_errors()) {
+      foreach ($errors as $error) {
+        drupal_set_message(t('Imap error: <em>%error</em>', array('%error' => $error)), 'error');
+      }
+    }
+    return -1;
+  }
+
+  // Download mail from the mail server.
+  if ($stream) {
+    $messages_downloaded = 0;
+    // Check how many messages are available.
+    $messages_to_download = imap_num_msg($stream);
+    $messages_limit = variable_get('mailarchive_download_limit', 1000);
+    if ($messages_limit && $messages_limit < $messages_to_download) {
+      // TODO: watchdog, there are more messages available
+      $messages_to_download = $messages_limit;
+    }
+    for ($message = 1; $message <= $messages_to_download; $message++) {
+      $header = imap_headerinfo($stream, $message);
+/*
+  TODO: Make this configurable.
+      if ($header->Unseen != 'U' && $header->Recent != 'N') {
+        if ($subscription->delete_read) {
+          // Mark message for deletion.
+          imap_delete($stream, $message);
+        }
+        // We've already downloaded this message.
+        continue;
+      }
+      // Save the message.
+      elseif (_mailarchive_message_save($subscription, $stream, $header, $message)) {
+*/
+      if (_mailarchive_message_save($subscription, $stream, $header, $message)) {
+        $messages_downloaded++;
+        if ($subscription->delete_read) {
+          // Mark message for deletion.
+          imap_delete($stream, $message);
+        }
+      }
+    }
+  }
+
+  // Pass in CL_EXPUNGE flag to delete any messages marked for deletion
+  imap_close($stream, CL_EXPUNGE);
+
+  if ($messages_downloaded) {
+    drupal_set_message(t('Succesfully downloaded %number messages from list <em>%list</em>.', array('%number' => $messages_downloaded, '%list' => $subscription->title)));
+    db_query('UPDATE {mailarchive_subscriptions} SET message_count = message_count + %d, last_message = %d, last_attempt = %d WHERE sid = %d', $messages_downloaded, time(), time(), $subscription->sid);
+  }
+  else {
+    drupal_set_message(t('No new messages downloaded from list <em>%list</em>.', array('%list' => $subscription->title)));
+    db_query('UPDATE {mailarchive_subscriptions} SET last_attempt = %d WHERE sid = %d', time(), $subscription->sid);
+  }
+
+  return $messages_downloaded;
+}
+
+/**
+ * Create/delete dedicated table, move messages as necessary.
+ */
+function mailarchive_validate_dedicated_table($node) {
+  if (isset($node->dedicated_table) && $node->dedicated_table) {
+    // archive configured to have a dedicated table
+    $table = 'ma__'. str_replace('-', '_', $node->urlname);
+    if (!db_table_exists($table)) {
+      $schema = array(
+        'description' => t('A dedicated mailarchive table.'),
+        'fields' => array(
+          'mid' => array(
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          ),
+          'status' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'created' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'received' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'year' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'month' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'day' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'headers' => array(
+            'type' => 'text',
+          ),
+          'message_id' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'reference' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'in_reply_to' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'multiple_in_reply_to' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'thread_id' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'sub_thread_id' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'mailfrom' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'subject' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'body' => array(
+            'type' => 'text',
+          ),
+          'attachments' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'attachments_path' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+        ),
+        'indexes' => array(
+          'status' => array('status'),
+          'created' => array('created'),
+          'received' => array('received'),
+          'year' => array('year', 'month', 'thread_id'),
+          'month' => array('month', 'year', 'thread_id'),
+          'day' => array('day'),
+          'thread_id' => array('thread_id'),
+          'sub_thread_id' => array('sub_thread_id'),
+          'subject' => array('subject'),
+        ),
+        'unique keys' => array(
+          'message_id' => array('message_id'),
+        ),
+        'primary key' => array('mid'),
+      );
+      $ret = array();
+      db_create_table($ret, $table, $schema);
+      $subtable = $table .'_addresses';
+      $schema = array(
+        'description' => t('A dedicated mailarchive table.'),
+        'fields' => array(
+          'aid' => array(
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          ),
+          'mid' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'name' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'mailbox' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'host' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'address' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'address_type' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+        ),
+        'indexes' => array(
+          'mid' => array('mid', 'host'),
+        ),
+        'primary key' => array('aid'),
+      );
+      db_create_table($ret, $subtable, $schema);
+      $subtable2 = $table .'_attachments';
+      $schema = array(
+        'description' => t('A dedicated mailarchive table.'),
+        'fields' => array(
+          'aid' => array(
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          ),
+          'mid' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'name' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'bytes' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+          'part' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+          ),
+        ),
+        'indexes' => array(
+          'mid' => array('mid'),
+        ),
+        'primary key' => array('aid'),
+      );
+      db_create_table($ret, $subtable2, $schema);
+      ini_set('max_execution_time', 0);
+      drupal_set_message(t('Created tables: %table, %subtable1, %subtable2', array('%table' => $table, '%subtable1' => $subtable, '%subtable2' => $subtable2)));
+      $sid = (int)db_result(db_query("SELECT sid FROM {mailarchive_subscriptions} WHERE urlname = '%s'", $node->urlname));
+      $result = db_query('SELECT * FROM {mailarchive_messages} WHERE sid = %d', $sid);
+      $counter = 0;
+      while ($message = db_fetch_object($result)) {
+        $counter++;
+        db_query('INSERT INTO {'. $table ."} (mid, status, created, received, year, month, day, headers, message_id, reference, in_reply_to, multiple_in_reply_to, thread_id, sub_thread_id, mailfrom, subject, body, attachments, attachments_path) VALUES(%d, %d, %d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d, %d, '%s', '%s', '%s', '%s', %d, '%s')", $message->mid, $message->status, $message->created, $message->received, $message->year, $message->month, $message->day, $message->headers, $message->message_id, $message->reference, $message->in_reply_to, $message->multiple_in_reply_to, $message->thread_id, $message->sub_thread_id, $message->mailfrom, $message->subject, $message->body, $message->attachments, $message->attachments_path);
+      }
+      if ($counter) {
+        $result = db_query('SELECT * FROM {mailarchive_messages_addresses} WHERE sid = %d', $sid);
+        while ($address = db_fetch_object($result)) {
+          db_query('INSERT INTO {'. $subtable ."} (mid, name, mailbox, host, address, address_type) VALUES (%d, '%s', '%s', '%s', '%s', '%s')", $address->mid, $address->name, $address->mailbox, $address->host, $address->address, $address->address_type);
+        }
+        $result = db_query('SELECT * FROM {mailarchive_messages_attachments} WHERE sid = %d', $sid);
+        while ($attachment = db_fetch_object($result)) {
+          db_query('INSERT INTO {'. $subtable2 ."} (mid, name, bytes, part) VALUES (%d, '%s', %d, %d)", $attachment->mid, $attachment->name, $attachment->bytes, $attachment->part);
+        }
+        drupal_set_message(t('Moved %count messages.', array('%count' => $counter)));
+        db_query('DELETE FROM {mailarchive_messages} WHERE sid = %d', $sid);
+        db_query('DELETE FROM {mailarchive_messages_addresses} WHERE sid = %d', $sid);
+        db_query('DELETE FROM {mailarchive_messages_attachments} WHERE sid = %d', $sid);
+        // TODO: Do this in a database agnostic way.
+        $max = db_result(db_query('SELECT MAX(mid) FROM {'. $table .'}'));
+        db_query('ALTER TABLE {'. $table .'} AUTO_INCREMENT = '. ++$max);
+      }
+    }
+  }
+  else {
+    // archive configured to not have a dedicated table
+  }
+}

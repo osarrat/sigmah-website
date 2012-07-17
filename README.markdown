@@ -123,4 +123,73 @@ there you can replace the username,password,database name,server address, etc of
 
 For information: all user accounts have "sigmah" as password. 
 
-If you have any queries or troubles setting up the project, drop a mail to sigmah-dev@googlegroups.com , we will be more than happy to help you get code up and running :).
+If you have any queries or troubles setting up the project, drop a
+mail to sigmah-dev@googlegroups.com , we will be more than happy to
+help you get code up and running :).
+
+8. For Integration of the mantis issue tracker with the github
+repository :
+  1. Open the Mantis Issue Tracker Administrator account
+  2. Go to Manage > Manage Plugins
+  3. Two Plugins named "GitHub Integration 0.16" and "Source Control
+  Integration 0.16.4" would be present, which will have to be
+  installed
+  4. Now you will have a new "Repositories" link in the top menu
+  5. Inside "Repositories", Type the name of the Repository in the
+  Name field, and "Github" in the type field.
+  6. Then fill the Github Username(osarrat) and the Github project
+  URL(https://github.com/osarrat/sigmah-website) and the github
+  repository name (sigmah-website) and
+  update the repository
+  7. Then Click on "Import Everything" to fetch the commit details
+  from the github servers
+  
+  8. Then look for the "Configuration" button inside the
+  "Repositories" link, and use the following values for the form :
+  
+    *View Threshold : viewer
+    *Update Threshold : updater
+    *Manage Threshold : administrator
+    *Set Username threshold : developer
+    *Main Menu Links : Repositories (Checked) , Search(Depends upon your
+  need)
+    *Enabled Features : Repository Statistics (Checked),ChangesetLinking (Checked),Branch Mappings (Uncheked),Resolve Fixed Issues (Checked),Bug Fixed Message(Checked),Porting Status (Checked or Unchecked depending upon ur need)
+	* Bug Link Regex Pass 1 :
+  /(?:bugs?|issues?|reports?)+\s+(?:#(?:\d+)[,\.\s]*)+/i 
+  (the regex can be changed ofcourse if you want any other pattern)
+    * Bug Link Regex Pass 2 : /#?(\d+)/
+	* Bug Fixed Regex Pass 1 :
+      /(?:fixe?d?s?|resolved?s?)+\s+(?:#(?:\d+)[,\.\s]*)+/i
+	* Bug Fixed Regex Pass 2	 :   /#?(\d+)/
+	
+	* Bug Fixed Status : Resolved
+	* Bug Fixed Resolution : fixed
+	* Bug Fixed Message Template : Fix committed to $1 branch of $5
+	* Bug Fixed Assign To Committer	 : Checked 
+    * API Key :
+      ANY-SECRET-ALPHANUMERIC-KEY-YOU-WISH-WILL-HAVE-TO-USE-THE-SAME-ON-SIGMAH-GITHUB-REPO
+	* Allow Remote Check-in : Unchecked
+	* Allowed Addresses : 
+	  * 207.97.227.253
+ 	  * 50.57.128.197
+	  * 108.171.174.178
+	  
+	* Allow Remote Imports : Unchecked
+	
+	* Allowed Addresses : 
+		 * 207.97.227.253
+ 	     * 50.57.128.197
+	     * 108.171.174.178
+		 
+   9) And then finally update configuration :D !! :)
+   
+   
+   10) Now, On this Github projects Page , Go to Admin > Service Hooks
+   > Mantis Bt 
+   11) For URL use the base URL of the project (in the case of the
+   live website : http:www.sigmah.org/issues
+   12) And for API key, use the same API key used on the Mantis
+   Configuration Page
+   13) now test Hook, to check if the payload is being successfully
+   deployed !!
+   14) Update Settings, and you are ready to go :) !! #phew !

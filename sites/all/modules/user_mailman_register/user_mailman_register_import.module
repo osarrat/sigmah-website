@@ -1,0 +1,163 @@
+<?php
+// $Id: user_mailman_register_import.module,v 1.1.2.4 2009/01/26 16:51:50 samuelet Exp $
+
+/**
+ * @file
+ * Import a mailman dumpdb file and synchronize user subscriptions status and password.
+ * This module is experimental, make a backup of your mailman_users table or better of 
+ * the whole drupal database before using it.
+ */
+
+/**
+ * Implementation of hook_help().
+ */
+function user_mailman_register_import_help($path, $arg) {
+  switch ($path) {
+    case 'admin/modules#description':
+      return t('Import a mailman dumpdb file and synchronize user subscriptions status and password') . t('This module is EXPERIMENTAL, <strong>make a backup of the mailman_users table</strong> before using it. A backup of the whole drupal database is also recommended.');
+    case 'admin/help#user_mailman_register_import':
+      return t('To make a valid file to import in this form, you MUST have a shell access with mailman or greater user permission to your Mailman server. Redirect into a new file the output of the mailman <em>dumpdb</em> utility executed using the pck config file of your list as command line argument. For example, in Linux Debian, it should be something like this:<br /><code>/var/lib/mailman/bin/dumpdb /var/lib/mailman/lists/YOUR_LIST/config.pck > mailman.db</code>');
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function user_mailman_register_import_menu() {
+  $items['admin/settings/user_mailman_register/import'] = array(
+    'title' => 'Import',
+    'access arguments' => array('administer mailman_manager'),
+    'description' => 'Import Mailman database dump and synchronize users subscriptions status and password.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('user_mailman_register_import_form'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+  );
+  return $items ;
+}
+
+function user_mailman_register_import_form() {
+  $lists = _mailman_manager_get_lists();
+  $options[0] = '-';
+  foreach ($lists as $list) {
+    $options[$list['lid']] = $list['name'];
+  }
+
+  $form['#attributes'] = array("enctype" => "multipart/form-data");
+
+  $form['help'] = array(
+    '#value' => "<p>". t('This module is EXPERIMENTAL, <strong>make a backup of the <em>mailman_users</em> table</strong> before using it. A backup of the whole drupal database is also recommended.') ."</p>". t('To make a valid file to import in this form, you MUST have a shell access with mailman or greater user permission to your Mailman server. Redirect into a new file the output of the mailman <em>dumpdb</em> utility executed using the pck config file of your list as command line argument. For example, in Linux Debian, it should be something like this:<br /><code>/var/lib/mailman/bin/dumpdb /var/lib/mailman/lists/YOUR_LIST/config.pck > mailman.db</code>'),
+  );
+
+  $form['import'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Import'),
+  );
+
+  $form['import']['lists'] = array(
+    '#type' => 'select',
+    '#title' => t('List'),
+    '#description' => t('Select the list to syncronize with the dump file.'),
+    '#required' => true,
+    '#options' => $options,
+  );
+
+  $form['import']['file_upload'] = array(
+    '#type' => 'file',
+    '#title' => t('File'),
+    '#size' => 40,
+    '#description'  => t('The mailman dumpdb file.'),
+  );
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Import'),
+  );
+  return $form;
+}
+
+function user_mailman_register_import_form_validate($form, &$form_state) {
+  if ($form_state['values']['lists'] == 0) {
+    form_set_error('lists', t('You must select a valid list.'));
+  }
+}
+
+function user_mailman_register_import_form_submit($form, &$form_state) {
+  if (!$file = file_save_upload('file_upload')) {
+    form_set_error('file_upload', t("Failed to save the file."));
+  }
+  else {
+    if (!_user_mailman_register_import_fileprocess($file->filepath, $form_state['values']['lists'])) {
+      form_set_error('file_upload', t("There was an error processing the file."));
+    }
+    file_delete($file->filepath);
+  }
+}
+
+function _user_mailman_register_import_fileprocess($file_path, $list_id) {
+  $mailman_users = array();
+  $query = "INSERT INTO {mailman_users} (uid, lid, lstatus, lmail, lpass) VALUES ";
+  $string_dump = file_get_contents($file_path);
+  $signature_start = "[----- start pickle file -----]";
+  $signature_end = "[----- end pickle file -----]\n";
+  if (substr($string_dump, 0, strlen($signature_start)) != $signature_start || substr($string_dump, -strlen($signature_end)) != $signature_end || !_user_mailman_register_import_dump_process($mailman_users, $string_dump, "passwords")) {
+    drupal_set_message(t('The file is not a valid mailman dump file.'), 'error');
+    return FALSE;
+  } 
+  else {
+    _user_mailman_register_import_dump_process($mailman_users, $string_dump, "digest_members");
+    _user_mailman_register_import_dump_process($mailman_users, $string_dump, "delivery_status", "),");
+    unset($string_dump);
+    if (empty($mailman_users)) {
+      drupal_set_message(t("No data found.", "error"));
+      return FALSE;
+    }
+    $result = db_query("SELECT uid, mail from {users}");
+    $query_values = FALSE;
+    while ($drupal_user = db_fetch_object($result)) {
+      $subscribed_user = $mailman_users[$drupal_user->mail];
+      if (isset($subscribed_user)) {
+        $query_values .= "(". $drupal_user->uid .", ". $list_id .", ";
+        if (isset($subscribed_user['delivery_status'])) {
+          $query_values .= USER_MAILMAN_REGISTER_SUBSCRIBED_DISABLED;
+        } 
+        elseif (isset($subscribed_user['digest_members'])) {
+          $query_values .= USER_MAILMAN_REGISTER_SUBSCRIBED_DIGEST;
+        }
+        else {
+          $query_values .= USER_MAILMAN_REGISTER_SUBSCRIBED_NORMAL;
+        }
+        $query_values .= ", '". $drupal_user->mail ."', '". $subscribed_user['passwords'] ."'),";
+      }
+    }
+    if ($query_values) {
+      $query .= rtrim($query_values, ",");
+      db_lock_table("mailman_users");
+      db_query("DELETE FROM {mailman_users} where lid=". $list_id);
+      db_query($query);
+      drupal_set_message(db_affected_rows() ." ". t("subscriptions imported."));
+      db_unlock_tables();
+    }
+    else {
+      drupal_set_message(t("No subscriptions for drupal users are found."));
+    }
+    return TRUE;
+  }
+}
+
+function _user_mailman_register_import_dump_process(&$mm_users, $db_string, $db_setting, $mm_separator = ",") {
+  $db_pattern = "/'". $db_setting ."':\s{(.*?)},\n/s";
+  $str_remove = array("(", ")", "'", "\n", "\r", "\t", " ");
+  if (!preg_match($db_pattern, $db_string, $matches)) {
+    return FALSE;
+  }
+  unset($db_string);
+  if (!empty($matches[1])) {
+    $allusers_pref = explode($mm_separator, $matches[1]);
+    foreach ($allusers_pref as $user_pref) {
+      $key_value = explode(":", $user_pref);
+      $mm_users[trim($key_value[0], "\n\t '")][$db_setting] = str_replace($str_remove, '', $key_value[1]);
+    }
+  }
+  return TRUE;
+}

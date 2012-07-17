@@ -1,0 +1,325 @@
+<?php
+
+/**
+ * @file
+ * Counts how often mail archive messages are viewed.
+ * Copyright (c) 2007-2009.
+ *   Jeremy Andrews <jeremy@tag1consulting.com>.  All rights reserved.
+ */
+
+define('STATS_HOURLY', 1);
+define('STATS_DAILY', 3);
+define('STATS_MONTHLY', 3);
+define('STATS_YEARLY', 4);
+
+/**
+ * Implementation of Drupal's hook_exit();
+ * Counts each time a mailarchive message is viewed.  Information is stored
+ * with an hourly granularity, allowing things like "most popular message
+ * today", "most popular message this year", etc...  Also allows for graphing
+ * the popularity of individual messages or entire mailing lists.
+ */
+function mailarchive_stats_exit() {
+  drupal_bootstrap(DRUPAL_BOOTSTRAP_PATH);
+  // We only care about mailarchive pages.
+  if (arg(0) == 'mailarchive') {
+    // We only count when viewing a message.
+    if (is_numeric(arg(2)) && is_numeric(arg(3)) && is_numeric(arg(4)) &&
+        is_numeric(arg(5))) {
+      // If a real view, the $sid is already cached in a static so this costs
+      // nothing in the typical case.
+      if ($sid = _mailarchive_sid(arg(1))) {
+        // We don't need to validate that $mid exists in $sid, as this is done
+        // by the mailarchive_view module.  If $mid is not valid for $sid we
+        // would have hit a drupal_goto() before we got to this _exit() code.
+        $mid = arg(5);
+        // Calculate once, as we may use this data multiple times below.
+        $now = time();
+        $date = date('YmdH', $now);
+        db_query('UPDATE {mailarchive_statistics} SET count = count + 1 WHERE date = %d AND mid = %d AND sid = %d', $date, $mid, $sid);
+        if (!db_affected_rows()) {
+          $thread_id = db_result(db_query('SELECT thread_id FROM {mailarchive_messages} WHERE mid = %d AND sid = %d AND status = %d', $mid, $sid, MAILARCHIVE_MESSAGE_PUBLISHED));
+          $year = date('Y', $now);
+          $month = date('n', $now);
+          $day = date('j', $now);
+          // Column doesn't exist, so we add it.
+          db_query('INSERT INTO {mailarchive_statistics} (mid, date, count, sid, thread_id, year, month, day) VALUES(%d, %d, 1, %d, %d, %d, %d, %d)', $mid, $date, $sid, $thread_id, $year, $month, $day);
+          if (!db_affected_rows()) {
+            // It seems someone else viewed this message at the same time we
+            // did and created the necessary database row.  We still need to
+            // increment the counter so our view doesn't get lost by this race
+            // condition.
+            db_query('UPDATE {mailarchive_statistics} SET count = count + 1 WHERE date = %d AND mid = %d AND sid = %d', $date, $mid, $sid);
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of Drupal's hook_menu().
+ * Provide path for administrative statistics.
+ */
+function mailarchive_stats_menu() {
+  $items = array();
+
+  $items['admin/content/mailarchive/statistics'] = array(
+    'title' => 'Statistics',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'mailarchive_stats_admin_overview',
+    'access arguments' => array('maintain mailing list archives'),
+    'weight' => 8,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of Drupal's hook_block.
+ * Provides the following blocks:
+ *  1) Popular discussions
+ */
+function mailarchive_stats_block($op = 'list', $delta = 0) {
+  switch ($op) {
+    case 'list':
+      $blocks[0]['info'] = t('Popular discussions');
+      return $blocks;
+    
+    case 'view':
+      switch ($delta) {
+        case 0: // Popular discussions
+          $blocks['subject'] = t('Popular discussions');
+          $blocks['content'] = variable_get('mailarchive_stats_popular_block', '');
+          return $blocks;
+      }
+  }
+}
+
+/**
+ * Update block on a cron job, rather than each time page is accessed.
+ */
+function mailarchive_stats_cron() {
+  $last = variable_get('mailarchive_stats_popular_block_last', 0);
+  if (time() - 3600 >= $last) {
+    variable_set('mailarchive_stats_popular_block_last', time());
+    // rebuild block every hour
+    variable_set('mailarchive_stats_popular_block', mailarchive_stats_popular_messages());
+  }
+}
+
+/**
+ * Provide statistics overview.
+ */
+function mailarchive_stats_admin_overview() {
+  $statistics = array();
+  $now = time();
+  $year = date('Y', $now);
+  $month = date('n', $now);
+  $day = date('j', $now);
+  if ($day < 28) {
+    $lastmonth = date('n', $now - 2419200);
+  }
+  else if ($day < 30) {
+    $lastmonth = date('n', $now - 2592000);
+  }
+  else {
+    $lastmonth = date('n', $now - 2678400);
+  }
+  $yesterday = date('j', $now - 86400);
+  $hour = date('YmdH', $now);
+  $lasthour = date('YmdH', $now - 3600);
+
+  $result = db_query('SELECT sid, nid, urlname, subscription_status, message_count, last_message FROM {mailarchive_subscriptions}');
+  while ($subscription = db_fetch_object($result)) {
+    // All time statistics.
+    $statistics[$subscription->sid]['all'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE sid = %d AND count > 0 ORDER BY count DESC', $subscription->sid)));
+    $statistics['all'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE count > 0 ORDER BY count DESC')));
+
+    // Today's statistics.
+    $statistics[$subscription->sid]['today'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE sid = %d AND year = %d AND month = %d AND day = %d AND count > 0 ORDER BY count DESC', $subscription->sid, $year, $month, $day)));
+    $statistics['today'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE year = %d AND month = %d AND day = %d AND count > 0 ORDER BY count DESC', $year, $month, $day)));
+
+    // Yesterday's statistics.
+    $statistics[$subscription->sid]['yesterday'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE sid = %d AND year = %d AND month = %d AND day = %d AND count > 0 ORDER BY count DESC', $subscription->sid, $year, $month, $yesterday)));
+    $statistics['yesterday'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE year = %d AND month = %d AND day = %d AND count > 0 ORDER BY count DESC', $year, $month, $yesterday)));
+
+    // This month's statistics.
+    $statistics[$subscription->sid]['month'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE sid = %d AND year = %d AND month = %d AND count > 0 ORDER BY count DESC', $subscription->sid, $year, $month)));
+    $statistics['month'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE year = %d AND month = %d AND count > 0 ORDER BY count DESC', $year, $month)));
+
+    // Last month's statistics.
+    $statistics[$subscription->sid]['lastmonth'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE sid = %d AND year = %d AND month = %d AND count > 0 ORDER BY count DESC', $subscription->sid, $year, $lastmonth)));
+    $statistics['lastmonth'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE year = %d AND month = %d AND count > 0 ORDER BY count DESC', $year, $lastmonth)));
+
+    // This hour's statistics.
+    $statistics[$subscription->sid]['hour'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE sid = %d AND date = %d AND count > 0 ORDER BY count DESC', $subscription->sid, $hour)));
+    $statistics['hour'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE date = %d AND count > 0 ORDER BY count DESC', $hour)));
+
+    // Last hour's statistics.
+    $statistics[$subscription->sid]['lasthour'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE sid = %d AND date = %d AND count > 0 ORDER BY count DESC', $subscription->sid, $lasthour)));
+    $statistics['lasthour'] = (int)(db_result(db_query('SELECT SUM(count) AS count FROM {mailarchive_statistics} WHERE date = %d AND count > 0 ORDER BY count DESC', $lasthour)));
+
+    $statistics[$subscription->sid]['info'] = $subscription;
+  }
+
+  if (!empty($statistics)) {
+    $headers = array(t('Mailing list'), t('This hour'), t('Last hour'), t('Today'), t('Yesterday'), t('This month'), t('Last month'), t('All time'));
+    $rows = array();
+
+    $rows[] = array(
+      array('data' => t('<b>Total</b>')),
+      array('data' => '<b>'. $statistics['hour'] .'</b>'),
+      array('data' => '<b>'. $statistics['lasthour'] .'</b>'),
+      array('data' => '<b>'. $statistics['today'] .'</b>'),
+      array('data' => '<b>'. $statistics['yesterday'] .'</b>'),
+      array('data' => '<b>'. $statistics['month'] .'</b>'),
+      array('data' => '<b>'. $statistics['lastmonth'] .'</b>'),
+      array('data' => '<b>'. $statistics['all'] .'</b>'),
+    );
+    foreach ($statistics as $stats) {
+      if ($stats['all']) {
+        $rows[] = array(
+          array('data' => $stats['info']->urlname),
+          array('data' => $stats['hour']),
+          array('data' => $stats['lasthour']),
+          array('data' => $stats['today']),
+          array('data' => $stats['yesterday']),
+          array('data' => $stats['month']),
+          array('data' => $stats['lastmonth']),
+          array('data' => $stats['all']),
+        );
+      }
+    }
+    $output = theme('table', $headers, $rows);
+  }
+  else {
+    $output = t('You have not created any mail archive subscriptions.');
+  }
+  return theme('box', t('Statistics'), $output);
+}
+
+/**
+ * Return a list of the top popular messages.
+ * TODO: Make configurable how many items to return, and what time period to
+ * sample.  (ie, hourly, daily, monthly, all time)
+ */
+function mailarchive_stats_popular_messages($quantity = 4, $granularity = STATS_HOURLY) {
+  if ($lists = mailarchive_stats_popular_lists(4)) {
+    $min = mailarchive_stats_range(1, $granularity);
+    $max = mailarchive_stats_range(0, $granularity);
+
+    $header = array('', '');
+    $rows = array();
+    foreach ($lists['lists'] as $list) {
+      $subscription = _mailarchive_subscription_load($list->sid);
+      $sub_year = date('Y', $subscription->last_message);
+      $sub_month = date('n', $subscription->last_message);
+      $sub_day = date('j', $subscription->last_message);
+
+      $rows[] = array(
+        '<div class="popular-list-name">'. l($subscription->urlname, "mailarchive/$subscription->urlname/$sub_year/$sub_month/$sub_day") .':</div>',
+        ''
+      );
+      $result = pager_query("SELECT MIN(mid) AS mid, SUM(count) AS count FROM {mailarchive_statistics} WHERE date >= $min AND date <= $max AND sid = $list->sid GROUP BY thread_id ORDER BY count DESC", 4);
+      while ($popular = db_fetch_object($result)) {
+        $message = db_fetch_object(db_query('SELECT subject, mailfrom, year, month, day, mid FROM {mailarchive_messages} WHERE mid = %d AND status = %d', $popular->mid, MAILARCHIVE_MESSAGE_PUBLISHED));
+        $subject = (strlen($message->subject) > 84) ? substr(htmlspecialchars($message->subject, ENT_NOQUOTES), 0, 82) .'...' : htmlspecialchars($message->subject, ENT_NOQUOTES);
+        $rows[] = array(
+          $message->mailfrom,
+          l($subject, "mailarchive/$subscription->urlname/$message->year/$message->month/$message->day/$message->mid"),
+        );
+      }
+    }
+  }
+
+  if (!empty($rows)) {
+    return theme('table', $header, $rows);
+  }
+  else {
+    return;
+  }
+}
+
+function mailarchive_stats_range($min, $granularity = STATS_HOURLY) {
+  static $now = NULL;
+
+  if (!$now) {
+    $now = time();
+  }
+
+  switch ($granularity) {
+
+    case STATS_HOURLY:
+      if ($min) {
+        return date('YmdH', $now - 3600);
+      }
+      else {
+        return date('YmdH', $now);
+      }
+
+    case STATS_DAILY:
+      if ($min) {
+        return date('Ymd', $now - 86400) .'00';
+      }
+      else {
+        return date('Ymd', $now) .'24';
+      }
+
+    case STATS_MONTHLY:
+      if ($min) {
+        $year = date('Y', $now);
+        $month = date('m', $now);
+        if ($month == 1) {
+          $year--;
+          $month = 12;
+          return "$year{$month}0000";
+        }
+        else {
+          $month--;
+          return "$year{$month}0000";
+        }
+      }
+      else {
+        return date('Ym', $now) .'3124';
+      }
+
+    case STATS_YEARLY:
+      if ($min) {
+        $year = date('Y', $now);
+        return "{$year}000000";
+      }
+      else {
+        return date('Y', $now) .'123124';
+      }
+  }
+
+}
+
+/**
+ * Return an array of sids
+ */
+function mailarchive_stats_popular_lists($quantity = 5, $granularity = STATS_HOURLY) {
+  $min = mailarchive_stats_range(1, $granularity);
+  $max = mailarchive_stats_range(0, $granularity);
+
+  $popular = array();
+
+  $result = pager_query("SELECT sid, SUM(count) as count FROM {mailarchive_statistics} WHERE date <= $max AND date >= $min GROUP BY sid ORDER BY count DESC", $quantity);
+  while ($subscription = db_fetch_object($result)) {
+    $popular['lists'][] = $subscription;
+    $pupular['sid'][$subscription->sid] = $subscription->count;
+  }
+  return $popular;
+}
+
+/**
+ *
+ */
+function mailarchive_stats_page() {
+  $output = mailarchive_stats_page_popular_lists();
+}
+
+function mailarchive_stats_page_popular_lists() {
+  $lists = mailarchive_stats_popular_lists();
+}

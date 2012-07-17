@@ -1,0 +1,13 @@
+; $Id: mailarchive_stats.info,v 1.1.4.1 2009/07/22 02:51:57 jeremy Exp $
+name = Mail Archive Statistics
+description = Collect statistics for when messages within mail archives are accessed.
+dependencies[] = mailarchive
+package = Mail Archive
+
+core = 6.x
+; Information added by drupal.org packaging script on 2010-09-26
+version = "6.x-1.4"
+core = "6.x"
+project = "mailarchive"
+datestamp = "1285543274"
+

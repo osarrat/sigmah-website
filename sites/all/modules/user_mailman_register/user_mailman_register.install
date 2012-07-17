@@ -1,0 +1,133 @@
+<?php
+// $Id: user_mailman_register.install,v 1.8.2.5.2.7 2010/01/21 15:47:47 samuelet Exp $
+
+/**
+ * @file
+ * User Mailman register module install hooks.
+ * TODO: convert this to sane schema usage?
+ */
+
+function user_mailman_register_install() {
+  drupal_install_schema('user_mailman_register');
+  variable_set('user_mailman_register_required', 0);
+  variable_set('user_mailman_register_registerform', 0);
+  variable_set('user_mailman_register_ownform', 1);
+  variable_set('user_mailman_register_profilename', '');
+  variable_set('user_mailman_register_mailonerrors', '');
+  variable_set('user_mailman_register_checkinterval', 10800);
+  variable_set('user_mailman_register_hourly_threshold', 1);
+  $ret = array();
+  db_add_field($ret, 'mailman_lists', 'webadmin', array('type' => 'varchar', 'length' => 255, 'description' => t("Mailman web url")));
+  db_add_field($ret, 'mailman_lists', 'webpass', array('type' => 'varchar', 'length' => 255, 'description' => t("Mailman admin password")));
+  db_add_field($ret, 'mailman_lists', 'version', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'description' => t("Mailman version")));
+  db_add_field($ret, 'mailman_lists', 'user_invite', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'description' => t("Mailman 'user invite' option")));
+  db_add_field($ret, 'mailman_lists', 'user_notify', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'description' => t("Mailman 'user notify' option")));
+  db_add_field($ret, 'mailman_lists', 'user_admin_notify', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'description' => t("Mailman 'admin notify' option")));
+  db_add_field($ret, 'mailman_lists', 'allow_unsubscribe', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1, 'description' => t("Allow/deny user list unsubscription")));
+  db_add_field($ret, 'mailman_lists', 'allow_temp_disable', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1, 'description' => t("Allow/deny list temporary receiving disable")));
+  db_add_field($ret, 'mailman_lists', 'allow_digest', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1, 'description' => t("Allow/deny list digest subscription")));
+  db_add_field($ret, 'mailman_lists', 'description', array('type' => 'text', 'size' => 'medium', 'not null' => TRUE, 'description' => t("List description")));
+  db_add_field($ret, 'mailman_users', 'lchecktime', array('type' =>'int', 'not null' => TRUE, 'default' => 0, 'description' => t("Last Mailman subscription check time")));
+  db_add_field($ret, 'mailman_lists', 'defaultnewreg', array('type' =>'int', 'not null' => TRUE, 'default' => 0, 'description' => t("Default choice in user registration form")));
+  db_add_field($ret, 'mailman_users', 'lmod', array('type' =>'int', 'not null' => TRUE, 'default' => 0, 'description' => t("Moderation flag")));
+  db_add_field($ret, 'mailman_lists', 'role_sync', array('type' =>'int', 'not null' => TRUE, 'default' => 1, 'description' => t("Enable/disable subscription synchronization")));
+  return $ret;
+}
+
+function user_mailman_register_uninstall() {
+  $ret = array();
+  variable_del('user_mailman_register_required');
+  variable_del('user_mailman_register_registerform');
+  variable_del('user_mailman_register_defaultnewreg');
+  variable_del('user_mailman_register_ownform');
+  variable_del('user_mailman_register_profilename');
+  variable_del('user_mailman_register_mailonerrors');
+  variable_del('user_mailman_register_checkinterval');
+  variable_del('user_mailman_register_hourly_threshold');
+  db_drop_field($ret, 'mailman_lists', 'webadmin');
+  db_drop_field($ret, 'mailman_lists', 'webpass');
+  db_drop_field($ret, 'mailman_lists', 'user_invite');
+  db_drop_field($ret, 'mailman_lists', 'user_notify');
+  db_drop_field($ret, 'mailman_lists', 'user_admin_notify');
+  db_drop_field($ret, 'mailman_lists', 'allow_unsubscribe');
+  db_drop_field($ret, 'mailman_lists', 'allow_temp_disable');
+  db_drop_field($ret, 'mailman_lists', 'allow_digest');
+  db_drop_field($ret, 'mailman_lists', 'description');
+  db_drop_field($ret, 'mailman_lists', 'version');
+  db_drop_field($ret, 'mailman_users', 'lchecktime');
+  db_drop_field($ret, 'mailman_lists', 'defaultnewreg');
+  db_drop_field($ret, 'mailman_users', 'lmod');
+  db_drop_field($ret, 'mailman_lists', 'role_sync');
+  return $ret;
+}
+
+function user_mailman_register_schema() {
+  return array();
+}
+
+function user_mailman_register_update_6001() {
+  $ret = array();
+  db_add_field($ret, 'mailman_lists', 'version', array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'description' => t("Mailman version")));
+  drupal_set_message(t("You must set the mailman version in the User Mailman Register preferences of your lists."));
+  return $ret;
+}
+
+function user_mailman_register_update_6002() {
+  $ret = array();
+  db_add_field($ret, 'mailman_users', 'lchecktime', array('type' =>'int', 'not null' => TRUE, 'default' => 0, 'description' => t("Last mailman subscription check time")));
+  return $ret;
+}
+
+function user_mailman_register_update_6003() {
+  $ret = array();
+  variable_del('user_mailman_register_defaultnewreg');
+  db_add_field($ret, 'mailman_lists', 'defaultnewreg', array('type' =>'int', 'not null' => TRUE, 'default' => 0, 'description' => t("Default choice in user registration form")));
+  return $ret;
+}
+
+function user_mailman_register_update_6004() {
+  $ret = array();
+  db_add_field($ret, 'mailman_users', 'lmod', array('type' =>'int', 'not null' => TRUE, 'default' => 0, 'description' => t("Moderation flag")));
+  return $ret;
+}
+
+function user_mailman_register_update_6005() {
+  $ret = array();
+  db_add_field($ret, 'mailman_users', 'lmod', array('type' =>'int', 'not null' => TRUE, 'default' => 0, 'description' => t("Moderation flag")));
+  return $ret;
+}
+
+function user_mailman_register_update_6006() {
+  $ret = array();
+  db_add_field($ret, 'mailman_lists', 'role_sync', array('type' =>'int', 'not null' => TRUE, 'default' => 1, 'description' => t("Enable/disable subscription synchronization")));
+  return $ret;
+}
+
+function user_mailman_register_update_6007() {
+  drupal_load('module', 'mailman_manager');
+  $ret = array();
+  $filter = '![^abcdefghijklmnopqrstuvwxyz0-9-_ ]+!s';
+  $res = db_query('SELECT rid, perm FROM {permission}');
+  $perms = array();
+  while ($p = db_fetch_object($res)) {
+    $perm = $p->perm;
+    foreach (_mailman_manager_get_lists() as $list) {
+      $list_clean = preg_replace($filter, '-', drupal_strtolower($list['name']));
+      $perm = str_replace('can subscribe to '. $list['name'], 'can subscribe to '. $list_clean, $perm);
+    }
+    if ($perm != $p->perm) {
+      $perms[$p->rid] = $perm;
+    }
+  }
+
+  foreach ($perms as $rid => $permission) {
+    db_query("UPDATE {permission} SET perm = '%s' WHERE rid = %d", $permission, $rid);
+    $ret[] = array('success' => TRUE, 'query' => 'UPDATE {permission} SET perm = ' . check_plain($permission) . ' WHERE rid = '. $rid);
+  }
+  if (!empty($ret)) {
+    drupal_set_message("<strong>User Mailman Register permission names have changed!.</strong>. The old permissions should be correctly updated, make sure the <em>can subscribe to ...</em> permissions in <em>Administer > Permissions > User Mailman Register</em> are still correctly assigned.", 'warning');
+  }
+
+  return $ret;
+
+}
