@@ -1,0 +1,5 @@
+### This file will hold the order of deployment of different features, and they have to be carried out in that particular order, so changes of different deployment donot conflict
+### This will mentione the issue number and link, and also the name of the deployment file attached to that issue
+
+1) 0000322: Add table of all community members (http://www.sigmah.org/issues/view.php?id=322)
+Name of deployment file : community_page_table.zip
