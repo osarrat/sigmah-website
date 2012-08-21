@@ -3,3 +3,64 @@
 
 1) 0000322: Add table of all community members (http://www.sigmah.org/issues/view.php?id=322)
 Name of deployment file : community_page_table.zip
+
+2) 0000303: Questions, comments form 1/2 not transfered to part 2/2
+Name of deployment file : front_page_question_comments.zip
+
+3) 0000328: Add a management of the "blockquote" html tag
+0000472: Blockquote overlapping comment author block
+
+Name of deployment file : blockquote.zip
+
+4) 0000461: News node cannot be hidden
+name of deployment file : news_node_cannot_be_hidden.zip
+
+5) 0000317: Add automatic language recognition on home page
+name of deployment file : automatic_language_recognition.zip
+
+6) 0000422: Improve presentation of news
+name of deployment file : improve_presentation_of_news.zip
+
+7) 0000462: Improved clarity of forum notification emails
+name of deployment file : improve_presentation_of_news.zip
+
+8) 0000326: Last modif date instead of creation date for date at the top of a user manual page
+name of deployment file : last_modif_date.zip
+
+9) 0000447: No value for max items to display set in some Views
+name of deployment file : max_item_for_views.zip
+
+10) 0000289: Spaces missing between "By", forum post author name and "at"
+name of deployment file : spaces_after_by.zip
+
+11) 0000464: Mantis - GitHub integration
+name of deployment file : mantis_github_integration.zip
+
+12) 0000446: Meaningful LInks in the URLS of all pages
+name of deployemnt file : meaningful_url.zip
+
+13) 0000310: No automatic revision on modification of a user guide
+name of deployment file : automatic_revision.zip
+
+14) 0000311: Showing diff of revisions
+name of deployment file : diff_between_revisions.zip
+
+15) 0000455: Better Integration of the Issues Tracker with the Sigmah-website project
+0000466: Mantis button in the FCKeditor toolbar
+0000418: Improve image insertion usability
+
+name of deployment file : issue_tracker_integration.zip
+
+16) 0000450: In Front Page, "Contribute to Sigmah" box, doesnt hav an intuitive interaction like the "Stay Informed", "Search" box just above
+
+name of deployment file : contribute_to_sigmah_box.zip
+
+17) 0000442: User personal directory not accessible for uploading files
+name of deployment file : user_personal_directory
+
+18) 0000465: [General] Installation of a Mailman server (spM) 
+0000373: [General] Add discussion list management for Steering Cooperative mailing list (spM)
+ name of deployment file : mailman_archives.zip
+
+19) 0000470: [General] Connect and share with Facebook (spM) - assigned.
+name of deployment file : fbConnect.zip
